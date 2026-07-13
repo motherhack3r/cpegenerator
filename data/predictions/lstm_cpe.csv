@@ -1,0 +1,11 @@
+TITLE,PREDICTION,TARGET
+InkThemes Colorway 4.0.3 for WordPress,cpe:2.3:a:inedel:forms:2.0.0:*:*:*:*:wordpress:*:*,cpe:2.3:a:inkthemes:colorway:4.0.3:*:*:*:*:wordpress:*:*
+Puppet PuppetDB 3.2.3,cpe:2.3:a:puppet:puppet_portal:1.0.0:*:*:*:*:*:*:*,cpe:2.3:a:puppet:puppetdb:3.2.3:*:*:*:*:*:*:*
+Status Board Project Status Board 1.1.41,cpe:2.3:a:starss:application_server:1.0.0:*:*:*:*:*:*:*,cpe:2.3:a:status_board_project:status_board:1.1.41:*:*:*:*:*:*:*
+Rust-lang Cargo 0.62.0 for Rust,cpe:2.3:a:retalear:server:2.0.0:*:*:*:*:jenkins:*:*,cpe:2.3:a:rust-lang:cargo:0.62.0:*:*:*:*:rust:*:*
+Greenbone OS 3.1.13,cpe:2.3:a:glope:ginux_and_server:1.0.0:*:*:*:*:*:*:*,cpe:2.3:o:greenbone:greenbone_os:3.1.13:*:*:*:*:*:*:*
+Apache Software Foundation Subversion 1.2.2,cpe:2.3:a:apache:croud:1.0.0:*:*:*:*:*:*:*,cpe:2.3:a:apache:subversion:1.2.2:*:*:*:*:*:*:*
+Grafana Agent 0.14.0 Release Candidate 1,cpe:2.3:a:graplanalars:stams:1.1.1:*:*:*:*:*:*:*,cpe:2.3:a:grafana:agent:0.14.0:rc1:*:*:*:*:*:*
+Aviatrix Controller 2.6,cpe:2.3:a:artalens:advanced_server:1.0.0:*:*:*:*:*:*:*,cpe:2.3:a:aviatrix:controller:2.6:*:*:*:*:*:*:*
+Snipeitapp Snipe-IT 4.6.2,cpe:2.3:a:sinelinder_project:menuplite_server:1.0.0:*:*:*:*:*:*:*,cpe:2.3:a:snipeitapp:snipe-it:4.6.2:*:*:*:*:*:*:*
+Tableau Desktop 2020.3.3,cpe:2.3:a:sathanate_project:ads-portal:2.0.1:*:*:*:*:*:*:*,cpe:2.3:a:tableau:tableau_desktop:2020.3.3:*:*:*:*:*:*:*
