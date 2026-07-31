@@ -1,0 +1,30 @@
+{
+    "chat.checkpoints.showFileChanges": true,
+    "chat.viewProgressBadge.enabled": true,
+    "chat.agentSessionProjection.enabled": true,
+    "chat.tools.terminal.outputCompaction": true,
+    "chat.tools.terminal.outputDeltas": true,
+    "chat.mcp.discovery.enabled": {
+        "claude-desktop": true
+    },
+    "chat.mcp.gallery.enabled": true,
+    "chat.agentSkillsLocations": {
+        "~/.agents/skills": false,
+        "~/.copilot/skills": false,
+        "~/.claude/skills": false
+    },
+    "chat.agentFilesLocations": {
+        "~/.copilot/agents": false
+    },
+    "chat.includeReferencedInstructions": true,
+    "chat.instructionsFilesLocations": {
+        "~/.copilot/instructions": false,
+        "~/.claude/rules": false
+    },
+    "chat.hookFilesLocations": {
+        "~/.copilot/hooks": false,
+        "~/.claude/settings.json": false
+    },
+    "chat.experimental.useSkillAdherencePrompt": true,
+    "chat.useNestedAgentsMdFiles": true
+}

@@ -66,7 +66,7 @@ Per al nostre cas: un WFN generat amb `version` concreta contra una entrada de d
 ## Diccionari oficial i API
 
 - **NVD CPE API 2.0**: `https://services.nvd.nist.gov/rest/json/cpes/2.0` — paràmetres útils: `keywordSearch`, `cpeMatchString`, `lastModStartDate`. Requereix API key per rate limits raonables (demanar a nvd.nist.gov/developers).
-- L'antic feed XML del diccionari està deprecat en favor de l'API. *(Verificar estat actual i límits abans d'implementar `lookup_cpe`.)*
+- L'antic feed XML del diccionari està deprecat en favor de l'API. *Verificat en viu (2026-07): límits 5 req/30 s sense key i 50 amb key; el `cpeMatchString` ha de complir la gramàtica de match string (especials escapats, p. ex. `visual_c\+\+`) o l'API retorna **404** — que també fa servir per a "cap resultat". El client de `src/cpegen/nvd.py` ja ho gestiona.*
 - El 2023 el matching es feia contra un dump local del diccionari MITRE; valorar cache local + refresc incremental via `lastModStartDate`.
 
 ## Trampes conegudes (experiència 2023)

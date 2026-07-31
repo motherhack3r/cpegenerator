@@ -4,7 +4,9 @@ Formalització de les regles que al TFM vivien a `POLIMI\TFM\TESIS\coses.xlsx` (
 
 ## Regles
 
-Es compara el WFN generat pel model (amb NER score) contra el diccionari oficial CPE. "1" = match exacte del camp; "< 1" = no exacte; `dist()` = similitud per distància d'edició normalitzada.
+Es compara el WFN generat pel model contra el diccionari oficial CPE. "1" = match exacte del camp; "< 1" = no exacte; `dist()` = similitud per distància d'edició normalitzada.
+
+> **Nota v2 (2026-07-24)**: les columnes *NER score* i *Score final* de la taula es conserven com a registre històric del TFM, però **ja no s'apliquen**: la classificació és purament determinista i la confiança del model es reporta per separat. Vegeu `docs/evaluation.md`.
 
 | Regla | Descripció | v:p:v | v:p | vendor | product | version | NER score | Score final | Classificació |
 |---|---|---|---|---|---|---|---|---|---|
@@ -35,6 +37,6 @@ L'objectiu de la v2 és convertir la màxima part de M2/M2B/M3 en M1x — sigui 
 
 ## Notes per a la v2
 
-- El llindar NER score > 0.8 és heretat; re-avaluar amb LLMs (les probabilitats no són comparables).
+- ~~El llindar NER score > 0.8 és heretat; re-avaluar amb LLMs~~ **Resolt (2026-07-24)**: el gate i el "score final" s'han retirat de la classificació (l'evidència: 9 títols amb confiança exactament 0.8 degradats a M2 al run del 2026-07-14). La confiança és ara una columna informativa; la seva utilitat com a porta es calibrarà al benchmark de la Fase 1. Detall a `docs/evaluation.md`.
 - `dist()` era distància d'edició simple; considerar similitud fonètica/token-based (Jaro-Winkler, embeddings) per M2/M3.
 - Part del M3 gegant (38%) probablement són títols "no-software" o soroll d'inventari (drivers, updates KB, components) — valorar un classificador previ de descarte.

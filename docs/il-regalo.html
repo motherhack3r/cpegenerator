@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPEgenerator v2 — il regalo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --blue-deep:#1F4E79;
+  --blue:#2E6CB5;
+  --blue-soft:#EAF1F9;
+  --red:#C0392B;          /* 'nduja */
+  --red-soft:#FAEDEB;
+  --ink:#1a2330;
+  --ink-2:#4a5568;
+  --ink-3:#8494a7;
+  --surface:#fcfcfb;
+  --card:#ffffff;
+  --line:#e3e8ee;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --disp:'Space Grotesk',var(--sans);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--sans);color:var(--ink);background:var(--surface);
+  line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:920px;margin:0 auto;padding:0 28px 72px}
+
+/* ---------- hero ---------- */
+header{padding:64px 0 40px;border-bottom:3px solid var(--blue-deep)}
+.eyebrow{
+  font-family:var(--mono);font-size:13px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--red);margin-bottom:14px;
+}
+h1{
+  font-family:var(--disp);font-weight:700;font-size:56px;line-height:1.02;
+  color:var(--blue-deep);letter-spacing:-.02em;
+}
+h1 .v2{color:var(--blue)}
+.tagline{margin-top:18px;font-size:19px;color:var(--ink-2);max-width:640px}
+.tagline em{font-style:normal;color:var(--red);font-weight:600}
+
+/* ---------- sections ---------- */
+section{margin-top:56px}
+h2{
+  font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--blue);margin-bottom:20px;
+}
+h2::before{content:"";display:inline-block;width:26px;height:3px;background:var(--red);
+  margin-right:10px;vertical-align:middle;border-radius:2px}
+
+/* ---------- transformation strip ---------- */
+.xform{
+  display:flex;flex-direction:column;gap:10px;
+  font-family:var(--mono);font-size:14px;
+}
+.xrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.xin,.xout,.xcve{
+  padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);
+}
+.xin{color:var(--ink-2)}
+.xout{border-color:var(--blue);color:var(--blue-deep);background:var(--blue-soft)}
+.xcve{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.xarrow{color:var(--ink-3);font-family:var(--sans);font-size:18px}
+.xnote{font-family:var(--sans);font-size:13px;color:var(--ink-3);margin-top:6px}
+
+/* ---------- principle callout ---------- */
+.principle{
+  background:var(--blue-deep);color:#fff;border-radius:14px;
+  padding:34px 38px;display:flex;flex-direction:column;gap:8px;
+}
+.principle .big{font-family:var(--disp);font-size:30px;font-weight:700;line-height:1.15}
+.principle .big .accent{color:#9CC3EE}
+.principle .sub{color:#B9CCE2;font-size:15px;max-width:620px}
+.principle .sub code{font-family:var(--mono);color:#DCE9F7;font-size:13.5px}
+
+/* ---------- pipeline ---------- */
+.pipe{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;row-gap:18px}
+.stage{flex:1 1 150px;min-width:150px;display:flex;align-items:center}
+.stagebox{
+  flex:1;background:var(--card);border:1.5px solid var(--line);border-top:4px solid var(--blue);
+  border-radius:10px;padding:14px 14px 12px;height:100%;
+}
+.stage:last-child .stagebox{border-top-color:var(--red)}
+.snum{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.sname{font-family:var(--disp);font-weight:700;font-size:15.5px;color:var(--blue-deep);margin:2px 0 4px}
+.sdesc{font-size:12.5px;color:var(--ink-2);line-height:1.4}
+.sdesc code{font-family:var(--mono);font-size:11px}
+.parrow{align-self:center;padding:0 7px;color:var(--ink-3);font-size:16px;flex:0 0 auto}
+.gate{
+  margin-top:14px;font-size:13.5px;color:var(--ink-2);background:var(--card);
+  border:1px dashed var(--blue);border-radius:8px;padding:10px 14px;
+}
+.gate b{color:var(--blue-deep)}
+
+/* ---------- then vs now ---------- */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.col{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:22px 24px}
+.col.now{border-color:var(--blue)}
+.colhead{font-family:var(--disp);font-weight:700;font-size:17px;margin-bottom:4px}
+.col.then .colhead{color:var(--ink-3)}
+.col.now .colhead{color:var(--blue-deep)}
+.colsub{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-bottom:14px}
+.col ul{list-style:none}
+.col li{padding:7px 0;border-top:1px solid var(--line);font-size:14px;color:var(--ink-2)}
+.col li b{color:var(--ink);font-weight:600}
+@media(max-width:640px){.compare{grid-template-columns:1fr}}
+
+/* ---------- chart ---------- */
+.chartcard{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:24px 26px}
+.charttitle{font-family:var(--disp);font-weight:700;font-size:17px;color:var(--ink)}
+.chartsub{font-size:13px;color:var(--ink-3);margin:2px 0 20px}
+.bars{display:flex;flex-direction:column;gap:16px}
+.brow{display:grid;grid-template-columns:180px 1fr;gap:14px;align-items:center}
+.blabel{font-size:13.5px;color:var(--ink-2);text-align:right}
+.blabel b{display:block;color:var(--ink);font-weight:600}
+.btrack{position:relative;height:26px;background:var(--blue-soft);border-radius:6px}
+.bfill{
+  position:absolute;inset:0 auto 0 0;border-radius:6px 4px 4px 6px;
+  display:flex;align-items:center;justify-content:flex-end;
+  transition:filter .15s;
+}
+.bfill.blue{background:var(--blue)}
+.bfill.red{background:var(--red)}
+.bfill:hover{filter:brightness(1.12)}
+.bval{
+  font-family:var(--mono);font-size:12.5px;font-weight:500;color:#fff;
+  padding-right:8px;white-space:nowrap;
+}
+.bval.outside{position:absolute;left:100%;margin-left:8px;color:var(--ink-2)}
+.chartnote{margin-top:16px;font-size:12.5px;color:var(--ink-3)}
+.chartnote b{color:var(--ink-2)}
+
+/* ---------- taxonomy ---------- */
+.tax{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.taxcard{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:16px 18px}
+.taxcard .code{font-family:var(--mono);font-weight:500;font-size:14px;color:var(--blue-deep)}
+.taxcard.m1{border-top:4px solid var(--blue)}
+.taxcard.m2{border-top:4px solid var(--ink-3)}
+.taxcard.m3{border-top:4px solid var(--line)}
+.taxcard p{font-size:13px;color:var(--ink-2);margin-top:6px}
+@media(max-width:640px){.tax{grid-template-columns:1fr}}
+
+/* ---------- nduja ---------- */
+.nduja{
+  background:linear-gradient(135deg,var(--red-soft),#fff 70%);
+  border:1.5px solid var(--red);border-radius:14px;padding:30px 34px;
+}
+.nduja h3{font-family:var(--disp);font-weight:700;font-size:24px;color:var(--red);margin-bottom:4px}
+.nduja .it{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);margin-bottom:16px}
+.nduja p{font-size:15px;color:var(--ink-2);max-width:680px;margin-bottom:10px}
+.nduja p b{color:var(--ink)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{
+  font-family:var(--mono);font-size:12px;background:#fff;border:1px solid var(--line);
+  border-radius:999px;padding:5px 12px;color:var(--ink-2);
+}
+
+/* ---------- footer ---------- */
+footer{
+  margin-top:64px;padding-top:22px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  font-size:12.5px;color:var(--ink-3);
+}
+footer .mottos{font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">il regalo · fragile — contiene 'nduja</div>
+  <h1>CPEgenerator <span class="v2">v2</span></h1>
+  <p class="tagline">From messy inventory titles to <em>validated</em> CPE 2.3 —
+  and from there, straight to the CVEs that actually apply to your fleet.</p>
+</header>
+
+<section>
+  <h2>What it does</h2>
+  <div class="xform">
+    <div class="xrow">
+      <span class="xin">"7-Zip 26.01 (x64) edition"</span>
+      <span class="xarrow">→</span>
+      <span class="xout">cpe:2.3:a:7-zip:7-zip:26.01:*:*:*:*:*:*:*</span>
+      <span class="xarrow">→</span>
+      <span class="xcve">CVE-2026-58052 · 4.8</span>
+    </div>
+    <p class="xnote">A real result from the first end-to-end run (July 2026): raw registry title → validated CPE → applicable CVE, no human in the loop.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The one rule everything hangs on</h2>
+  <div class="principle">
+    <div class="big">The model proposes.<br><span class="accent">The code decides.</span></div>
+    <p class="sub">No model — NER, LLM, or agent — ever emits a CPE string directly.
+    Models only extract entities (<code>vendor / product / version</code>).
+    The CPE is built, validated against the official ABNF grammar, and matched
+    against the NVD dictionary by deterministic code. A CPE that doesn't parse
+    doesn't exist. Hallucination is structurally impossible, not just unlikely.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The pipeline</h2>
+  <div class="pipe">
+    <div class="stage"><div class="stagebox">
+      <div class="snum">01</div><div class="sname">Extract</div>
+      <div class="sdesc">Fast NER or a small LLM pulls <code>vendor·product·version</code> out of the raw title.</div>
+    </div></div><div class="parrow">→</div>
+    <div class="stage"><div class="stagebox">
+      <div class="snum">02</div><div class="sname">Build WFN</div>
+      <div class="sdesc">Entities become a Well-Formed Name — pure code, no model.</div>
+    </div></div><div class="parrow">→</div>
+    <div class="stage"><div class="stagebox">
+      <div class="snum">03</div><div class="sname">Validate</div>
+      <div class="sdesc">CPE 2.3 ABNF grammar. The only exit gate — invalid never leaves.</div>
+    </div></div><div class="parrow">→</div>
+    <div class="stage"><div class="stagebox">
+      <div class="snum">04</div><div class="sname">Match</div>
+      <div class="sdesc">Against the official NVD dictionary, cached &amp; throttled.</div>
+    </div></div><div class="parrow">→</div>
+    <div class="stage"><div class="stagebox">
+      <div class="snum">05</div><div class="sname">Classify</div>
+      <div class="sdesc">M1–M3 rules: exact match, new version, new candidate… → CVE lookup.</div>
+    </div></div>
+  </div>
+  <p class="gate"><b>Escalation, not brute force:</b> titles the fast pass can't resolve are handed
+  to an agent that reasons with four deterministic tools (search the dictionary, validate, classify,
+  submit) — and everything it submits is re-validated by code anyway.</p>
+</section>
+
+<section>
+  <h2>2023 → 2026</h2>
+  <div class="compare">
+    <div class="col then">
+      <div class="colhead">CPEgenerator (TFM 2023)</div>
+      <div class="colsub">DistilBERT NER · Databricks</div>
+      <ul>
+        <li><b>One model,</b> one shot — no second opinion</li>
+        <li>Trained on clean NVD titles, <b>evaluated on messy SCCM reality</b></li>
+        <li>Version suffixes (beta/rc/build) routinely fumbled</li>
+        <li>No dictionary lookup at inference time</li>
+        <li>91% of the inventory stuck with <b>no path forward</b></li>
+      </ul>
+    </div>
+    <div class="col now">
+      <div class="colhead">CPEgenerator v2 (2026)</div>
+      <div class="colsub">hybrid · agent + deterministic tools</div>
+      <ul>
+        <li><b>Fast pass + agent escalation</b> for the hard tail</li>
+        <li>ABNF validator as the <b>single exit gate</b></li>
+        <li>Live dictionary matching with local cache</li>
+        <li>Deterministic M1–M3 — <b>model confidence never gates the rule</b></li>
+        <li>Full loop: inventory → CPE → <b>applicable CVEs</b></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>High-confidence resolution (M1x)</h2>
+  <div class="chartcard">
+    <div class="charttitle">Share of titles resolved automatically with high confidence</div>
+    <div class="chartsub">M1 + M1A + M1B + M1C, as % of processed titles</div>
+    <div class="bars">
+      <div class="brow">
+        <div class="blabel"><b>2023 baseline</b>NER only · ~526k titles</div>
+        <div class="btrack" title="2023: 25,710 of ~526k titles reached M1x">
+          <div class="bfill blue" style="width:16.3%"><span class="bval">4.9%</span></div>
+        </div>
+      </div>
+      <div class="brow">
+        <div class="blabel"><b>v2 first live run</b>agent · 75 real titles</div>
+        <div class="btrack" title="July 2026: 15 of 75 real Windows-registry titles reached M1x">
+          <div class="bfill red" style="width:66.7%"><span class="bval">20.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="chartnote">Bars drawn to a common 30% axis. <b>Honest caveat:</b> the v2 number comes
+    from one small real-world run (75 titles, July 2026) — the 1k benchmark will give the defensible
+    figure. The 2023 number is the full-inventory baseline the v2 has to beat at scale.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Where every title lands</h2>
+  <div class="tax">
+    <div class="taxcard m1">
+      <span class="code">M1 · M1A · M1B · M1C</span>
+      <p><b>High confidence.</b> Exact dictionary match, accepted match, new version of a known
+      product, or a solid brand-new CPE candidate. Ready for CVE applicability.</p>
+    </div>
+    <div class="taxcard m2">
+      <span class="code">M2 · M2B</span>
+      <p><b>Candidates.</b> Known vendor with a similar product, or a known product under a new
+      vendor. Worth a human (or agent) look.</p>
+    </div>
+    <div class="taxcard m3">
+      <span class="code">M3</span>
+      <p><b>Everything else.</b> Drivers, KBs, inventory noise, and the genuinely hard tail —
+      the 95% the v2 exists to shrink.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Next: fase 'nduja</h2>
+  <div class="nduja">
+    <h3>Piccola ma piccante</h3>
+    <div class="it">// small local models · big real inventory · one laptop GPU</div>
+    <p>The next iteration runs the whole pipeline on <b>small open models served locally</b>
+    (LM Studio, one consumer GPU) over a real half-million-title SCCM inventory — no cloud,
+    no per-token bill, just a laptop left cooking overnight.</p>
+    <p>Like the real thing from Spilinga: <b>small, intense, and it spreads everywhere</b> —
+    one tiny model per field, or one small model for all of them; the benchmark, not opinion,
+    decides which.</p>
+    <div class="chips">
+      <span class="chip">local-first</span>
+      <span class="chip">dictionary-first matching</span>
+      <span class="chip">deterministic validation</span>
+      <span class="chip">checkpoint &amp; resume</span>
+      <span class="chip">evidence before opinion</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>CPEgenerator v2 · open source R&amp;D · MotherHacker · July 2026</div>
+  <div class="mottos">architecture before decoration · evidence before opinion</div>
+</footer>
+
+</div>
+</body>
+</html>

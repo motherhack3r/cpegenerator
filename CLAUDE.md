@@ -30,4 +30,16 @@ Objectiu: generar i validar WFN/CPE 2.3 a partir de títols de software en text 
 
 ## Estat actual
 
-Fase 0 completada (estructura i documentació). Següent: benchmark a tres bandes (vegeu `ROADMAP.md`).
+Fases 0, 2, 3, 4 i 6 completades: pipeline CLI funcional (`python -m cpegen`)
+amb validador ABNF, extractor LLM multi-proveïdor (anthropic/openai/mock/replay),
+matcher M1–M3, agent tool-use, i el cicle `inventory` → `run` → `vulns` validat
+end-to-end amb dades reals (2026-07-14).
+
+2026-07-24: classificació M1–M3 purament determinista (gate de confiança `> 0.8`
+i "score final" retirats; `docs/evaluation.md`), exports SCCM reals a `devel`
+amb pla de curació (`docs/data-curation-plan.md`), i oberta la **Fase 7 'Nduja**
+(branca `feature/nduja`): models locals petits via LM Studio sobre el RAW SCCM.
+
+Següent: passos 1–2 de la curació (parse + validació ABNF a granel dels 487k),
+després diccionari local i benchmark 1k — ordre d'execució a `ROADMAP.md`
+(Fase 7), que té el registre complet de decisions.
