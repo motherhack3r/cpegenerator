@@ -151,6 +151,29 @@ def cmd_tier(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_split(args: argparse.Namespace) -> int:
+    from .splits import DEFAULT_FRACTIONS, split_catalog
+
+    fractions = None
+    if args.fractions:
+        parts = [float(x) for x in args.fractions.split(",")]
+        if len(parts) != 3:
+            print("--fractions needs three comma-separated values "
+                  "(benchmark_gold,test,train)")
+            return 1
+        fractions = dict(zip(("benchmark_gold", "test", "train"), parts))
+    stats = split_catalog(Path(args.tier_a), Path(args.tier_b),
+                          Path(args.output), seed=args.seed,
+                          fractions=fractions)
+    c = stats["counts"]
+    print(f"Splits (seed {stats['seed']}, {stats['families']} product "
+          f"families over {stats['rows']} rows):")
+    for name, n in c.items():
+        print(f"  {name}: {n}")
+    print(f"-> {Path(args.output) / 'splits'}/, MANIFEST.md")
+    return 0
+
+
 def cmd_vulns(args: argparse.Namespace) -> int:
     from .vulns import CVEClient, check_results, write_csv
 
@@ -270,6 +293,21 @@ def main(argv: list[str] | None = None) -> int:
                         help="local dictionary snapshot; pass '' to skip "
                              "the contrast")
     p_tier.set_defaults(func=cmd_tier)
+
+    p_spl = sub.add_parser(
+        "split",
+        help="product-disjoint benchmark_gold/test/train splits over the "
+             "tiered catalog (step 5 of the curation plan)")
+    p_spl.add_argument("--tier-a", default="data/curated/catalog_tier_a.csv",
+                       dest="tier_a")
+    p_spl.add_argument("--tier-b", default="data/curated/catalog_tier_b.csv",
+                       dest="tier_b")
+    p_spl.add_argument("--output", default="data/curated",
+                       help="output directory (splits/ + MANIFEST.md)")
+    p_spl.add_argument("--seed", type=int, default=20260804)
+    p_spl.add_argument("--fractions", default=None,
+                       help="benchmark_gold,test,train (default 0.1,0.1,0.8)")
+    p_spl.set_defaults(func=cmd_split)
 
     p_vul = sub.add_parser(
         "vulns",

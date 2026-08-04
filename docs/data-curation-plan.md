@@ -84,8 +84,24 @@ surt a `data/curated/` es pot regenerar des de les fonts amb la mateixa seed.
 - [x] Tiering + contrast amb diccionari (passos 3–4) —
   `src/cpegen/tiering.py` + `cpegen tier` (2026-08-04; contrast 100%
   local contra el snapshot del KGCS, cap crida a l'NVD API)
-- [ ] Splits + manifest (pas 5)
-- [ ] Tests + mètriques finals (pas 6)
+- [x] Splits + manifest (pas 5) — `src/cpegen/splits.py` + `cpegen split`
+  (2026-08-04)
+- [x] Tests + mètriques finals (pas 6) — cada mòdul ha sortit amb els
+  seus tests (155 en verd) i mètriques JSON auditables per pas
+
+### Resultats pas 5 (run 2026-08-04, seed 20260804)
+
+| Split | Files | Fracció |
+|---|---|---|
+| benchmark_gold | 47.859 | 10% |
+| test | 47.859 | 10% |
+| train | 382.875 | 80% |
+
+83.646 famílies de producte (components connexes dels parells
+vendor:product via union-find — els àlies de vendor i els renoms de
+producte no poden creuar splits). Invariant verificat sobre la sortida
+real: 99.154 parells únics, **0 leaks**. La quarantena no entra als
+splits. Detall a `data/curated/MANIFEST.md`.
 
 ### Resultats passos 3–4 (run 2026-08-04, snapshot KGCS 1.766.927 CPEs)
 
