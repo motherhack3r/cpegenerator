@@ -174,6 +174,27 @@ def cmd_split(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bench(args: argparse.Namespace) -> int:
+    from .benchmark import run_benchmark
+
+    models = [m.strip() for m in args.models.split(",") if m.strip()]
+    modes = [m.strip() for m in args.modes.split(",") if m.strip()]
+    summaries = run_benchmark(
+        input_path=Path(args.input), output_dir=Path(args.output),
+        models=models, modes=modes, provider_name=args.provider,
+        dictionary_path=Path(args.dict) if args.dict else None,
+        offline=args.offline, limit=args.limit,
+        cache_path=Path(args.cache) if args.cache else None,
+        log=lambda msg: print(msg, file=sys.stderr))
+    print(f"{len(summaries)} combos -> "
+          f"{Path(args.output) / 'bench_report.md'}")
+    for s in summaries:
+        print(f"  {s['model']} [{s['mode']}]: "
+              f"product F1 strict {s.get('product_f1_strict', 0):.3f}, "
+              f"p50 {s['latency_ms_p50']} ms")
+    return 0
+
+
 def cmd_vulns(args: argparse.Namespace) -> int:
     from .vulns import CVEClient, check_results, write_csv
 
@@ -308,6 +329,31 @@ def main(argv: list[str] | None = None) -> int:
     p_spl.add_argument("--fractions", default=None,
                        help="benchmark_gold,test,train (default 0.1,0.1,0.8)")
     p_spl.set_defaults(func=cmd_split)
+
+    p_ben = sub.add_parser(
+        "bench",
+        help="Phase-7 benchmark: extraction modes x models over a gold "
+             "set (resumable; one directory per combo)")
+    p_ben.add_argument("--input", default="data/gold/cpes_rasa_vpv_1k.csv",
+                       help="gold CSV (title,annotated_title)")
+    p_ben.add_argument("--output", default="out/bench",
+                       help="output directory")
+    p_ben.add_argument("--models", required=True,
+                       help="comma-separated model keys (as served by the "
+                            "provider, e.g. LM Studio keys)")
+    p_ben.add_argument("--modes", default="single,per-field",
+                       help="comma-separated: single, per-field")
+    p_ben.add_argument("--provider", default="openai",
+                       choices=["anthropic", "openai", "mock", "replay"])
+    p_ben.add_argument("--dict", default="data/cache/cpe_dictionary.jsonl.gz",
+                       help="local dictionary snapshot ('' to disable)")
+    p_ben.add_argument("--offline", action="store_true",
+                       help="never hit the NVD API on dictionary misses")
+    p_ben.add_argument("--limit", type=int, default=None,
+                       help="only the first N titles (smoke runs)")
+    p_ben.add_argument("--cache", default=None,
+                       help="path to the NVD JSON cache")
+    p_ben.set_defaults(func=cmd_bench)
 
     p_vul = sub.add_parser(
         "vulns",

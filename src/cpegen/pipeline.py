@@ -9,11 +9,12 @@ row is flagged and carries no CPE.
 from __future__ import annotations
 
 import csv
+import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
 from .agent import AgentResult, get_agent_provider, run_agent
-from .extractor import Extraction, extract, get_provider
+from .extractor import Extraction, extract, extract_per_field, get_provider
 from .matcher import HIGH_CONFIDENCE, classify
 from .goldset import GoldRecord, load_gold
 from .metrics import Report
@@ -44,6 +45,9 @@ class RowResult:
     fast_rule: str = ""      # rule from the fast pass when escalated
     agent_turns: int = 0
     note: str = ""
+    latency_ms: int = 0      # wall time of the extraction call(s)
+    tokens_in: int = 0       # usage reported by the provider, when any
+    tokens_out: int = 0
 
 
 def build_wfn(ext: Extraction) -> WFN | None:
@@ -64,11 +68,17 @@ def build_wfn(ext: Extraction) -> WFN | None:
     )
 
 
-def process_title(title: str, provider, nvd: NVDClient) -> RowResult:
-    """Run the fast single-shot pipeline on one title."""
+def process_title(title: str, provider, nvd: NVDClient,
+                  extract_fn=extract) -> RowResult:
+    """Run the fast pipeline on one title (single-shot or per-field)."""
     row = RowResult(title=title)
 
-    ext = extract(provider, title)
+    t0 = time.monotonic()
+    ext = extract_fn(provider, title)
+    row.latency_ms = int((time.monotonic() - t0) * 1000)
+    usage = getattr(provider, "last_usage", None) or {}
+    row.tokens_in = usage.get("in", 0)
+    row.tokens_out = usage.get("out", 0)
     if ext.error:
         row.error = ext.error
         return row
@@ -189,6 +199,7 @@ def run(input_path: Path, output_dir: Path, provider_name: str | None = None,
         limit: int | None = None, cache_path: Path | None = None,
         agent_mode: str = "off", max_turns: int = 8,
         dictionary_path: Path | None = None,
+        extract_mode: str = "single",
         progress=None) -> tuple[list[RowResult], Report | None]:
     """Run the pipeline over a CSV of titles; evaluate if annotations exist.
 
@@ -218,7 +229,10 @@ def run(input_path: Path, output_dir: Path, provider_name: str | None = None,
             row = agent_row(run_agent(g.title, agent_provider, toolbox,
                                       max_turns=max_turns))
         else:
-            row = process_title(g.title, provider, nvd)
+            extract_fn = (extract_per_field if extract_mode == "per-field"
+                          else extract)
+            row = process_title(g.title, provider, nvd,
+                                extract_fn=extract_fn)
             if agent_mode == "escalate" and needs_escalation(row):
                 row = escalate_title(row, agent_provider, toolbox, max_turns)
         rows.append(row)

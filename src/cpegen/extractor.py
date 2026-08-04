@@ -117,7 +117,7 @@ class AnthropicProvider:
         if not self.api_key:
             raise RuntimeError("ANTHROPIC_API_KEY is not set")
 
-    def complete(self, title: str) -> str:
+    def chat(self, system: str, user: str, max_tokens: int = 300) -> str:
         resp = requests.post(
             "https://api.anthropic.com/v1/messages",
             headers={
@@ -127,14 +127,21 @@ class AnthropicProvider:
             },
             json={
                 "model": self.model,
-                "max_tokens": 300,
-                "system": SYSTEM_PROMPT,
-                "messages": [{"role": "user", "content": f"Title: {title!r}"}],
+                "max_tokens": max_tokens,
+                "system": system,
+                "messages": [{"role": "user", "content": user}],
             },
             timeout=60,
         )
         resp.raise_for_status()
-        return resp.json()["content"][0]["text"]
+        data = resp.json()
+        usage = data.get("usage", {})
+        self.last_usage = {"in": usage.get("input_tokens", 0),
+                           "out": usage.get("output_tokens", 0)}
+        return data["content"][0]["text"]
+
+    def complete(self, title: str) -> str:
+        return self.chat(SYSTEM_PROMPT, f"Title: {title!r}")
 
 
 class OpenAICompatProvider:
@@ -149,7 +156,7 @@ class OpenAICompatProvider:
             "OPENAI_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "none")
 
-    def complete(self, title: str) -> str:
+    def chat(self, system: str, user: str, max_tokens: int = 300) -> str:
         resp = requests.post(
             f"{self.base_url}/chat/completions",
             headers={
@@ -158,16 +165,23 @@ class OpenAICompatProvider:
             },
             json={
                 "model": self.model,
-                "max_tokens": 300,
+                "max_tokens": max_tokens,
                 "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Title: {title!r}"},
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
                 ],
             },
             timeout=120,
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+        data = resp.json()
+        usage = data.get("usage") or {}
+        self.last_usage = {"in": usage.get("prompt_tokens", 0),
+                           "out": usage.get("completion_tokens", 0)}
+        return data["choices"][0]["message"]["content"]
+
+    def complete(self, title: str) -> str:
+        return self.chat(SYSTEM_PROMPT, f"Title: {title!r}")
 
 
 class MockProvider:
@@ -262,6 +276,105 @@ def get_provider(name: str | None = None, model: str | None = None):
     if name == "mock":
         return MockProvider()
     return PROVIDERS[name](model=model)
+
+
+# ---------------------------------------------------------------------
+# Per-field extraction — Phase 7 benchmark arm: one minimal call per
+# entity, replicating the 2023 NER-per-entity setup with small local
+# models. Costs N calls per title; whether the quality pays for the
+# extra inference is exactly what the 1k benchmark must answer.
+
+FIELD_PROMPTS = {
+    "vendor": (
+        "Extract ONLY the vendor (organization/author) from the software "
+        "title, lowercased, as it would appear in the NIST CPE dictionary. "
+        "Answer with the value alone, or the word null if absent. Never "
+        "explain.\n"
+        'Title: "in2code femanager 5.5.1 for typo3" -> in2code\n'
+        'Title: "Microsoft Visual C++ 2013 Redistributable (x64) - '
+        '12.0.30501" -> microsoft\n'
+        'Title: "7-Zip 26.01 (x64)" -> 7-zip'),
+    "product": (
+        "Extract ONLY the product name from the software title, lowercased, "
+        "without vendor, version or platform. Answer with the value alone, "
+        "or the word null if absent. Never explain.\n"
+        'Title: "in2code femanager 5.5.1 for typo3" -> femanager\n'
+        'Title: "gecad technologies axigen mail server 3.0 beta" -> '
+        'axigen mail server\n'
+        'Title: "7-Zip 26.01 (x64)" -> 7-zip'),
+    "version": (
+        "Extract ONLY the version string from the software title "
+        "(digits/dots/identifiers; suffixes like beta or rc2 are NOT part "
+        "of the version). Answer with the value alone, or the word null if "
+        "absent. Never explain.\n"
+        'Title: "in2code femanager 5.5.1 for typo3" -> 5.5.1\n'
+        'Title: "gecad technologies axigen mail server 3.0 beta" -> 3.0\n'
+        'Title: "OpenSSH" -> null'),
+    "update": (
+        "Extract ONLY the update/patch-level token from the software title "
+        "(beta, alpha, rc2, sp1, build identifiers). Answer with the value "
+        "alone, or the word null if absent. Never explain.\n"
+        'Title: "gecad technologies axigen mail server 3.0 beta" -> beta\n'
+        'Title: "in2code femanager 5.5.1 for typo3" -> null\n'
+        'Title: "Tool 2.0 rc2" -> rc2'),
+    "target_sw": (
+        "Extract ONLY the software ecosystem/platform the product runs on, "
+        "if the title implies one (\"for typo3\", \"plugin for wordpress\", "
+        "\"for node.js\"). Answer with the value alone, or the word null if "
+        "absent. Never explain.\n"
+        'Title: "in2code femanager 5.5.1 for typo3" -> typo3\n'
+        'Title: "riot.js riot-compiler 3.1.2 for node.js" -> node.js\n'
+        'Title: "7-Zip 26.01 (x64)" -> null'),
+}
+
+_NULL_ANSWERS = {"", "null", "none", "n/a", "-"}
+
+
+def _clean_field_answer(text: str) -> str | None:
+    value = text.strip().splitlines()[0].strip() if text.strip() else ""
+    value = value.strip("\"'` ").lower()
+    return None if value in _NULL_ANSWERS else value
+
+
+def extract_per_field(provider, title: str, retries: int = 2) -> Extraction:
+    """One minimal LLM call per entity; same Extraction contract.
+
+    Providers without a ``chat`` method (mock/replay) fall back to their
+    single-shot JSON and the field is selected from it, so offline tests
+    and replays keep working in this mode.
+    """
+    if not hasattr(provider, "chat"):
+        return extract(provider, title, retries=retries)
+
+    values: dict[str, str | None] = {}
+    usage = {"in": 0, "out": 0}
+    for field, prompt in FIELD_PROMPTS.items():
+        last_err = None
+        for attempt in range(retries + 1):
+            try:
+                text = provider.chat(prompt, f'Title: "{title}"',
+                                     max_tokens=60)
+                values[field] = _clean_field_answer(text)
+                got = getattr(provider, "last_usage", None) or {}
+                usage["in"] += got.get("in", 0)
+                usage["out"] += got.get("out", 0)
+                break
+            except (requests.RequestException, KeyError, IndexError) as exc:
+                last_err = str(exc)
+                time.sleep(min(2**attempt, 8))
+        else:
+            return Extraction(title=title,
+                              error=f"provider failed ({field}): {last_err}")
+    provider.last_usage = usage
+    return Extraction(
+        title=title,
+        vendor=values.get("vendor"),
+        product=values.get("product"),
+        version=values.get("version"),
+        update=values.get("update"),
+        target_sw=values.get("target_sw"),
+        confidence=0.0,  # per-field mode has no single confidence signal
+    )
 
 
 def extract(provider, title: str, retries: int = 2) -> Extraction:
