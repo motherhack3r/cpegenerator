@@ -49,8 +49,8 @@ CPEgenerator antic, i validació de la hipòtesi híbrida invertida: models
 petits per al gruix, no un LLM gran per a la cua.
 
 Ordre d'execució:
-1. Curació passos 1–2 (`docs/data-curation-plan.md`): parse + validació ABNF a granel dels 487k
-2. Diccionari local de primera passada (catàleg curat + snapshot del diccionari CPE oficial); NVD API només per a misses — elimina el coll d'ampolla de throttling a escala
+1. ✅ Curació passos 1–2 (`docs/data-curation-plan.md`): parse + validació ABNF a granel dels 487k (2026-08-04)
+2. Diccionari local de primera passada (catàleg curat + snapshot del diccionari CPE oficial); NVD API només per a misses — elimina el coll d'ampolla de throttling a escala. Codi fet (`dictionary.py`, `cpegen dict --build`, `run --dict`, 2026-08-04); pendent el run de descàrrega (cal xarxa: portàtil, ~3 min amb `NVD_API_KEY`)
 3. Benchmark sobre el gold 1k: 2 modes d'extracció (crida única JSON vs subagent-per-camp) × 3-4 models — el mode es decideix amb números, no a priori
 4. Run complet del RAW: dedup de títols + checkpointing/resume, amb el mode i model guanyadors
 
@@ -67,6 +67,7 @@ Shortlist de models (dels ja disponibles a LM Studio de l'usuari):
 
 | Data | Decisió | Motiu |
 |---|---|---|
+| 2026-08-04 | Diccionari CPE local (`src/cpegen/dictionary.py`): snapshot complet de l'API NVD en JSONL gzip (`cpegen dict --build`, reprendible amb checkpoint per pàgina), índex en memòria per (vendor, product) amb fallback vendor-only, i capa `HybridDictionary` (local primer, API cachejada només en miss) activada amb `run --dict` | Elimina el coll d'ampolla del throttling NVD a escala 200k+ (Fase 7 pas 2): la primera passada respon de memòria amb el mateix contracte `candidates_for`/`keyword` que `NVDClient` — zero canvis a matcher, tools i agent. JSONL pla (no sqlite: falla al mount); el build es fa al portàtil perquè el sandbox no té accés a l'API |
 | 2026-08-04 | Curació passos 1–2 implementats a `src/cpegen/curate.py` (`cpegen curate`): els àlies CPE que fallen l'ABNF només per valors sense normalitzar (majúscules, caràcters sense escapar, espais — 98% del rebuig, concentrat a `version`) es canonicalitzen amb el binding WFN determinista (`normalize_raw` + `bind_component`) i es revaliden; traça completa a `normalized.log` i `n_normalized_aliases` per fila. `data/curated/` queda fora de git (regenerable; sha256 de la font a `curation_metrics.json`) | El rebuig estricte perdia el 22% de les files (106k) per CPEs del vendor tool clarament recuperables (`A0.48` → `a0.48`); la canonicalització és el binding estàndard de NISTIR 7695, no una heurística — el validador continua sent la porta única (686.647 àlies de sortida, 0 invàlids). Rescat mesurat: 170.079/172.206 (98,8%) |
 | 2026-07-24 | Classificació M1–M3 purament determinista: retirats el gate de confiança (`> 0.8`) i el "score final" (`mean`/`min` de confiança i distància d'edició); `classify()` ja no rep la confiança i retorna `similarity`; la confiança del model passa a columna informativa a `results.csv` (`match_score` → `match_similarity`) | El gate va degradar 9 matches exactes a M2 (run 2026-07-14); barrejar probabilitats de models amb distàncies d'edició és incomparable entre models — letal per a un benchmark multi-model. La confiança com a porta es calibrarà empíricament amb el benchmark 1k. Detall a `docs/evaluation.md` |
 | 2026-07-24 | Branca `feature/nduja`: extracció amb models locals petits via LM Studio | Valida la hipòtesi híbrida invertida sobre el RAW real; el gest: regal per a un company calabrès que usa el CPEgenerator antic. La capa `openai` existent ja parla amb LM Studio |

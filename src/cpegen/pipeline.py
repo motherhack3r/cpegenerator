@@ -188,6 +188,7 @@ def run(input_path: Path, output_dir: Path, provider_name: str | None = None,
         model: str | None = None, offline: bool = False,
         limit: int | None = None, cache_path: Path | None = None,
         agent_mode: str = "off", max_turns: int = 8,
+        dictionary_path: Path | None = None,
         progress=None) -> tuple[list[RowResult], Report | None]:
     """Run the pipeline over a CSV of titles; evaluate if annotations exist.
 
@@ -199,6 +200,9 @@ def run(input_path: Path, output_dir: Path, provider_name: str | None = None,
     output_dir.mkdir(parents=True, exist_ok=True)
     nvd = NVDClient(cache_path or Path("data/cache/nvd_cache.json"),
                     offline=offline)
+    if dictionary_path is not None:
+        from .dictionary import HybridDictionary, LocalDictionary
+        nvd = HybridDictionary(LocalDictionary.load(dictionary_path), nvd)
     toolbox = ToolBox(nvd=nvd)
     agent_provider = (get_agent_provider(provider_name, model=model)
                       if agent_mode in ("escalate", "all") else None)

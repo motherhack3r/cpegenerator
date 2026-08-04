@@ -54,6 +54,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         cache_path=Path(args.cache) if args.cache else None,
         agent_mode=agent_mode,
         max_turns=getattr(args, "max_turns", 8),
+        dictionary_path=Path(args.dict) if getattr(args, "dict", None) else None,
         progress=progress,
     )
     print(file=sys.stderr)
@@ -100,6 +101,32 @@ def cmd_curate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_dict(args: argparse.Namespace) -> int:
+    from .dictionary import DEFAULT_SNAPSHOT, LocalDictionary, build_snapshot
+
+    path = Path(args.snapshot or DEFAULT_SNAPSHOT)
+    if args.build:
+        def progress(done: int, total: int) -> None:
+            print(f"\r[{done}/{total}] dictionary entries", end="",
+                  file=sys.stderr, flush=True)
+
+        meta = build_snapshot(path, progress=progress)
+        print(file=sys.stderr)
+        print(f"Snapshot: {meta['fetched']} entries "
+              f"({meta['invalid']} failed ABNF, kept+counted) -> {path}")
+        return 0
+    if not path.exists():
+        print(f"No snapshot at {path}. Build one with: "
+              f"cpegen dict --build   (needs network; NVD_API_KEY "
+              f"recommended: ~3 min vs ~30 min)")
+        return 1
+    d = LocalDictionary.load(path)
+    print(f"Snapshot {path}: {d.size} entries, "
+          f"{len(d.by_pair)} vendor:product pairs, "
+          f"{len(d.by_vendor)} vendors")
+    return 0
+
+
 def cmd_vulns(args: argparse.Namespace) -> int:
     from .vulns import CVEClient, check_results, write_csv
 
@@ -141,6 +168,9 @@ def _add_common_run_args(p: argparse.ArgumentParser, default_output: str) -> Non
     p.add_argument("--cache", default=None, help="path to the NVD JSON cache")
     p.add_argument("--max-turns", type=int, default=8, dest="max_turns",
                    help="agent turn budget per title (default 8)")
+    p.add_argument("--dict", default=None,
+                   help="local CPE dictionary snapshot (see 'cpegen dict "
+                        "--build'); NVD API is then only hit on misses")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -187,6 +217,17 @@ def main(argv: list[str] | None = None) -> int:
     p_cur.add_argument("--limit", type=int, default=None,
                        help="keep only the first N curated rows")
     p_cur.set_defaults(func=cmd_curate)
+
+    p_dic = sub.add_parser(
+        "dict",
+        help="build or inspect the local CPE dictionary snapshot "
+             "(full NVD dump; first-pass lookups then skip the API)")
+    p_dic.add_argument("--build", action="store_true",
+                       help="download the full CPE dictionary (resumable)")
+    p_dic.add_argument("--snapshot", default=None,
+                       help="snapshot path (default "
+                            "data/cache/cpe_dictionary.jsonl.gz)")
+    p_dic.set_defaults(func=cmd_dict)
 
     p_vul = sub.add_parser(
         "vulns",
