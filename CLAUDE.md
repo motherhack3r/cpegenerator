@@ -40,6 +40,13 @@ i "score final" retirats; `docs/evaluation.md`), exports SCCM reals a `devel`
 amb pla de curació (`docs/data-curation-plan.md`), i oberta la **Fase 7 'Nduja**
 (branca `feature/nduja`): models locals petits via LM Studio sobre el RAW SCCM.
 
-Següent: passos 1–2 de la curació (parse + validació ABNF a granel dels 487k),
-després diccionari local i benchmark 1k — ordre d'execució a `ROADMAP.md`
+2026-08-04/05: pla de curació complet (passos 1–5: `cpegen curate`/`tier`/
+`split`, 480k files curades, splits disjunts per producte, 0 leaks);
+diccionari CPE local des del KGCS (`cpegen dict --build --from-neo4j`,
+1,77M entrades) amb lookup híbrid (`run --dict`); harness `cpegen bench`
+amb provider `lmstudio` natiu (reasoning off real, temperature 0) i
+arxiu versionat a `data/benchmarks/` amb PROVENANCE per tirada.
+
+Següent: completar la matriu pilot al PC, matriu 1k amb els finalistes,
+rèplica al laptop i run del RAW — ordre d'execució a `ROADMAP.md`
 (Fase 7), que té el registre complet de decisions.
