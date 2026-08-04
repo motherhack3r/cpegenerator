@@ -72,6 +72,69 @@ def _api_fetch(api_key: str | None) -> FetchPage:
     return fetch
 
 
+def _neo4j_fetch(url: str | None = None, user: str | None = None,
+                 password: str | None = None, database: str | None = None,
+                 post: Callable[..., dict] | None = None) -> FetchPage:
+    """Page fetcher over a local KGCS Neo4j (Platform nodes = CPE dict).
+
+    Speaks the plain Neo4j HTTP transactional API through ``requests`` —
+    no driver dependency. Returns pages in the same shape as the NVD
+    API, so :func:`build_snapshot` (and its resume logic) is source-
+    agnostic. ``post`` is injectable for offline tests.
+
+    Config via env when not passed: ``NEO4J_URL`` (default
+    ``http://localhost:7474``), ``NEO4J_USER`` (default ``neo4j``),
+    ``NEO4J_PASSWORD``, ``NEO4J_DATABASE`` (default ``neo4j``).
+    """
+    url = (url or os.environ.get("NEO4J_URL", "http://localhost:7474")).rstrip("/")
+    user = user or os.environ.get("NEO4J_USER", "neo4j")
+    password = password or os.environ.get("NEO4J_PASSWORD", "")
+    database = database or os.environ.get("NEO4J_DATABASE", "neo4j")
+    endpoint = f"{url}/db/{database}/tx/commit"
+
+    if post is None:
+        import requests
+
+        def post(statement: str, parameters: dict) -> dict:
+            resp = requests.post(
+                endpoint,
+                json={"statements": [{"statement": statement,
+                                      "parameters": parameters}]},
+                auth=(user, password), timeout=300)
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("errors"):
+                raise RuntimeError(f"neo4j: {data['errors']}")
+            return data
+
+    total: int | None = None
+
+    def fetch(start_index: int, page_size: int) -> dict:
+        nonlocal total
+        if total is None:
+            data = post("MATCH (p:Platform) RETURN count(*)", {})
+            total = data["results"][0]["data"][0]["row"][0]
+        data = post(
+            "MATCH (p:Platform) "
+            "RETURN p.cpeUri, p.cpeNameId, p.deprecated, "
+            "p.vendor, p.product, p.version "
+            "ORDER BY p.cpeNameId SKIP $skip LIMIT $limit",
+            {"skip": start_index, "limit": page_size})
+        rows = [d["row"] for d in data["results"][0]["data"]]
+        products = []
+        for uri, name_id, deprecated, vendor, product, version in rows:
+            title = " ".join(v for v in (vendor, product, version)
+                             if v and v != "*")
+            products.append({"cpe": {
+                "cpeName": uri or "", "cpeNameId": name_id or "",
+                "titles": [{"title": title, "lang": "en"}] if title else [],
+                "deprecated": bool(deprecated)}})
+        return {"totalResults": total, "resultsPerPage": len(rows),
+                "products": products}
+
+    return fetch
+
+
 def _entry_from_product(p: dict) -> dict:
     titles = p.get("titles", [])
     title = next((t["title"] for t in titles if t.get("lang") == "en"),
@@ -85,6 +148,7 @@ def _entry_from_product(p: dict) -> dict:
 def build_snapshot(out_path: Path = DEFAULT_SNAPSHOT,
                    api_key: str | None = None,
                    fetch: FetchPage | None = None,
+                   source: str = "nvd",
                    page_size: int = PAGE_SIZE,
                    progress: Callable[[int, int], None] | None = None,
                    ) -> dict:
@@ -101,10 +165,13 @@ def build_snapshot(out_path: Path = DEFAULT_SNAPSHOT,
     out_path.parent.mkdir(parents=True, exist_ok=True)
     part_path = out_path.with_suffix(out_path.suffix + ".part")
     meta_path = out_path.with_suffix(out_path.suffix + ".meta.json")
-    fetch = fetch or _api_fetch(api_key or os.environ.get("NVD_API_KEY"))
+    if fetch is None:
+        fetch = (_neo4j_fetch() if source == "neo4j"
+                 else _api_fetch(api_key or os.environ.get("NVD_API_KEY")))
 
     meta = {"done": False, "resume_index": 0, "total": None,
-            "fetched": 0, "invalid": 0, "page_size": page_size}
+            "fetched": 0, "invalid": 0, "page_size": page_size,
+            "source": source}
     if meta_path.exists() and part_path.exists():
         saved = json.loads(meta_path.read_text(encoding="utf-8"))
         if not saved.get("done") and saved.get("page_size") == page_size:

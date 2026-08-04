@@ -9,6 +9,7 @@ from pathlib import Path
 from cpegen.dictionary import (
     HybridDictionary,
     LocalDictionary,
+    _neo4j_fetch,
     build_snapshot,
 )
 from cpegen.nvd import DictEntry
@@ -106,6 +107,38 @@ def test_local_dictionary_vendor_fallback_and_miss(tmp_path):
     assert len(d.candidates_for("7-zip", "unknown_product")) == 2  # vendor
     assert d.candidates_for("no_such_vendor", "x") == []
     assert d.misses == 1
+
+
+def _fake_post(rows):
+    """Stub for the Neo4j HTTP transactional endpoint."""
+    def post(statement, parameters):
+        if statement.startswith("MATCH (p:Platform) RETURN count"):
+            return {"results": [{"data": [{"row": [len(rows)]}]}]}
+        skip, limit = parameters["skip"], parameters["limit"]
+        page = rows[skip:skip + limit]
+        return {"results": [{"data": [{"row": r} for r in page]}]}
+    return post
+
+
+def test_neo4j_fetch_yields_nvd_shaped_pages(tmp_path):
+    rows = [
+        ["cpe:2.3:a:7-zip:7-zip:26.01:*:*:*:*:*:*:*", "id-1", False,
+         "7-zip", "7-zip", "26.01"],
+        ["cpe:2.3:o:linux:linux_kernel:6.1:*:*:*:*:*:*:*", "id-2", True,
+         "linux", "linux_kernel", "6.1"],
+    ]
+    fetch = _neo4j_fetch(post=_fake_post(rows))
+    page = fetch(0, 1)
+    assert page["totalResults"] == 2 and page["resultsPerPage"] == 1
+    cpe = page["products"][0]["cpe"]
+    assert cpe["cpeName"] == rows[0][0]
+    assert cpe["titles"][0]["title"] == "7-zip 7-zip 26.01"
+    # end-to-end: same build path as the NVD source, deprecated preserved
+    out = tmp_path / "dict.jsonl.gz"
+    meta = build_snapshot(out, fetch=fetch, source="neo4j", page_size=1)
+    assert meta["fetched"] == 2 and meta["source"] == "neo4j"
+    d = LocalDictionary.load(out)
+    assert d.candidates_for("linux", "linux_kernel")[0].deprecated is True
 
 
 class _StubClient:

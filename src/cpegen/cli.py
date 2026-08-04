@@ -110,9 +110,10 @@ def cmd_dict(args: argparse.Namespace) -> int:
             print(f"\r[{done}/{total}] dictionary entries", end="",
                   file=sys.stderr, flush=True)
 
-        meta = build_snapshot(path, progress=progress)
+        source = "neo4j" if args.from_neo4j else "nvd"
+        meta = build_snapshot(path, source=source, progress=progress)
         print(file=sys.stderr)
-        print(f"Snapshot: {meta['fetched']} entries "
+        print(f"Snapshot ({source}): {meta['fetched']} entries "
               f"({meta['invalid']} failed ABNF, kept+counted) -> {path}")
         return 0
     if not path.exists():
@@ -224,6 +225,11 @@ def main(argv: list[str] | None = None) -> int:
              "(full NVD dump; first-pass lookups then skip the API)")
     p_dic.add_argument("--build", action="store_true",
                        help="download the full CPE dictionary (resumable)")
+    p_dic.add_argument("--from-neo4j", action="store_true", dest="from_neo4j",
+                       help="build from the local KGCS Neo4j (Platform "
+                            "nodes) via the HTTP API instead of the NVD "
+                            "API; env: NEO4J_URL/NEO4J_USER/NEO4J_PASSWORD"
+                            "/NEO4J_DATABASE")
     p_dic.add_argument("--snapshot", default=None,
                        help="snapshot path (default "
                             "data/cache/cpe_dictionary.jsonl.gz)")
