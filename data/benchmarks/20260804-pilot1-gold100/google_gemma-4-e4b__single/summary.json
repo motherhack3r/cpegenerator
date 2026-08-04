@@ -1,0 +1,22 @@
+{
+  "model": "google/gemma-4-e4b",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 78,
+  "m1x": 83,
+  "latency_ms_p50": 3327,
+  "latency_ms_p95": 3712,
+  "tokens_in": 63459,
+  "tokens_out": 4758,
+  "wall_s": 348.9,
+  "vendor_f1_strict": 0.9347,
+  "vendor_f1_partial": 0.9548,
+  "product_f1_strict": 0.84,
+  "product_f1_partial": 0.91,
+  "version_f1_strict": 0.9899,
+  "version_f1_partial": 0.9899,
+  "target_sw_f1_strict": 0.9362,
+  "target_sw_f1_partial": 0.9362
+}

@@ -1,0 +1,101 @@
+title,vendor,product,version,update,target_sw,confidence,cpe,valid,validation_errors,rule,rule_name,match_similarity,matched_cpe,error,stage,fast_rule,agent_turns,note,latency_ms,tokens_in,tokens_out
+apple mac os x 10.9.3,,,10.9.3,,,0.0,,False,,,,0.0,,no vendor/product extracted,fast,,0,,4085,691,15
+citadel citadel_ux 6.27,citadel,citadel_ux,6.27,,,0.0,cpe:2.3:a:citadel:citadel_ux:6.27:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,2940,686,17
+amazee lagoon 0.18.8,,amazee lagoon,0.18.8,,,0.0,cpe:2.3:a:*:amazee_lagoon:0.18.8:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3003,686,17
+f5 nginx 0.8.38,f5,nginx,0.8.38,,,0.0,cpe:2.3:a:f5:nginx:0.8.38:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:f5:nginx:0.8.38:*:*:*:*:*:*:*,,fast,,0,,3321,686,16
+inversoft prime-jwt 0.1.2,inversoft,prime-jwt,0.1.2,,,0.0,cpe:2.3:a:inversoft:prime-jwt:0.1.2:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:inversoft:prime-jwt:0.1.2:*:*:*:*:*:*:*,,fast,,0,,3830,696,18
+wplegalpages wp legal pages 2.0.6 for wordpress,,wp legal pages,2.0.6,,wordpress,0.0,cpe:2.3:a:*:wp_legal_pages:2.0.6:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3925,711,16
+airtame hdmi dongle firmware 2.1.1,,airtame hdmi dongle,2.1.1,,,0.0,cpe:2.3:a:*:airtame_hdmi_dongle:2.1.1:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4072,706,20
+checksec canopy 3.5.3,canopy,canopy,3.5.3,,,0.0,cpe:2.3:a:canopy:canopy:3.5.3:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3627,681,16
+microsoft sharepoint server 2019,microsoft,sharepoint server,2019,,sharepoint,0.0,cpe:2.3:a:microsoft:sharepoint_server:2019:*:*:*:*:sharepoint:*:*,True,,M1A,Accepted perfect match,1.0,cpe:2.3:a:microsoft:sharepoint_server:2019:*:*:*:*:*:*:*,,fast,,0,,3757,681,16
+iminho mindoc 0.8,iminho,mindoc,0.8,,,0.0,cpe:2.3:a:iminho:mindoc:0.8:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:iminho:mindoc:0.8:*:*:*:*:*:*:*,,fast,,0,,3366,676,14
+greentreelabs gallery photoblocks 1.1.31 for wordpress,greentreelabs,photoblocks,1.1.31,,wordpress,0.0,cpe:2.3:a:greentreelabs:photoblocks:1.1.31:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4508,721,20
+horde dynamic imp (dimp) 1.1 release candidate 2,,dynamic imp,1.1,rc2,,0.0,cpe:2.3:a:*:dynamic_imp:1.1:rc2:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4118,716,14
+apereo uportal 5.8.1,apereo,uportal,5.8.1,,,0.0,cpe:2.3:a:apereo:uportal:5.8.1:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:apereo:uportal:5.8.1:*:*:*:*:*:*:*,,fast,,0,,3883,686,16
+documalis free pdf scanner 5.7.2.122,documalis,documalis free pdf scanner,5.7.2.122,,,0.0,cpe:2.3:a:documalis:documalis_free_pdf_scanner:5.7.2.122:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4715,716,25
+sygnoos popup builder 3.0.7 wordpress,,popup builder,3.0.7,,wordpress,0.0,cpe:2.3:a:*:popup_builder:3.0.7:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3760,701,15
+dell inspiron 7352 bios a12,,,,a12,,0.0,,False,,,,0.0,,no vendor/product extracted,fast,,0,,3591,696,12
+mitreid connect 1.0.6,mitreid,mitreid connect,1.0.6,,,0.0,cpe:2.3:a:mitreid:mitreid_connect:1.0.6:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3984,686,19
+eyrie remctl 3.1,eyrie,remctl,3.1,,,0.0,cpe:2.3:a:eyrie:remctl:3.1:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:eyrie:remctl:3.1:*:*:*:*:*:*:*,,fast,,0,,3431,676,14
+digium certified asterisk 1.8.4.0 release candidate 1,digium,asterisk,1.8.4.0,rc1,,0.0,cpe:2.3:a:digium:asterisk:1.8.4.0:rc1:*:*:*:*:*:*,True,,M1B,New software version,0.875,cpe:2.3:a:digium:asterisk:1.8.24.0:*:*:*:*:*:*:*,,fast,,0,,4382,716,19
+openapi-generator openapi generator 4.1.0,openapi-generator,openapi-generator,4.1.0,,,0.0,cpe:2.3:a:openapi-generator:openapi-generator:4.1.0:*:*:*:*:*:*:*,True,,M2,New product candidate,0.9412,cpe:2.3:a:openapi-generator:openapi_generator:4.0.3:*:*:*:*:*:*:*,,fast,,0,,3974,696,18
+oracle agile product lifecycle management framework 9.3.4,oracle,agile product lifecycle management framework,9.3.4,,,0.0,cpe:2.3:a:oracle:agile_product_lifecycle_management_framework:9.3.4:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4032,696,19
+vmware tools 3.1.2.12031,vmware,vmware tools,3.1.2.12031,,,0.0,cpe:2.3:a:vmware:vmware_tools:3.1.2.12031:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4517,711,23
+betterment testtrack 1.0,,testtrack,1.0,,,0.0,cpe:2.3:a:*:testtrack:1.0:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3374,676,13
+mortbay jetty 2.2.7,,jetty,2.2.7,,jetty,0.0,cpe:2.3:a:*:jetty:2.2.7:*:*:*:*:jetty:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3548,681,14
+webkul bagisto 0.1.1,webkul,bagisto,0.1.1,,,0.0,cpe:2.3:a:webkul:bagisto:0.1.1:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:webkul:bagisto:0.1.1:*:*:*:*:*:*:*,,fast,,0,,3636,686,16
+atlassian jira service desk 3.0.9 data center edition,atlassian,jira service desk,3.0.9,,,0.0,cpe:2.3:a:atlassian:jira_service_desk:3.0.9:*:*:*:*:*:*:*,True,,M1A,Accepted perfect match,1.0,cpe:2.3:a:atlassian:jira_service_desk:3.0.9:*:*:*:server:*:*:*,,fast,,0,,3973,711,18
+boonex dolphin 7.2.0 beta 2,boonex,dolphin,7.2.0,beta 2,,0.0,cpe:2.3:a:boonex:dolphin:7.2.0:beta_2:*:*:*:*:*:*,True,,M1A,Accepted perfect match,1.0,cpe:2.3:a:boonex:dolphin:7.2.0:beta1:*:*:*:*:*:*,,fast,,0,,3912,701,18
+syntevo smartsvn 3.0.8,syntevo,smartsvn,3.0.8,,,0.0,cpe:2.3:a:syntevo:smartsvn:3.0.8:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:syntevo:smartsvn:3.0.8:*:*:*:*:*:*:*,,fast,,0,,3956,691,17
+f5 big-ip policy enforcement manager 14.1.2.1.0.115.4,f5,policy enforcement manager,14.1.2.1.0.115.4,,,0.0,cpe:2.3:a:f5:policy_enforcement_manager:14.1.2.1.0.115.4:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3687,761,28
+sun sdk 1.2.2_010,sun,,1.2.2,010,,0.0,cpe:2.3:a:sun:*:1.2.2:010:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3452,696,16
+ibm db2 high performance unload load 6.1.0.2 interim fix 2,ibm,db2 high performance unload load,6.1.0.2,interim fix 2,,0.0,cpe:2.3:a:ibm:db2_high_performance_unload_load:6.1.0.2:interim_fix_2:*:*:*:*:*:*,True,,M1A,Accepted perfect match,1.0,cpe:2.3:a:ibm:db2_high_performance_unload_load:6.1.0.2:interim_fix1:*:*:*:*:*:*,,fast,,0,,5037,731,25
+ttpsc the scheduler 3.3.5 for jira,,the scheduler,3.3.5,,jira,0.0,cpe:2.3:a:*:the_scheduler:3.3.5:*:*:*:*:jira:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3771,696,15
+nicehash miner 1.9.2.6,,nicehash miner,1.9.2.6,,,0.0,cpe:2.3:a:*:nicehash_miner:1.9.2.6:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3915,691,18
+yourownprogrammer yop poll 3.3 for wordpress,yourownprogrammer,yop poll,3.3,,wordpress,0.0,cpe:2.3:a:yourownprogrammer:yop_poll:3.3:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3753,696,16
+encode uvicorn 0.8.5,uvicorn,uvicorn,0.8.5,,uvicorn,0.0,cpe:2.3:a:uvicorn:uvicorn:0.8.5:*:*:*:*:uvicorn:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3798,686,17
+rocomotion p link 1.01,rocomotion,p link,1.01,,,0.0,cpe:2.3:a:rocomotion:p_link:1.01:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:rocomotion:p_link:1.01:*:*:*:*:*:*:*,,fast,,0,,3612,686,16
+jetbrains intellij idea 2017.2.1,jetbrains,intellij idea,2017.2.1,,,0.0,cpe:2.3:a:jetbrains:intellij_idea:2017.2.1:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:jetbrains:intellij_idea:2017.2.1:*:*:*:*:*:*:*,,fast,,0,,4142,706,18
+vercel next.js 5.0.1 canary 12 for node.js,,next.js,5.0.1,canary 12,node.js,0.0,cpe:2.3:a:*:next.js:5.0.1:canary_12:*:*:*:node.js:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4735,726,22
+typelevel http4s 0.22.0 milestone 5,,http4s,0.22.0,milestone 5,,0.0,cpe:2.3:a:*:http4s:0.22.0:milestone_5:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4370,711,20
+ijhack qtpass 0.9.1 for pass,ijhack,qtpass,0.9.1,,,0.0,cpe:2.3:a:ijhack:qtpass:0.9.1:*:*:*:*:*:*:*,True,,M1A,Accepted perfect match,1.0,cpe:2.3:a:ijhack:qtpass:0.9.1:*:*:*:*:pass:*:*,,fast,,0,,3839,696,16
+churchdesk churchrota 2.1.0,,churchrota,2.1.0,,,0.0,cpe:2.3:a:*:churchrota:2.1.0:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3802,686,15
+devowl wordpress real media library 4.14.2 for wordpress,devowl,real media library,4.14.2,,wordpress,0.0,cpe:2.3:a:devowl:real_media_library:4.14.2:*:*:*:*:wordpress:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:devowl:real_media_library:4.14.2:*:*:*:*:wordpress:*:*,,fast,,0,,4379,711,18
+sass-lang libsass 3.5.0 beta3,,libsass,3.5.0,beta3,,0.0,cpe:2.3:a:*:libsass:3.5.0:beta3:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4032,701,16
+fortinet forticlient 5.6.6 for windows,fortinet,forticlient,5.6.6,,windows,0.0,cpe:2.3:a:fortinet:forticlient:5.6.6:*:*:*:*:windows:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:fortinet:forticlient:5.6.6:*:*:*:*:windows:*:*,,fast,,0,,3944,701,17
+inpsyde backwpup 2.1.16 for wordpress,inpsyde,backwpup,2.1.16,,wordpress,0.0,cpe:2.3:a:inpsyde:backwpup:2.1.16:*:*:*:*:wordpress:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:inpsyde:backwpup:2.1.16:*:*:*:*:wordpress:*:*,,fast,,0,,4202,711,19
+clusterlabs fence-agents 4.0.10,clusterlabs,fence-agents,4.0.10,,,0.0,cpe:2.3:a:clusterlabs:fence-agents:4.0.10:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:clusterlabs:fence-agents:4.0.10:*:*:*:*:*:*:*,,fast,,0,,4084,696,18
+netflix hollow 2.1.1,,hollow,2.1.1,,,0.0,cpe:2.3:a:*:hollow:2.1.1:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3575,676,15
+embedplus youtube 8.6 for wordpress,,embedplus youtube,8.6,,wordpress,0.0,cpe:2.3:a:*:embedplus_youtube:8.6:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3487,681,14
+hashicorp consul 1.7.2,hashicorp,consul,1.7.2,,,0.0,cpe:2.3:a:hashicorp:consul:1.7.2:*:*:*:*:*:*:*,True,,M1A,Accepted perfect match,1.0,cpe:2.3:a:hashicorp:consul:1.7.2:*:*:*:-:*:*:*,,fast,,0,,3697,686,17
+zucchetti infobusiness 4.4.1,zucchetti,infobusiness,4.4.1,,,0.0,cpe:2.3:a:zucchetti:infobusiness:4.4.1:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:zucchetti:infobusiness:4.4.1:*:*:*:*:*:*:*,,fast,,0,,4083,701,19
+dadamailproject dada mail 11.0.1,dadamailproject,dada mail,11.0.1,,,0.0,cpe:2.3:a:dadamailproject:dada_mail:11.0.1:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:dadamailproject:dada_mail:11.0.1:*:*:*:*:*:*:*,,fast,,0,,4160,701,20
+magnolia-cms magnolia cms 6.0,magnolia,magnolia cms,6.0,,magnolia-cms,0.0,cpe:2.3:a:magnolia:magnolia_cms:6.0:*:*:*:*:magnolia-cms:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3817,686,18
+oracle policy automation for mobile devices 12.1.1,oracle,policy automation for mobile devices,12.1.1,,,0.0,cpe:2.3:a:oracle:policy_automation_for_mobile_devices:12.1.1:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:oracle:policy_automation_for_mobile_devices:12.1.1:*:*:*:*:*:*:*,,fast,,0,,4186,701,19
+motorola sbg941 1.0,,sbg941,1.0,,,0.0,cpe:2.3:a:*:sbg941:1.0:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3714,691,16
+lenovo power management 1.31,lenovo,power management,1.31,,,0.0,cpe:2.3:a:lenovo:power_management:1.31:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:lenovo:power_management:1.31:*:*:*:*:*:*:*,,fast,,0,,3487,681,15
+bueltge adminimize 1.7.22,bueltge,adminimize,1.7.22,,,0.0,cpe:2.3:a:bueltge:adminimize:1.7.22:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:bueltge:adminimize:1.7.22:*:*:*:*:*:*:*,,fast,,0,,4146,701,19
+snapappointments bootstrap-select 1.7.2 for node.js,,bootstrap-select,1.7.2,,node.js,0.0,cpe:2.3:a:*:bootstrap-select:1.7.2:*:*:*:*:node.js:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4191,711,18
+dell emc networker 9.2.0.0,dell,networker,9.2.0.0,,,0.0,cpe:2.3:a:dell:networker:9.2.0.0:*:*:*:*:*:*:*,True,,M1B,New software version,0.75,cpe:2.3:a:dell:networker:19.8.0.0:*:*:*:*:*:*:*,,fast,,0,,3851,701,17
+netgear rbk50 firmware 2.6.1.40,netgear,rbk50,2.6.1.40,,,0.0,cpe:2.3:a:netgear:rbk50:2.6.1.40:*:*:*:*:*:*:*,True,,M1B,New software version,0.0,cpe:2.3:h:netgear:rbk50:-:*:*:*:*:*:*:*,,fast,,0,,4389,716,21
+clusterlabs fence-agents 4.0.9,clusterlabs,fence-agents,4.0.9,,,0.0,cpe:2.3:a:clusterlabs:fence-agents:4.0.9:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:clusterlabs:fence-agents:4.0.9:*:*:*:*:*:*:*,,fast,,0,,3796,691,17
+facebook hhvm 3.28.2,facebook,hhvm,3.28.2,,,0.0,cpe:2.3:a:facebook:hhvm:3.28.2:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:facebook:hhvm:3.28.2:*:*:*:*:*:*:*,,fast,,0,,3703,686,16
+schedmd slurm 2.3.3,slurm,slurm,2.3.3,,,0.0,cpe:2.3:a:slurm:slurm:2.3.3:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3720,686,16
+advancemame advancecomp 1.20,advancecomp,advancecomp,1.20,,,0.0,cpe:2.3:a:advancecomp:advancecomp:1.20:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3759,691,15
+google chrome 43.0.2357.81,google,chrome,43.0.2357.81,,,0.0,cpe:2.3:a:google:chrome:43.0.2357.81:*:*:*:*:*:*:*,True,,M1B,New software version,0.6667,cpe:2.3:a:google:chrome:71.0.3578.81:*:*:*:*:*:*:*,,fast,,0,,4524,711,21
+23andme yamale 1.10.1,23andme,yamale,1.10.1,,,0.0,cpe:2.3:a:23andme:yamale:1.10.1:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:23andme:yamale:1.10.1:*:*:*:*:*:*:*,,fast,,0,,4131,701,19
+mersive solstice firmware 5.2,immersive,immersive solstice,5.2,,,0.0,cpe:2.3:a:immersive:immersive_solstice:5.2:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3214,671,13
+ibm emptoris sourcing 10.0.2.1,ibm,emptoris sourcing,10.0.2.1,,,0.0,cpe:2.3:a:ibm:emptoris_sourcing:10.0.2.1:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:ibm:emptoris_sourcing:10.0.2.1:*:*:*:*:*:*:*,,fast,,0,,3846,701,19
+cisco firepower threat defense 6.3.0.3,cisco,firepower threat defense,6.3.0.3,,,0.0,cpe:2.3:a:cisco:firepower_threat_defense:6.3.0.3:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:cisco:firepower_threat_defense:6.3.0.3:*:*:*:*:*:*:*,,fast,,0,,4005,701,20
+live555 streaming media 2018-02-26,live555,live555 streaming media,,,,0.0,cpe:2.3:a:live555:live555_streaming_media:*:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4410,721,18
+numfocus pandas 0.23.0 dev0,numfocus,pandas,0.23.0,dev0,,0.0,cpe:2.3:a:numfocus:pandas:0.23.0:dev0:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:numfocus:pandas:0.23.0:dev0:*:*:*:*:*:*,,fast,,0,,3980,696,17
+openfabrics ibutils 1.5.7-2,,ibutils,1.5.7,,,0.0,cpe:2.3:a:*:ibutils:1.5.7:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3717,701,15
+energy sciences network (esnet) iperf3 3.0.6,energy sciences network,iperf3,3.0.6,,,0.0,cpe:2.3:a:energy_sciences_network:iperf3:3.0.6:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4146,716,18
+elastic kibana 4.0.0,elastic,kibana,4.0.0,,,0.0,cpe:2.3:a:elastic:kibana:4.0.0:*:*:*:*:*:*:*,True,,M1A,Accepted perfect match,1.0,cpe:2.3:a:elastic:kibana:4.0.0:beta2:*:*:*:*:*:*,,fast,,0,,3591,681,15
+airties air 5750 firmware 1.0.0.18,airties,air 5750,1.0.0.18,,,0.0,cpe:2.3:a:airties:air_5750:1.0.0.18:*:*:*:*:*:*:*,True,,M2,New product candidate,0.875,cpe:2.3:h:airties:air_5650:-:*:*:*:*:*:*:*,,fast,,0,,4717,726,23
+x.org x server 1.5.99.903,,x.org x server,1.5.99.903,,,0.0,cpe:2.3:a:*:x.org_x_server:1.5.99.903:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4617,716,23
+aki-null yorufukurou (nightowl) 2.72,aki-null,yorufukurou,2.72,,,0.0,cpe:2.3:a:aki-null:yorufukurou:2.72:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:aki-null:yorufukurou:2.72:*:*:*:*:*:*:*,,fast,,0,,4463,721,18
+tribulant one click ssl 1.4.3 for wordpress,tribulant,one click ssl,1.4.3,,wordpress,0.0,cpe:2.3:a:tribulant:one_click_ssl:1.4.3:*:*:*:*:wordpress:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:tribulant:one_click_ssl:1.4.3:*:*:*:*:wordpress:*:*,,fast,,0,,4159,701,17
+joomunited wp latest posts 3.9.3 for wordpress,joomunited,joomunited wp latest posts,3.9.3,,wordpress,0.0,cpe:2.3:a:joomunited:joomunited_wp_latest_posts:3.9.3:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4209,706,21
+themeinprogress nova lite 1.3.7 for wordpress,,nova lite,1.3.7,,wordpress,0.0,cpe:2.3:a:*:nova_lite:1.3.7:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3660,696,15
+dadamailproject dada mail 7.4.0,dadamailproject,dada mail,7.4.0,,,0.0,cpe:2.3:a:dadamailproject:dada_mail:7.4.0:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:dadamailproject:dada_mail:7.4.0:*:*:*:*:*:*:*,,fast,,0,,3931,696,19
+jenkins debian package builder 1.6.2 for jenkins,,package builder,1.6.2,,jenkins,0.0,cpe:2.3:a:*:package_builder:1.6.2:*:*:*:*:jenkins:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3843,706,15
+credova financial 1.1.0 for wordpress,credova,credova financial,1.1.0,,wordpress,0.0,cpe:2.3:a:credova:credova_financial:1.1.0:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3732,691,17
+asynkron wire 0.0.5,,asynkron wire,0.0.5,,,0.0,cpe:2.3:a:*:asynkron_wire:0.0.5:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3259,686,17
+10web social feed for instagram 1.1.6 premium edition for wordpress,,social feed for instagram,1.1.6,,wordpress,0.0,cpe:2.3:a:*:social_feed_for_instagram:1.1.6:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4179,721,17
+bosch smart home 9.5.2 for iphone os,bosch,smart home,9.5.2,,iphone os,0.0,cpe:2.3:a:bosch:smart_home:9.5.2:*:*:*:*:iphone_os:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:bosch:smart_home:9.5.2:*:*:*:*:iphone_os:*:*,,fast,,0,,3731,696,16
+redmine git hosting 4.0.2 for redmine,,redmine git hosting,4.0.2,,redmine,0.0,cpe:2.3:a:*:redmine_git_hosting:4.0.2:*:*:*:*:redmine:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3916,701,18
+intel celeron j j1800,,,,,,0.0,,False,,,,0.0,,no vendor/product extracted,fast,,0,,3140,681,10
+yofla 360 product rotation 1.0.0 for wordpress,yofla,product rotation,1.0.0,,wordpress,0.0,cpe:2.3:a:yofla:product_rotation:1.0.0:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4171,721,17
+codection import and export users and customers 1.14.2.10 for wordpress,,codection import and export users and customers,1.14.2.10,,wordpress,0.0,cpe:2.3:a:*:codection_import_and_export_users_and_customers:1.14.2.10:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,5073,736,25
+phpsugar php melody 1.6.4,,php melody,1.6.4,,,0.0,cpe:2.3:a:*:php_melody:1.6.4:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3662,691,15
+adobe acrobat 11.0.5,adobe,acrobat,11.0.5,,,0.0,cpe:2.3:a:adobe:acrobat:11.0.5:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:adobe:acrobat:11.0.5:*:*:*:*:*:*:*,,fast,,0,,3597,681,16
+taoensso nippy 2.0.0,taoensso,nippy,2.0.0,,,0.0,cpe:2.3:a:taoensso:nippy:2.0.0:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:taoensso:nippy:2.0.0:*:*:*:*:*:*:*,,fast,,0,,3968,691,17
+flexera flexnet publisher 10.8.10,flexera,flexnet publisher,10.8.10,,,0.0,cpe:2.3:a:flexera:flexnet_publisher:10.8.10:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:flexera:flexnet_publisher:10.8.10:*:*:*:*:*:*:*,,fast,,0,,4237,701,19
+apache software foundation pdfbox 2.0.10,apache software foundation,pdfbox,2.0.10,,,0.0,cpe:2.3:a:apache_software_foundation:pdfbox:2.0.10:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3932,696,18
+gog galaxy 1.2.45 for macos,gog,galaxy,1.2.45,,macos,0.0,cpe:2.3:a:gog:galaxy:1.2.45:*:*:*:*:macos:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:gog:galaxy:1.2.45:*:*:*:*:macos:*:*,,fast,,0,,3963,701,16
+oracle vm virtualbox 4.2.34,,virtualbox,4.2.34,,,0.0,cpe:2.3:a:*:virtualbox:4.2.34:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3749,691,16
+senstar symphony 7.3.1.3,senstar,symphony,7.3.1.3,,,0.0,cpe:2.3:a:senstar:symphony:7.3.1.3:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:senstar:symphony:7.3.1.3:*:*:*:*:*:*:*,,fast,,0,,4062,691,19
+openshift origin 1.2.0,,origin,1.2.0,,,0.0,cpe:2.3:a:*:origin:1.2.0:*:*:*:*:*:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,3527,681,14
+adtribes product feed pro for woocommerce 10.3.3 for wordpress,adtribes,product feed pro,10.3.3,,wordpress,0.0,cpe:2.3:a:adtribes:product_feed_pro:10.3.3:*:*:*:*:wordpress:*:*,True,,M3,Other candidates,0.0,,,fast,,0,,4569,726,19
+apereo central authentication service (cas) 4.1.6,apereo,central authentication service,4.1.6,,,0.0,cpe:2.3:a:apereo:central_authentication_service:4.1.6:*:*:*:*:*:*:*,True,,M1,Perfect match,1.0,cpe:2.3:a:apereo:central_authentication_service:4.1.6:*:*:*:*:*:*:*,,fast,,0,,4182,706,17

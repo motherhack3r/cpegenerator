@@ -1,0 +1,5 @@
+model,mode,n,extraction_errors,vendor_f1_strict,product_f1_strict,version_f1_strict,target_sw_f1_strict,vendor_f1_partial,product_f1_partial,version_f1_partial,target_sw_f1_partial,cpe_valid,cpe_exact,m1x,latency_ms_p50,latency_ms_p95,tokens_in,tokens_out,wall_s
+google/gemma-4-e4b,single,100,0,0.9347,0.84,0.9899,0.9362,0.9548,0.91,0.9899,0.9362,100,78,83,3327,3712,63459,4758,348.9
+google/gemma-4-e4b,per-field,100,3,0.7219,0.6939,0.9645,0.8571,0.7456,0.8316,0.9746,0.8571,97,40,45,3925,4617,69895,1746,456.2
+qwen3-1.7b,single,100,0,0.94,0.87,0.9899,0.8462,0.97,0.935,0.9899,0.8462,100,78,81,612,725,60186,4756,159.5
+qwen3-1.7b,per-field,100,0,0.94,0.4,0.9543,0.7778,0.965,0.64,0.9543,0.7778,100,29,43,2838,3273,70630,2146,377.5
