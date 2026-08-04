@@ -211,6 +211,41 @@ def test_lmstudio_native_payload_and_parsing(monkeypatch):
     assert p.last_usage == {"in": 60, "out": 20, "reasoning": 0}
 
 
+def test_lmstudio_400_drops_reasoning_and_retries(monkeypatch):
+    # Live incident: qwen3-4b-instruct-2507 (no reasoning capability)
+    # rejects the field with 400 "does not expose reasoning
+    # configuration" on /api/v1/chat.
+    import cpegen.extractor as ex
+    for key in ("CPEGEN_REASONING", "CPEGEN_TEMPERATURE"):
+        monkeypatch.delenv(key, raising=False)
+    calls = []
+
+    class R:
+        def __init__(self, code):
+            self.status_code = code
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise AssertionError(f"HTTP {self.status_code}")
+
+        def json(self):
+            return {"output": [{"type": "message", "content": "ok"}],
+                    "stats": {}}
+
+    responses = [R(400), R(200), R(200)]
+
+    def fake_post(url, json=None, timeout=None):
+        calls.append(dict(json))  # snapshot: the provider mutates it
+        return responses.pop(0)
+
+    monkeypatch.setattr(ex.requests, "post", fake_post)
+    p = ex.LMStudioProvider(model="qwen3-4b-instruct-2507")
+    assert p.chat("sys", "user") == "ok"
+    assert "reasoning" in calls[0] and "reasoning" not in calls[1]
+    p.chat("sys", "user")  # stays dropped for the instance
+    assert "reasoning" not in calls[2]
+
+
 def test_lmstudio_requires_model():
     import cpegen.extractor as ex
     import os

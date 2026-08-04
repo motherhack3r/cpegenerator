@@ -248,20 +248,29 @@ class LMStudioProvider:
         self.temperature = float(os.environ.get("CPEGEN_TEMPERATURE", "0"))
 
     def chat(self, system: str, user: str, max_tokens: int = 300) -> str:
-        resp = requests.post(
-            f"{self.base_url}/api/v1/chat",
-            json={
-                "model": self.model,
-                "system_prompt": system,
-                "input": user,
-                "max_output_tokens": max_tokens,
-                "temperature": self.temperature,
-                "reasoning": self.reasoning,
-                "store": False,
-                "stream": False,
-            },
-            timeout=120,
-        )
+        payload = {
+            "model": self.model,
+            "system_prompt": system,
+            "input": user,
+            "max_output_tokens": max_tokens,
+            "temperature": self.temperature,
+            "store": False,
+            "stream": False,
+        }
+        if self.reasoning is not None:
+            payload["reasoning"] = self.reasoning
+        resp = requests.post(f"{self.base_url}/api/v1/chat",
+                             json=payload, timeout=120)
+        if resp.status_code == 400 and "reasoning" in payload:
+            # Same quirk as the OpenAI-compat layer, seen live on
+            # qwen3-4b-instruct-2507: models without a reasoning
+            # capability reject the field ("does not expose reasoning
+            # configuration"). Drop it for this instance and retry —
+            # a pure instruct model cannot overthink anyway.
+            self.reasoning = None
+            payload.pop("reasoning")
+            resp = requests.post(f"{self.base_url}/api/v1/chat",
+                                 json=payload, timeout=120)
         resp.raise_for_status()
         data = resp.json()
         stats = data.get("stats") or {}
