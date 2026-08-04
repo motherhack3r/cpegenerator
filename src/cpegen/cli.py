@@ -230,7 +230,8 @@ def _add_common_run_args(p: argparse.ArgumentParser, default_output: str) -> Non
     p.add_argument("--output", default=default_output,
                    help="output directory (results.csv, report.md)")
     p.add_argument("--provider", default=None,
-                   choices=["anthropic", "openai", "mock", "replay"],
+                   choices=["anthropic", "openai", "lmstudio", "mock",
+                            "replay"],
                    help="LLM provider (default: CPEGEN_PROVIDER or anthropic)")
     p.add_argument("--model", default=None,
                    help="model override (default: CPEGEN_MODEL or provider "
@@ -350,8 +351,9 @@ def main(argv: list[str] | None = None) -> int:
                             "provider, e.g. LM Studio keys)")
     p_ben.add_argument("--modes", default="single,per-field",
                        help="comma-separated: single, per-field")
-    p_ben.add_argument("--provider", default="openai",
-                       choices=["anthropic", "openai", "mock", "replay"])
+    p_ben.add_argument("--provider", default="lmstudio",
+                       choices=["anthropic", "openai", "lmstudio", "mock",
+                                "replay"])
     p_ben.add_argument("--dict", default="data/cache/cpe_dictionary.jsonl.gz",
                        help="local dictionary snapshot ('' to disable)")
     p_ben.add_argument("--offline", action="store_true",

@@ -175,6 +175,50 @@ def test_openai_400_drops_extras_and_retries(monkeypatch):
     assert "reasoning" not in calls[2]
 
 
+def test_lmstudio_native_payload_and_parsing(monkeypatch):
+    import cpegen.extractor as ex
+    for key in ("CPEGEN_REASONING", "CPEGEN_TEMPERATURE"):
+        monkeypatch.delenv(key, raising=False)
+    calls = []
+
+    class R:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"output": [
+                {"type": "reasoning", "content": "hmm"},
+                {"type": "message", "content": '{"vendor": "x"}'}],
+                "stats": {"input_tokens": 60, "total_output_tokens": 20,
+                          "reasoning_output_tokens": 0}}
+
+    def fake_post(url, json=None, timeout=None):
+        calls.append((url, json))
+        return R()
+
+    monkeypatch.setattr(ex.requests, "post", fake_post)
+    p = ex.LMStudioProvider(model="google/gemma-4-e4b",
+                            base_url="http://127.0.0.1:1234/v1")
+    text = p.chat("sys", "Title: 'x'")
+    url, body = calls[0]
+    assert url == "http://127.0.0.1:1234/api/v1/chat"  # /v1 stripped
+    assert body["reasoning"] == "off" and body["store"] is False
+    assert body["temperature"] == 0.0
+    assert body["system_prompt"] == "sys" and body["input"] == "Title: 'x'"
+    assert text == '{"vendor": "x"}'  # reasoning item ignored
+    assert p.last_usage == {"in": 60, "out": 20, "reasoning": 0}
+
+
+def test_lmstudio_requires_model():
+    import cpegen.extractor as ex
+    import os
+    os.environ.pop("CPEGEN_MODEL", None)
+    with pytest.raises(RuntimeError, match="model key"):
+        ex.LMStudioProvider()
+
+
 def test_openai_captures_reasoning_tokens(monkeypatch):
     provider, _ = _openai_provider(monkeypatch, [_FakeResponse(
         usage={"prompt_tokens": 634, "completion_tokens": 276,

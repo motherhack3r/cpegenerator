@@ -218,6 +218,73 @@ class OpenAICompatProvider:
         return self.chat(SYSTEM_PROMPT, f"Title: {title!r}")
 
 
+class LMStudioProvider:
+    """LM Studio native REST API (``/api/v1/chat``).
+
+    The OpenAI-compat layer accepts ``"reasoning": "off"`` but ignores it
+    for hybrid-reasoning models (observed live with gemma-4-e4b: with the
+    flag sent, sampling still decided whether the model thought, and rows
+    kept dying by ``length``). The native endpoint honours it, reports
+    ``reasoning_output_tokens`` explicitly, and lets us disable chat
+    persistence (``store: false`` — the default would save every
+    benchmark request into the user's chat history).
+
+    Knobs: ``CPEGEN_REASONING`` (default ``off``; accepts off/low/medium/
+    high/on) and ``CPEGEN_TEMPERATURE`` (default ``0`` — greedy decoding
+    for reproducible benchmark runs).
+    """
+
+    name = "lmstudio"
+
+    def __init__(self, model: str | None = None, base_url: str | None = None):
+        self.model = model or os.environ.get("CPEGEN_MODEL", "")
+        if not self.model:
+            raise RuntimeError("lmstudio provider needs a model key "
+                               "(--model or CPEGEN_MODEL)")
+        base = base_url or os.environ.get("LMSTUDIO_BASE_URL",
+                                          "http://127.0.0.1:1234")
+        self.base_url = base.rstrip("/").removesuffix("/v1")
+        self.reasoning = os.environ.get("CPEGEN_REASONING", "off")
+        self.temperature = float(os.environ.get("CPEGEN_TEMPERATURE", "0"))
+
+    def chat(self, system: str, user: str, max_tokens: int = 300) -> str:
+        resp = requests.post(
+            f"{self.base_url}/api/v1/chat",
+            json={
+                "model": self.model,
+                "system_prompt": system,
+                "input": user,
+                "max_output_tokens": max_tokens,
+                "temperature": self.temperature,
+                "reasoning": self.reasoning,
+                "store": False,
+                "stream": False,
+            },
+            timeout=120,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        stats = data.get("stats") or {}
+        self.last_usage = {
+            "in": stats.get("input_tokens", 0),
+            "out": stats.get("total_output_tokens", 0),
+            "reasoning": stats.get("reasoning_output_tokens", 0),
+        }
+        parts = []
+        for item in data.get("output", []):
+            if item.get("type") == "message":
+                content = item.get("content", "")
+                if isinstance(content, list):  # multi-part content
+                    content = "".join(
+                        p.get("text", "") for p in content
+                        if isinstance(p, dict))
+                parts.append(content)
+        return "\n".join(parts)
+
+    def complete(self, title: str) -> str:
+        return self.chat(SYSTEM_PROMPT, f"Title: {title!r}")
+
+
 class MockProvider:
     """Deterministic offline extractor for tests and plumbing dry runs.
 
@@ -297,6 +364,7 @@ class ReplayProvider:
 PROVIDERS = {
     "anthropic": AnthropicProvider,
     "openai": OpenAICompatProvider,
+    "lmstudio": LMStudioProvider,
     "mock": MockProvider,
     "replay": ReplayProvider,
 }
