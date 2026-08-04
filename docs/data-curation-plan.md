@@ -81,9 +81,30 @@ surt a `data/curated/` es pot regenerar des de les fonts amb la mateixa seed.
 - [x] Exploració i diagnòstic de les fonts
 - [x] Implementació passos 1–2 (parse + validació ABNF a granel) —
   `src/cpegen/curate.py` + `cpegen curate` (2026-08-04)
-- [ ] Tiering + contrast NVD (passos 3–4)
+- [x] Tiering + contrast amb diccionari (passos 3–4) —
+  `src/cpegen/tiering.py` + `cpegen tier` (2026-08-04; contrast 100%
+  local contra el snapshot del KGCS, cap crida a l'NVD API)
 - [ ] Splits + manifest (pas 5)
 - [ ] Tests + mètriques finals (pas 6)
+
+### Resultats passos 3–4 (run 2026-08-04, snapshot KGCS 1.766.927 CPEs)
+
+| Mètrica | Valor |
+|---|---|
+| Tier A (override humà explícit) | 30.982 |
+| Tier B (resta; columna `creator` preservada) | 447.611 (113.060 creades per analistes sense override) |
+| Quarantena | 1.969 (famílies: NX-OS 903, Node.js 408, AsyncOS 186, ClamAV 87…) |
+| Àlies exactes al diccionari oficial | 86.989 / 686.647 (12,7%; 8.341 deprecats) |
+| Parells (vendor, product) coneguts | 265.592 (38,7%) |
+| Temps | ~48 s |
+
+Notes: l'exactitud baixa al diccionari és esperada (el diccionari NVD
+només té les versions aparegudes en CVEs) i és justament el senyal M2
+que buscàvem; l'absència mai rebutja. La quarantena és cua de revisió,
+no descarte: regla `incompatible_vendors` (multi-vendor + productes
+sense tokens comuns + algun parell desconegut al diccionari — els
+parells que el diccionari coneix, p. ex. `cisco:nx-os`, queden
+exonerats).
 
 ### Resultats passos 1–2 (run 2026-08-04, `products.csv` sencer)
 

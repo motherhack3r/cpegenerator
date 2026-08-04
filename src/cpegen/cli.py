@@ -128,6 +128,29 @@ def cmd_dict(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tier(args: argparse.Namespace) -> int:
+    from .tiering import tier_file
+
+    def progress(done: int) -> None:
+        print(f"\r[{done}] rows tiered", end="", file=sys.stderr, flush=True)
+
+    stats = tier_file(Path(args.input), Path(args.output),
+                      dictionary_path=Path(args.dict) if args.dict else None,
+                      progress=progress)
+    print(file=sys.stderr)
+    print(f"Tier A: {stats['tier_a']}  Tier B: {stats['tier_b']} "
+          f"(of which human-created: {stats['tier_b_human_created']})  "
+          f"Quarantine: {stats['quarantine']}")
+    if stats["dictionary"]:
+        print(f"Contrast vs {stats['dictionary_size']} dictionary entries: "
+              f"{stats['aliases_in_dict']}/{stats['aliases_contrasted']} "
+              f"aliases exact in dict ({stats['aliases_deprecated']} "
+              f"deprecated), {stats['aliases_pair_known']} pairs known")
+    print(f"-> {Path(args.output)}/catalog_tier_[ab].csv, quarantine.csv, "
+          f"tier_metrics.json")
+    return 0
+
+
 def cmd_vulns(args: argparse.Namespace) -> int:
     from .vulns import CVEClient, check_results, write_csv
 
@@ -234,6 +257,19 @@ def main(argv: list[str] | None = None) -> int:
                        help="snapshot path (default "
                             "data/cache/cpe_dictionary.jsonl.gz)")
     p_dic.set_defaults(func=cmd_dict)
+
+    p_tier = sub.add_parser(
+        "tier",
+        help="tier the curated catalog (A/B/quarantine) and contrast it "
+             "against the local dictionary (steps 3-4 of the curation plan)")
+    p_tier.add_argument("--input", default="data/curated/catalog_parsed.csv",
+                        help="catalog_parsed.csv from 'cpegen curate'")
+    p_tier.add_argument("--output", default="data/curated",
+                        help="output directory")
+    p_tier.add_argument("--dict", default="data/cache/cpe_dictionary.jsonl.gz",
+                        help="local dictionary snapshot; pass '' to skip "
+                             "the contrast")
+    p_tier.set_defaults(func=cmd_tier)
 
     p_vul = sub.add_parser(
         "vulns",
