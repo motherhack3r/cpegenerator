@@ -1,6 +1,10 @@
 # PROVENANCE — 20260804-pilot1-gold100
 
-- **Data del run**: 2026-08-04, ~20:23–21:05 CEST (laptop de l'usuari).
+- **Data del run**: 2026-08-04, ~20:23–21:05 CEST.
+- **Màquina**: `pc` (vegeu `../machines/pc.md`: RTX 3060 12 GB, driver
+  610.88, i7-14700F, 64 GB RAM, Windows 11 Home). *Corregit
+  2026-08-04: una primera versió deia erròniament "laptop" — els
+  pilots corren al PC; el laptop queda per a la rèplica completa.*
 - **Codi**: CPEgenerator v2, commit `c9d1698` (provider `lmstudio`
   natiu via `/api/v1/chat`).
 - **Ordre**: `cpegen bench --offline --limit 100 --output
@@ -19,7 +23,6 @@
 - **Diccionari**: snapshot local `data/cache/cpe_dictionary.jsonl.gz`
   (font KGCS Neo4j, 1.766.927 CPEs, construït 2026-08-04); `--offline`
   (cap crida NVD en viu: condicions idèntiques per a tots els models).
-- **Hardware**: laptop Windows, RTX 5070 Ti Laptop 12 GB VRAM, 31 GB RAM.
 - **Nota**: un pilot previ del mateix dia es va descartar per
   contaminació (reasoning actiu per defecte via la capa OpenAI-compat;
   vegeu la decisió 2026-08-04 al ROADMAP). Aquest run és el net.

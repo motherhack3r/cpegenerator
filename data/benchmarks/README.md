@@ -7,8 +7,10 @@ runs costen hores d'inferència i no són regenerables gratis.
 
 ## Convenció
 
-- Un directori per tirada: `YYYYMMDD-<nom>-<jurat>/` (p. ex.
-  `20260804-pilot1-gold100`).
+- Un directori per tirada: `YYYYMMDD-<nom>-<jurat>-<màquina>/` (p. ex.
+  `20260804-duel-gold100-pc`). Les màquines conegudes tenen perfil a
+  `machines/` (`pc.md`, `laptop.md`); el `PROVENANCE.md` hi remet.
+  (El primer arxiu, `20260804-pilot1-gold100`, és anterior al sufix.)
 - Contingut: el `bench_report.md` + `bench_summary.csv` de la tirada,
   cada combo (`<model>__<mode>/` amb `summary.json`, `report.md` i
   `results.csv` per-fila), un `PROVENANCE.md` i, si el catàleg de

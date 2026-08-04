@@ -42,7 +42,9 @@ Recuperació de les idees dels prototips en R (net.security `inventary.R` i `mit
 Objectiu: generar CPEs vàlids per a un bon percentatge del RAW SCCM amb models
 locals petits servits per LM Studio (endpoint OpenAI-compatible; `--provider
 openai` + `OPENAI_BASE_URL=http://localhost:1234/v1` — zero codi de proveïdor
-nou), corrent al laptop de l'usuari (RTX 5070 Ti Laptop, 12 GB VRAM, 31 GB RAM).
+nou), corrent en local: pilots i matriu al PC (RTX 3060 12 GB), rèplica
+completa i entorn objectiu al laptop (RTX 5070 Ti Laptop 12 GB) —
+perfils a `data/benchmarks/machines/`.
 No cal perfecció: percentatge útil, reproduïble i auditable. Motivació: regal
 per a un company (calabrès — d'aquí el nom) que encara fa servir el
 CPEgenerator antic, i validació de la hipòtesi híbrida invertida: models
