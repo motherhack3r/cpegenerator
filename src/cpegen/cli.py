@@ -76,6 +76,30 @@ def cmd_inventory(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_curate(args: argparse.Namespace) -> int:
+    from .curate import curate_file
+
+    def progress(done: int) -> None:
+        print(f"\r[{done}] rows curated", end="", file=sys.stderr, flush=True)
+
+    stats = curate_file(Path(args.input), Path(args.output),
+                        limit=args.limit, progress=progress)
+    print(file=sys.stderr)
+    s = stats.as_dict()
+    print(f"Curated {s['rows_kept']}/{s['rows_read']} rows -> "
+          f"{Path(args.output) / 'catalog_parsed.csv'}")
+    print(f"Aliases: {s['aliases_valid']} valid "
+          f"({s['aliases_normalized']} salvaged by WFN normalization), "
+          f"{s['aliases_dropped']} dropped (ABNF), "
+          f"{s['aliases_deduped']} deduped")
+    print(f"Rejected rows: {s['rows_rejected_no_cpe']} no CPE, "
+          f"{s['rows_rejected_all_aliases_invalid']} all aliases invalid, "
+          f"{s['keys_duplicated']} duplicate keys, "
+          f"{s['rows_malformed']} malformed "
+          f"-> {Path(args.output) / 'rejects.log'}")
+    return 0
+
+
 def cmd_vulns(args: argparse.Namespace) -> int:
     from .vulns import CVEClient, check_results, write_csv
 
@@ -150,6 +174,19 @@ def main(argv: list[str] | None = None) -> int:
     p_inv.add_argument("--keep-noise", action="store_true", dest="keep_noise",
                        help="keep KB updates, hotfixes and other inventory noise")
     p_inv.set_defaults(func=cmd_inventory)
+
+    p_cur = sub.add_parser(
+        "curate",
+        help="parse + ABNF-validate an SCCM products.csv export "
+             "(steps 1-2 of docs/data-curation-plan.md)")
+    p_cur.add_argument("--input", required=True,
+                       help="products.csv export (UTF-8, ';'-separated)")
+    p_cur.add_argument("--output", default="data/curated",
+                       help="output directory (catalog_parsed.csv, "
+                            "rejects.log, curation_metrics.json)")
+    p_cur.add_argument("--limit", type=int, default=None,
+                       help="keep only the first N curated rows")
+    p_cur.set_defaults(func=cmd_curate)
 
     p_vul = sub.add_parser(
         "vulns",

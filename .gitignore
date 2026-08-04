@@ -7,3 +7,4 @@ data/cache/
 .env
 data/inventory/sccm/
 _to_delete/
+data/curated/

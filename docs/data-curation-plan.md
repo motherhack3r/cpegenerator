@@ -79,7 +79,29 @@ surt a `data/curated/` es pot regenerar des de les fonts amb la mateixa seed.
 ## Estat
 
 - [x] Exploració i diagnòstic de les fonts
-- [ ] Implementació passos 1–2 (parse + validació ABNF a granel)
+- [x] Implementació passos 1–2 (parse + validació ABNF a granel) —
+  `src/cpegen/curate.py` + `cpegen curate` (2026-08-04)
 - [ ] Tiering + contrast NVD (passos 3–4)
 - [ ] Splits + manifest (pas 5)
 - [ ] Tests + mètriques finals (pas 6)
+
+### Resultats passos 1–2 (run 2026-08-04, `products.csv` sencer)
+
+| Mètrica | Valor |
+|---|---|
+| Files llegides | 486.933 |
+| Files al catàleg (`catalog_parsed.csv`) | 480.562 (98,7%) |
+| Àlies CPE vàlids | 686.647 (0 invàlids re-validats: invariant ABNF) |
+| Àlies rescatats per normalització canònica WFN | 170.079 (traça a `normalized.log`) |
+| Àlies irrecuperables | 2.127 |
+| Files rebutjades | 4.601 sense CPE · 1.770 amb tots els àlies invàlids |
+| Temps (portàtil no cal: contenidor, stdlib pur) | ~50 s |
+
+Decisió clau (vegeu ROADMAP): els àlies que fallen l'ABNF només per
+valors sense normalitzar (majúscules a `version`, parèntesis sense
+escapar, espais) es canonicalitzen amb el binding WFN determinista i es
+revaliden; cada transformació queda a `normalized.log` i la fila porta
+`n_normalized_aliases`. El rebuig estricte hauria perdut el 22% de les
+files. `data/curated/` no es versiona (regenerable amb
+`cpegen curate`); les mètriques de cada run queden a
+`curation_metrics.json` amb el sha256 de la font.
