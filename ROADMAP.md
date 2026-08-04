@@ -54,14 +54,15 @@ Ordre d'execució:
 3. Benchmark sobre el gold 1k: 2 modes d'extracció (crida única JSON vs subagent-per-camp) × 3-4 models — el mode es decideix amb números, no a priori
 4. Run complet del RAW: dedup de títols + checkpointing/resume, amb el mode i model guanyadors
 
-Shortlist de models (dels ja disponibles a LM Studio de l'usuari):
+Shortlist de models — verificada 2026-08-04 contra `/api/v1/models` del
+servidor local (63 models descarregats; claus exactes de LM Studio):
 | Rol | Models |
 |---|---|
-| Crida única JSON (qualitat) | `google/gemma-4-12b-qat`, `google/gemma-4-e4b` |
-| Crida única JSON (velocitat) | `qwen/qwen3-4b`, `nvidia/nemotron-3-nano-4b` |
-| Subagents per camp | `qwen3-1.7b`, `llama-3.2-1b`, `qwen2.5-0.5b` |
-| Reserva cua difícil | `deepseek-r1-qwen3-8b` |
-| Futur matcher semàntic (fora d'abast ara) | `text-embedding-qwen3-embedding-0.6b` |
+| Crida única JSON (qualitat) | `google/gemma-4-12b-qat` (12B, ctx 262k), `google/gemma-4-e4b` (7.5B) |
+| Crida única JSON (velocitat) | `qwen3-4b-instruct-2507` (4B, ctx 262k — substitueix el `qwen3-4b` base, ctx 32k), `nvidia/nemotron-3-nano-4b` (4B), `google/gemma-4-e2b` (4.6B, candidat extra) |
+| Subagents per camp | `qwen3-1.7b`, `llama-3.2-1b-instruct`, `qwen2.5-0.5b-instruct` |
+| Reserva cua difícil | `deepseek-r1-0528-qwen3-8b` |
+| Futur matcher semàntic (fora d'abast ara) | `text-embedding-qwen3-embedding-0.6b` — pendent de descàrrega; `text-embedding-nomic-embed-text-v1.5` ja local com a alternativa |
 
 ## Decisions
 
