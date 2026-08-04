@@ -145,7 +145,21 @@ class AnthropicProvider:
 
 
 class OpenAICompatProvider:
-    """Any OpenAI-compatible chat endpoint (OpenAI, Ollama, LM Studio, vLLM)."""
+    """Any OpenAI-compatible chat endpoint (OpenAI, Ollama, LM Studio, vLLM).
+
+    Two knobs for local reasoning models (Phase 7 lesson: gemma-4 ships
+    with reasoning ON by default; a trivial title then costs 17 s instead
+    of 3 s, and when the thinking eats the whole ``max_tokens`` budget the
+    content comes back empty and the row dies as an extraction error):
+
+    - ``CPEGEN_OPENAI_EXTRA`` — JSON merged into every request body,
+      e.g. ``{"reasoning": "off"}`` for LM Studio. If the server rejects
+      it with a 400 (models not detected as reasoning-capable refuse the
+      field), the extras are dropped for this provider instance and the
+      call is retried bare — one matrix run can mix both model kinds.
+    - ``CPEGEN_SYSTEM_SUFFIX`` — appended to every system prompt,
+      e.g. `` /no_think`` for Qwen3-family soft switching.
+    """
 
     name = "openai"
 
@@ -155,29 +169,49 @@ class OpenAICompatProvider:
         self.base_url = (base_url or os.environ.get(
             "OPENAI_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "none")
+        extra = os.environ.get("CPEGEN_OPENAI_EXTRA", "")
+        self.extra_body: dict = json.loads(extra) if extra else {}
+        self.system_suffix = os.environ.get("CPEGEN_SYSTEM_SUFFIX", "")
 
-    def chat(self, system: str, user: str, max_tokens: int = 300) -> str:
-        resp = requests.post(
+    def _post(self, payload: dict):
+        return requests.post(
             f"{self.base_url}/chat/completions",
             headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "content-type": "application/json",
             },
-            json={
-                "model": self.model,
-                "max_tokens": max_tokens,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-            },
+            json=payload,
             timeout=120,
         )
+
+    def chat(self, system: str, user: str, max_tokens: int = 300) -> str:
+        if self.system_suffix:
+            system = system + self.system_suffix
+        payload = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            **self.extra_body,
+        }
+        resp = self._post(payload)
+        if resp.status_code == 400 and self.extra_body:
+            # e.g. LM Studio: "does not support reasoning configuration"
+            # on models it does not detect as reasoning-capable. Drop the
+            # extras for this model and carry on.
+            self.extra_body = {}
+            payload = {k: v for k, v in payload.items()
+                       if k in ("model", "max_tokens", "messages")}
+            resp = self._post(payload)
         resp.raise_for_status()
         data = resp.json()
         usage = data.get("usage") or {}
+        details = usage.get("completion_tokens_details") or {}
         self.last_usage = {"in": usage.get("prompt_tokens", 0),
-                           "out": usage.get("completion_tokens", 0)}
+                           "out": usage.get("completion_tokens", 0),
+                           "reasoning": details.get("reasoning_tokens", 0)}
         return data["choices"][0]["message"]["content"]
 
     def complete(self, title: str) -> str:

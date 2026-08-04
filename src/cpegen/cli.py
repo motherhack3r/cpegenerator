@@ -175,8 +175,15 @@ def cmd_split(args: argparse.Namespace) -> int:
 
 
 def cmd_bench(args: argparse.Namespace) -> int:
+    import json as _json
+    import os
+
     from .benchmark import run_benchmark
 
+    if args.no_reasoning:
+        extra = _json.loads(os.environ.get("CPEGEN_OPENAI_EXTRA") or "{}")
+        extra.setdefault("reasoning", "off")
+        os.environ["CPEGEN_OPENAI_EXTRA"] = _json.dumps(extra)
     models = [m.strip() for m in args.models.split(",") if m.strip()]
     modes = [m.strip() for m in args.modes.split(",") if m.strip()]
     summaries = run_benchmark(
@@ -353,6 +360,13 @@ def main(argv: list[str] | None = None) -> int:
                        help="only the first N titles (smoke runs)")
     p_ben.add_argument("--cache", default=None,
                        help="path to the NVD JSON cache")
+    p_ben.add_argument("--no-reasoning", action="store_true",
+                       dest="no_reasoning",
+                       help="send {\"reasoning\": \"off\"} to the endpoint "
+                            "(LM Studio); models that reject the field "
+                            "fall back automatically. Reasoning-on wastes "
+                            "~5x latency and can eat the whole max_tokens "
+                            "budget thinking (empty content -> row error)")
     p_ben.set_defaults(func=cmd_bench)
 
     p_vul = sub.add_parser(

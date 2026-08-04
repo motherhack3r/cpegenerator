@@ -119,3 +119,65 @@ def test_resume_skips_completed_combos(tmp_path):
 def test_unknown_mode_raises(tmp_path):
     with pytest.raises(ValueError, match="unknown modes"):
         _bench(tmp_path, modes=["single", "telepathy"])
+
+
+class _FakeResponse:
+    def __init__(self, status_code=200, content="{}", usage=None):
+        self.status_code = status_code
+        self._content = content
+        self._usage = usage or {}
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise AssertionError(f"HTTP {self.status_code}")
+
+    def json(self):
+        return {"choices": [{"message": {"content": self._content}}],
+                "usage": self._usage}
+
+
+def _openai_provider(monkeypatch, responses, env=None):
+    import cpegen.extractor as ex
+    for key in ("CPEGEN_OPENAI_EXTRA", "CPEGEN_SYSTEM_SUFFIX"):
+        monkeypatch.delenv(key, raising=False)
+    for key, value in (env or {}).items():
+        monkeypatch.setenv(key, value)
+    calls = []
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        calls.append(json)
+        return responses.pop(0)
+
+    monkeypatch.setattr(ex.requests, "post", fake_post)
+    provider = ex.OpenAICompatProvider(model="m", base_url="http://x/v1")
+    return provider, calls
+
+
+def test_openai_extra_body_and_suffix_applied(monkeypatch):
+    provider, calls = _openai_provider(
+        monkeypatch, [_FakeResponse()],
+        env={"CPEGEN_OPENAI_EXTRA": '{"reasoning": "off"}',
+             "CPEGEN_SYSTEM_SUFFIX": " /no_think"})
+    provider.chat("sys", "user")
+    assert calls[0]["reasoning"] == "off"
+    assert calls[0]["messages"][0]["content"].endswith(" /no_think")
+
+
+def test_openai_400_drops_extras_and_retries(monkeypatch):
+    provider, calls = _openai_provider(
+        monkeypatch,
+        [_FakeResponse(status_code=400), _FakeResponse(content="ok"),
+         _FakeResponse(content="ok2")],
+        env={"CPEGEN_OPENAI_EXTRA": '{"reasoning": "off"}'})
+    assert provider.chat("sys", "user") == "ok"
+    assert "reasoning" in calls[0] and "reasoning" not in calls[1]
+    provider.chat("sys", "user")  # extras stay dropped for the instance
+    assert "reasoning" not in calls[2]
+
+
+def test_openai_captures_reasoning_tokens(monkeypatch):
+    provider, _ = _openai_provider(monkeypatch, [_FakeResponse(
+        usage={"prompt_tokens": 634, "completion_tokens": 276,
+               "completion_tokens_details": {"reasoning_tokens": 226}})])
+    provider.chat("sys", "user")
+    assert provider.last_usage == {"in": 634, "out": 276, "reasoning": 226}
