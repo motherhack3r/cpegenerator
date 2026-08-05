@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Catàleg de models — LM Studio local · CPEgenerator v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79;
+    --blue:#2E6CB5;
+    --blue-pale:#E8F0F8;
+    --blue-paler:#F6F9FC;
+    --ink:#16232E;
+    --grey:#5B6B77;
+    --grey-light:#8B99A3;
+    --line:#DCE6EF;
+    --green:#2E7D5B;
+    --amber:#B5762E;
+    --red:#B54040;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html{ scroll-behavior:smooth; }
+
+  body{
+    margin:0;
+    font-family:'IBM Plex Sans',sans-serif;
+    color:var(--ink);
+    background:#FFFFFF;
+    line-height:1.6;
+    font-size:15px;
+  }
+
+  /* ---------- LAYOUT ---------- */
+  .page{
+    display:flex;
+    max-width:1400px;
+    margin:0 auto;
+  }
+  nav.toc{
+    position:sticky;
+    top:0;
+    align-self:flex-start;
+    width:250px;
+    flex-shrink:0;
+    padding:40px 20px 40px 32px;
+    height:100vh;
+    overflow-y:auto;
+    border-right:1px solid var(--line);
+  }
+  nav.toc .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    font-weight:600;
+    color:var(--blue);
+    background:var(--blue-pale);
+    padding:5px 10px;
+    border-radius:4px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    display:inline-block;
+    margin-bottom:18px;
+  }
+  nav.toc h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--grey-light);
+    margin:0 0 12px 0;
+    font-weight:600;
+  }
+  nav.toc ul{
+    list-style:none;
+    padding:0;
+    margin:0 0 24px 0;
+  }
+  nav.toc li{ margin-bottom:2px; }
+  nav.toc a{
+    display:block;
+    padding:6px 10px;
+    border-radius:5px;
+    color:var(--grey);
+    text-decoration:none;
+    font-size:13.5px;
+    font-weight:500;
+    border-left:2px solid transparent;
+  }
+  nav.toc a:hover{
+    background:var(--blue-pale);
+    color:var(--blue-dark);
+    border-left:2px solid var(--blue);
+  }
+  main{
+    flex:1;
+    min-width:0;
+    padding:40px 56px 100px 56px;
+  }
+
+  /* ---------- HEADER ---------- */
+  header.doc-header{
+    border-bottom:2px solid var(--blue-dark);
+    padding-bottom:22px;
+    margin-bottom:34px;
+  }
+  header.doc-header .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    font-weight:600;
+    color:var(--blue);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:34px;
+    color:var(--blue-dark);
+    letter-spacing:-0.3px;
+    margin:0 0 12px 0;
+  }
+  .doc-meta{
+    font-size:13.5px;
+    color:var(--grey);
+    line-height:1.7;
+  }
+  .doc-meta code{
+    font-family:'IBM Plex Mono',monospace;
+    background:var(--blue-pale);
+    color:var(--blue-dark);
+    padding:1px 6px;
+    border-radius:3px;
+    font-size:12.5px;
+  }
+
+  /* ---------- SECTIONS ---------- */
+  section{
+    margin-bottom:52px;
+    scroll-margin-top:20px;
+  }
+  h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:22px;
+    color:var(--blue-dark);
+    margin:0 0 6px 0;
+    padding-top:6px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  h2 .idx{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    font-weight:600;
+    color:#FFFFFF;
+    background:var(--blue);
+    width:26px;
+    height:26px;
+    border-radius:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:17px;
+    color:var(--blue-dark);
+    margin:28px 0 10px 0;
+  }
+  .section-note{
+    font-size:14px;
+    color:var(--grey);
+    margin:8px 0 20px 0;
+    max-width:920px;
+  }
+  .section-note code{
+    font-family:'IBM Plex Mono',monospace;
+    background:var(--blue-pale);
+    color:var(--blue-dark);
+    padding:1px 6px;
+    border-radius:3px;
+    font-size:12.8px;
+  }
+  p{ max-width:920px; }
+
+  /* ---------- TABLES ---------- */
+  .table-wrap{
+    overflow-x:auto;
+    border:1px solid var(--line);
+    border-radius:8px;
+    margin-bottom:14px;
+  }
+  table{
+    border-collapse:collapse;
+    width:100%;
+    font-size:13px;
+    white-space:nowrap;
+  }
+  thead th{
+    background:var(--blue-dark);
+    color:#FFFFFF;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    padding:10px 12px;
+    text-align:left;
+    position:sticky;
+    top:0;
+  }
+  tbody td{
+    padding:9px 12px;
+    border-top:1px solid var(--line);
+    color:var(--ink);
+  }
+  tbody tr:nth-child(even){ background:var(--blue-paler); }
+  tbody tr:hover{ background:var(--blue-pale); }
+  td.num, th.num{ text-align:right; font-family:'IBM Plex Mono',monospace; }
+  td code, .modelname{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--blue-dark);
+    font-weight:500;
+  }
+  td.check{ text-align:center; color:var(--green); font-weight:700; }
+  td.cross{ text-align:center; color:var(--grey-light); }
+  .exact-hero{ font-weight:700; color:var(--blue-dark); }
+  tr.top-row td{ background:#FBF6EC; }
+  tr.top-row:nth-child(even){ background:#FBF6EC; }
+
+  /* ---------- CARDS / CALLOUTS ---------- */
+  .callout{
+    background:var(--blue-paler);
+    border:1px solid var(--line);
+    border-left:4px solid var(--blue);
+    border-radius:8px;
+    padding:16px 20px;
+    font-size:14px;
+    color:var(--ink);
+    margin:16px 0;
+    max-width:920px;
+  }
+  .callout b{ color:var(--blue-dark); }
+  .callout.verdict{ border-left-color:var(--amber); background:#FBF6EC; }
+  .callout.verdict b{ color:var(--amber); }
+
+  .exp-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin:16px 0 24px 0;
+  }
+  .exp-card{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:16px 18px;
+    background:#FFFFFF;
+  }
+  .exp-card .exp-id{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    color:#FFFFFF;
+    background:var(--blue);
+    padding:2px 8px;
+    border-radius:4px;
+    letter-spacing:0.5px;
+  }
+  .exp-card h4{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:15px;
+    color:var(--blue-dark);
+    margin:8px 0 6px 0;
+  }
+  .exp-card .exp-models{
+    font-size:12px;
+    color:var(--grey);
+    margin-bottom:8px;
+    line-height:1.6;
+  }
+  .exp-card .exp-models code{
+    font-family:'IBM Plex Mono',monospace;
+    background:var(--blue-pale);
+    color:var(--blue-dark);
+    padding:1px 5px;
+    border-radius:3px;
+    font-size:11.3px;
+  }
+  .exp-card p{ font-size:13px; margin:4px 0; color:var(--ink); }
+  .exp-card .label{ font-weight:600; color:var(--grey); font-size:11.5px; text-transform:uppercase; letter-spacing:0.5px; }
+
+  ol.readings{
+    padding-left:22px;
+    max-width:920px;
+  }
+  ol.readings li{
+    margin-bottom:14px;
+    font-size:14.5px;
+  }
+  ol.readings code{
+    font-family:'IBM Plex Mono',monospace;
+    background:var(--blue-pale);
+    color:var(--blue-dark);
+    padding:1px 6px;
+    border-radius:3px;
+    font-size:13px;
+  }
+
+  footer{
+    max-width:920px;
+    margin-top:60px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    font-size:12.5px;
+    color:var(--grey-light);
+  }
+
+  @media print{
+    nav.toc{ display:none; }
+    main{ padding:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <nav class="toc">
+    <div class="tag">MotherHacker · R&D</div>
+    <h2>Contingut</h2>
+    <ul>
+      <li><a href="#gold100">1 · Gold-100, mode single</a></li>
+      <li><a href="#gold1k">2 · Gold-1k, matriu final</a></li>
+      <li><a href="#runtimes">3 · Runtimes</a></li>
+      <li><a href="#pendents">4 · Candidats pendents</a></li>
+      <li><a href="#experimental">5 · Proves experimentals</a></li>
+      <li><a href="#exclosos">6 · Exclosos del benchmark</a></li>
+      <li><a href="#lectures">7 · Lectures acumulades</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <header class="doc-header">
+      <div class="eyebrow">CPEgenerator v2 · Fase 7 'Nduja · Referència tècnica</div>
+      <h1>Catàleg de models — LM Studio local</h1>
+      <div class="doc-meta">
+        Actualitzat el <b>2026-08-05</b> (dump 13:02, 88 entrades; snapshot a <code>out/lmstudio_models.json</code>).
+        El dataset complet i pla és <code>out/model_catalog.csv</code> (26 tirades × 38 columnes, una fila per model
+        × mode × jurat, generat des de <code>data/benchmarks/*/*/summary.json</code> — cada cel·la un valor).
+        Aquest document n'és la vista llegible.<br>
+        Columnes <b>T / V / R</b>: capability de tool use / vision / reasoning segons LM Studio (✓ = present, — = absent).
+      </div>
+    </header>
+
+    <section id="gold100">
+      <h2><span class="idx">1</span>Resultats — jurat gold-100, mode single</h2>
+      <div class="section-note">14 models provats. F1 en esquema strict; p95 de la tirada corresponent (vegeu el CSV per a partial, tokens i wall). Els gold-100 de tirades diferents comparteixen jurat i màquina i són comparables entre si.</div>
+      <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Model</th><th>Arch</th><th>Params</th><th>Quant</th><th class="num">GB</th><th class="num">Ctx</th>
+          <th>T</th><th>V</th><th>R</th><th>Publisher</th><th>Tirada</th><th>Màq.</th>
+          <th class="num">Err</th><th class="num">Exact</th><th class="num">M1x</th>
+          <th class="num">F1v</th><th class="num">F1p</th><th class="num">F1ver</th><th class="num">F1tgt</th>
+          <th class="num">p50 ms</th><th class="num">p95 ms</th>
+        </tr></thead>
+        <tbody>
+          <tr class="top-row"><td><code>qwen3-8b</code></td><td>qwen3</td><td>8B</td><td>Q8_0</td><td class="num">8,7</td><td class="num">32k</td><td class="check">✓</td><td class="cross">—</td><td class="check">✓</td><td>lmstudio-community</td><td>pilot2</td><td>pc</td><td class="num">0</td><td class="num exact-hero">88</td><td class="num">89</td><td class="num">0,98</td><td class="num">0,91</td><td class="num">0,99</td><td class="num">0,96</td><td class="num">4.210</td><td class="num">4.887</td></tr>
+          <tr><td><code>qwen3-4b-instruct-2507</code></td><td>qwen3</td><td>4B</td><td>Q4_K_M</td><td class="num">2,5</td><td class="num">262k</td><td class="check">✓</td><td class="cross">—</td><td class="cross">—</td><td>lmstudio-community</td><td>duel</td><td>pc</td><td class="num">0</td><td class="num">87</td><td class="num">89</td><td class="num">0,96</td><td class="num">0,94</td><td class="num">1,00</td><td class="num">0,88</td><td class="num">2.530</td><td class="num">3.739</td></tr>
+          <tr><td><code>nvidia/nemotron-3-nano-4b</code></td><td>nemotron_h</td><td>4B</td><td>Q8_0</td><td class="num">4,2</td><td class="num">1M</td><td class="check">✓</td><td class="cross">—</td><td class="check">✓</td><td>nvidia</td><td>pilot2</td><td>pc</td><td class="num">0</td><td class="num">85</td><td class="num">89</td><td class="num">0,99</td><td class="num">0,89</td><td class="num">0,98</td><td class="num">0,94</td><td class="num">3.144</td><td class="num">3.583</td></tr>
+          <tr><td><code>qwen/qwen3.5-9b</code></td><td>qwen35</td><td>9B</td><td>Q4_K_M</td><td class="num">6,5</td><td class="num">262k</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>qwen</td><td>pilot2</td><td>pc</td><td class="num">0</td><td class="num">81</td><td class="num">84</td><td class="num">0,94</td><td class="num">0,89</td><td class="num">0,97</td><td class="num">0,89</td><td class="num">6.521</td><td class="num">8.633</td></tr>
+          <tr><td><code>qwen3-1.7b</code></td><td>qwen3</td><td>1.7B</td><td>Q6_K</td><td class="num">1,7</td><td class="num">32k</td><td class="check">✓</td><td class="cross">—</td><td class="check">✓</td><td>lmstudio-community</td><td>pilot1</td><td>pc</td><td class="num">0</td><td class="num">78</td><td class="num">81</td><td class="num">0,94</td><td class="num">0,87</td><td class="num">0,99</td><td class="num">0,85</td><td class="num">612</td><td class="num">725</td></tr>
+          <tr><td><code>google/gemma-4-e4b</code></td><td>gemma4</td><td>7.5B</td><td>Q8_0</td><td class="num">9,0</td><td class="num">131k</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>google</td><td>pilot1</td><td>pc</td><td class="num">0</td><td class="num">78</td><td class="num">83</td><td class="num">0,93</td><td class="num">0,84</td><td class="num">0,99</td><td class="num">0,94</td><td class="num">3.327</td><td class="num">3.712</td></tr>
+          <tr><td><code>qwen3-0.6b</code></td><td>qwen3</td><td>0.6B</td><td>Q8_0</td><td class="num">0,8</td><td class="num">32k</td><td class="check">✓</td><td class="cross">—</td><td class="check">✓</td><td>lmstudio-community</td><td>pilot2</td><td>pc</td><td class="num">0</td><td class="num">76</td><td class="num">85</td><td class="num">0,97</td><td class="num">0,84</td><td class="num">0,97</td><td class="num">0,94</td><td class="num">249</td><td class="num">307</td></tr>
+          <tr><td><code>qwen_qwen3.5-0.8b</code></td><td>qwen35</td><td>0.8B</td><td>Q8_0</td><td class="num">1,0</td><td class="num">262k</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>bartowski</td><td>duel</td><td>pc</td><td class="num">0</td><td class="num">75</td><td class="num">80</td><td class="num">0,91</td><td class="num">0,85</td><td class="num">0,96</td><td class="num">0,94</td><td class="num">306</td><td class="num">344</td></tr>
+          <tr><td><code>phi-4-mini-instruct</code></td><td>phi3</td><td>3B</td><td>Q4_K_M</td><td class="num">2,5</td><td class="num">131k</td><td class="cross">—</td><td class="cross">—</td><td class="cross">—</td><td>unsloth</td><td>pilot2</td><td>pc</td><td class="num">0</td><td class="num">65</td><td class="num">70</td><td class="num">0,82</td><td class="num">0,80</td><td class="num">0,97</td><td class="num">0,86</td><td class="num">952</td><td class="num">1.053</td></tr>
+          <tr><td><code>lmstudio-community/qwen3.5-0.8b</code></td><td>qwen35</td><td>0.8B</td><td>Q4_K_M</td><td class="num">0,7</td><td class="num">262k</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>lmstudio-community</td><td>pilot2</td><td>pc</td><td class="num">0</td><td class="num">62</td><td class="num">72</td><td class="num">0,90</td><td class="num">0,78</td><td class="num">0,92</td><td class="num">0,91</td><td class="num">278</td><td class="num">317</td></tr>
+          <tr><td><code>qwen2.5-0.5b-instruct</code></td><td>qwen2</td><td>0.5B</td><td>Q8_0</td><td class="num">0,5</td><td class="num">32k</td><td class="check">✓</td><td class="cross">—</td><td class="cross">—</td><td>lmstudio-community</td><td>pilot2</td><td>pc</td><td class="num">2</td><td class="num">47</td><td class="num">53</td><td class="num">0,74</td><td class="num">0,62</td><td class="num">0,82</td><td class="num">0,84</td><td class="num">190</td><td class="num">223</td></tr>
+          <tr><td><code>gemma-3-1b-it-qat</code></td><td>gemma3</td><td>1B</td><td>Q4_0</td><td class="num">0,7</td><td class="num">32k</td><td class="cross">—</td><td class="cross">—</td><td class="cross">—</td><td>lmstudio-community</td><td>pilot2</td><td>pc</td><td class="num">0</td><td class="num">33</td><td class="num">76</td><td class="num">0,94</td><td class="num">0,80</td><td class="num">0,97</td><td class="num">0,41</td><td class="num">317</td><td class="num">352</td></tr>
+          <tr><td><code>llama-3.2-1b-instruct</code></td><td>llama</td><td>1B</td><td>Q8_0</td><td class="num">1,3</td><td class="num">131k</td><td class="cross">—</td><td class="cross">—</td><td class="cross">—</td><td>hugging-quants</td><td>pilot2</td><td>pc</td><td class="num">0</td><td class="num">29</td><td class="num">76</td><td class="num">0,89</td><td class="num">0,79</td><td class="num">0,96</td><td class="num">0,41</td><td class="num">292</td><td class="num">318</td></tr>
+          <tr><td><code>lfm2.5-1.2b-instruct</code></td><td>lfm2</td><td>1.2B</td><td>Q8_0</td><td class="num">1,2</td><td class="num">128k</td><td class="check">✓</td><td class="cross">—</td><td class="cross">—</td><td>lmstudio-community</td><td>pilot2</td><td>pc</td><td class="num">0</td><td class="num">13</td><td class="num">66</td><td class="num">0,88</td><td class="num">0,74</td><td class="num">0,98</td><td class="num">0,31</td><td class="num">426</td><td class="num">453</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section id="gold1k">
+      <h2><span class="idx">2</span>Resultats — jurat gold-1k (matriu final)</h2>
+      <div class="section-note">5 finalistes × 2 modes (single vs per-field).</div>
+      <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Model</th><th>Mode</th><th class="num">Err</th><th class="num">Exact</th><th class="num">M1x</th>
+          <th class="num">F1v</th><th class="num">F1p</th><th class="num">F1ver</th><th class="num">p50 ms</th><th class="num">Wall</th>
+        </tr></thead>
+        <tbody>
+          <tr class="top-row"><td><code>qwen3-8b</code></td><td>single</td><td class="num">0</td><td class="num exact-hero">837</td><td class="num exact-hero">910</td><td class="num">0,99</td><td class="num">0,91</td><td class="num">0,98</td><td class="num">1.874</td><td class="num">32 min</td></tr>
+          <tr><td><code>qwen3-4b-instruct-2507</code></td><td>single</td><td class="num">0</td><td class="num">795</td><td class="num">882</td><td class="num">0,96</td><td class="num">0,89</td><td class="num">0,98</td><td class="num">1.145</td><td class="num">20 min</td></tr>
+          <tr><td><code>qwen3-1.7b</code></td><td>single</td><td class="num">0</td><td class="num">753</td><td class="num">857</td><td class="num">0,95</td><td class="num">0,90</td><td class="num">0,98</td><td class="num">354</td><td class="num">6,4 min</td></tr>
+          <tr><td><code>qwen_qwen3.5-0.8b</code></td><td>single</td><td class="num">0</td><td class="num">704</td><td class="num">788</td><td class="num">0,92</td><td class="num">0,82</td><td class="num">0,95</td><td class="num">284</td><td class="num">5,0 min</td></tr>
+          <tr><td><code>qwen3-0.6b</code></td><td>single</td><td class="num">0</td><td class="num">701</td><td class="num">839</td><td class="num">0,96</td><td class="num">0,81</td><td class="num">0,96</td><td class="num">256</td><td class="num">4,8 min</td></tr>
+          <tr><td><code>qwen3-8b</code></td><td>per-field</td><td class="num">0</td><td class="num">558</td><td class="num">658</td><td class="num">0,88</td><td class="num">0,70</td><td class="num">0,97</td><td class="num">2.563</td><td class="num">44 min</td></tr>
+          <tr><td><code>qwen3-4b-instruct-2507</code></td><td>per-field</td><td class="num">1</td><td class="num">551</td><td class="num">687</td><td class="num">0,94</td><td class="num">0,71</td><td class="num">0,95</td><td class="num">1.987</td><td class="num">34 min</td></tr>
+          <tr><td><code>qwen3-1.7b</code></td><td>per-field</td><td class="num">0</td><td class="num">253</td><td class="num">372</td><td class="num">0,93</td><td class="num">0,37</td><td class="num">0,92</td><td class="num">1.558</td><td class="num">26 min</td></tr>
+          <tr><td><code>qwen_qwen3.5-0.8b</code></td><td>per-field</td><td class="num">2</td><td class="num">180</td><td class="num">277</td><td class="num">0,72</td><td class="num">0,43</td><td class="num">0,94</td><td class="num">799</td><td class="num">14 min</td></tr>
+          <tr><td><code>qwen3-0.6b</code></td><td>per-field</td><td class="num">54</td><td class="num">0</td><td class="num">0</td><td class="num">0,02</td><td class="num">0,00</td><td class="num">0,00</td><td class="num">1.720</td><td class="num">29 min</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section id="runtimes">
+      <h2><span class="idx">3</span>Runtimes</h2>
+      <div class="section-note">Perfils a <code>data/benchmarks/machines/</code>.</div>
+      <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Id</th><th>Device</th><th>GPU</th><th class="num">VRAM</th><th>CPU</th><th class="num">RAM</th><th>SO</th><th>Driver</th><th>Servidor</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><code>pc</code></td><td>pc (fractal)</td><td>NVIDIA GeForce RTX 3060 (Ampere)</td><td class="num">12 GB</td><td>Intel Core i7-14700F</td><td class="num">64 GB</td><td>Windows 11 Home</td><td>610.88</td><td>LM Studio, API nativa <code>/api/v1/chat</code></td></tr>
+          <tr><td><code>laptop</code></td><td>laptop</td><td>NVIDIA GeForce RTX 5070 Ti Laptop (Blackwell)</td><td class="num">12 GB</td><td><i>pendent</i></td><td class="num">31 GB</td><td>Windows</td><td><i>pendent</i></td><td>LM Studio (rèplica pendent)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="callout">Totes les tirades fetes fins ara: runtime <code>pc</code>, <code>temperature 0</code>, <code>reasoning off</code>, <code>store false</code>, <code>--offline</code> amb diccionari KGCS local.</div>
+    </section>
+
+    <section id="pendents">
+      <h2><span class="idx">4</span>Candidats pendents de provar</h2>
+      <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Model</th><th>Arch</th><th>Params</th><th>Quant</th><th class="num">GB</th><th class="num">Ctx</th>
+          <th>T</th><th>V</th><th>R</th><th>Publisher</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><code>mistralai/ministral-3-3b</code></td><td>mistral3</td><td>3B</td><td>Q4_K_M</td><td class="num">3,0</td><td class="num">262k</td><td class="check">✓</td><td class="cross">—</td><td class="cross">—</td><td>mistralai — nou 05/08, candidat fora de la família qwen</td></tr>
+          <tr><td><code>phi-3.1-mini-128k-instruct</code></td><td>phi3</td><td>3B</td><td>Q8_0</td><td class="num">4,1</td><td class="num">131k</td><td class="cross">—</td><td class="cross">—</td><td class="cross">—</td><td>lmstudio-community</td></tr>
+          <tr><td><code>google/gemma-4-e2b</code></td><td>gemma4</td><td>4.6B</td><td>Q8_0</td><td class="num">6,0</td><td class="num">131k</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>google</td></tr>
+          <tr><td><code>google/gemma-4-e2b-it-qat</code> (<code>.../gemma-4-e2b_q4_0-it.gguf</code>)</td><td>gemma4</td><td>4.6B</td><td>Q4_0</td><td class="num">3,3</td><td class="num">131k</td><td class="check">✓</td><td class="cross">—</td><td class="check">✓</td><td>google</td></tr>
+          <tr><td><code>google/gemma-4-12b-qat</code></td><td>gemma4</td><td>12B</td><td>Q4_0</td><td class="num">7,2</td><td class="num">262k</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>google</td></tr>
+          <tr><td><code>google/gemma-4-12b</code></td><td>gemma4</td><td>12B</td><td>Q4_K_M</td><td class="num">7,6</td><td class="num">131k</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td>google</td></tr>
+          <tr><td><code>qwen3-4b</code></td><td>qwen3</td><td>4B</td><td>Q8_0</td><td class="num">4,3</td><td class="num">32k</td><td class="check">✓</td><td class="cross">—</td><td class="check">✓</td><td>lmstudio-community — substituït pel 2507</td></tr>
+          <tr><td><code>qwen/qwen3-4b-2507</code></td><td>qwen3</td><td>4B</td><td>Q4_K_M</td><td class="num">2,5</td><td class="num">262k</td><td class="check">✓</td><td class="cross">—</td><td class="cross">—</td><td>qwen — quant oficial del 2507 ja provat</td></tr>
+          <tr><td><code>deepseek-r1-0528-qwen3-8b</code></td><td>qwen3</td><td>8B</td><td>Q4_K_M</td><td class="num">5,0</td><td class="num">131k</td><td class="cross">—</td><td class="cross">—</td><td class="cross">—</td><td>lmstudio-community — reserva cua difícil; també Q2_K (unsloth, 3,3 GB)</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section id="experimental">
+      <h2><span class="idx">5</span>Proves experimentals</h2>
+      <p class="section-note">
+        Models exclosos del benchmark <b>oficial</b> per motius <i>lleus</i> — decisions de política
+        (traçabilitat, cost) més que impossibilitats tècniques — i que per tant admeten experiment.
+        Regles de la casa: cap experiment que ja sabem mort (drafts sols, artefactes, joguines); els
+        resultats es tiren sobre el jurat gold-100 (barat), s'arxiven com a
+        <code>YYYYMMDD-exp-&lt;nom&gt;-gold100-&lt;màquina&gt;</code> i <b>mai entren a la corba oficial</b>
+        — la política del 2026-07-24 queda intacta per al paper.
+      </p>
+
+      <div class="exp-grid">
+        <div class="exp-card">
+          <span class="exp-id">E1</span>
+          <h4>Distills Claude/agentic</h4>
+          <div class="exp-models"><code>qwen3-14b-claude-4.5-opus-high-reasoning-distill</code> (14B Q3_K_M, 7,3 GB), <code>qwen3-8b-claude-agentic-fable5</code> (Q6_K), <code>midas-fableagent-8b</code> (Q8), <code>qwythos-9b</code> (ctx 1M)</div>
+          <p><span class="label">Hipòtesi</span><br>Un distill d'un model gran pot batre el <code>qwen3-8b</code> oficial (88 exactes) en extracció estructurada.</p>
+          <p><span class="label">Mesura</span><br><code>bench --limit 100 --modes single</code>; comparar exact/M1x/p50 contra la taula oficial.</p>
+        </div>
+        <div class="exp-card">
+          <span class="exp-id">E2</span>
+          <h4>Thinking a la cua difícil</h4>
+          <div class="exp-models"><code>deepseek-r1-0528-qwen3-8b</code> (reserva), <code>qwen3-4b-thinking-2507</code>, <code>phi-4-mini-reasoning</code></div>
+          <p><span class="label">Hipòtesi</span><br>Pensar compensa quan el títol és realment difícil: sobre el subconjunt no-M1x del gold, el reasoning ON recupera casos que cap single resol.</p>
+          <p><span class="label">Mesura</span><br><code>CPEGEN_REASONING=on</code> + <code>max_tokens</code> alt, només sobre els ~110 títols que el 8b no resol; mesurar recuperats vs cost (<code>reasoning_tokens</code>).</p>
+        </div>
+        <div class="exp-card">
+          <span class="exp-id">E3</span>
+          <h4>Quants extremes</h4>
+          <div class="exp-models"><code>deepseek-r1-0528</code> Q2_K (3,3 GB) vs Q4_K_M; <code>knowrl-nemotron-1.5b</code> IQ1_M/Q2_K/Q4/Q6/Q8 (escala completa ja descarregada)</div>
+          <p><span class="label">Hipòtesi</span><br>Trobar el penya-segat de la quantització — continuació del Q8-vs-Q4 del 0.8b (−13 exactes).</p>
+          <p><span class="label">Mesura</span><br>Mateix model, quants esglaonades, <code>bench --limit 100</code>; corba exact-vs-bits.</p>
+        </div>
+        <div class="exp-card">
+          <span class="exp-id">E4</span>
+          <h4>Decodificació especulativa</h4>
+          <div class="exp-models">Drafts (<code>*-dflash</code>, <code>deepseek-*-draft-*</code>) emparellats amb el seu model gran a LM Studio</div>
+          <p><span class="label">Hipòtesi</span><br>El 8b a velocitat de ~4b amb qualitat idèntica (greedy: l'acceptació no canvia la sortida).</p>
+          <p><span class="label">Mesura</span><br>Configurar el draft al servidor, re-córrer un combo conegut; comparar p50 i verificar exact bit a bit.</p>
+        </div>
+        <div class="exp-card">
+          <span class="exp-id">E6</span>
+          <h4>Fine-tunes de domini ciberseguretat</h4>
+          <div class="exp-models"><code>mitre_gemma3</code> (c4ch3c4d3, 3.9B Q4_K_M), <code>mistral-7b-instruct-v0.3-mitre-v0.1</code> i <code>llama-3.1-8b-instruct-mitre</code> (dim-eleftheriou), <code>hackidle-nist-coder-v1.1</code> (ethanolivertroy, 7.6B) — baixats 05/08</div>
+          <p><span class="label">Hipòtesi</span><br><b>El domini bat la mida?</b> Un fine-tune MITRE/NIST hauria de jugar amb avantatge en una tasca NIST nativa (CPE); si un 4B de domini s'acosta al qwen3-8b generalista, canvia el mapa.</p>
+          <p><span class="label">Mesura</span><br><code>bench --limit 100 --modes single</code>; comparar contra la corba oficial i, si despunta, gold-1k.</p>
+        </div>
+        <div class="exp-card">
+          <span class="exp-id">E5</span>
+          <h4>Autors desconeguts (scouting MotherHacker)</h4>
+          <div class="exp-models">Models de publishers indie del catàleg: <code>yuxinlu1</code> (gemma-4-coder-fable5), <code>empero-ai</code> (qwythos), <code>Jackrong</code>, <code>khazarai</code>, <code>prithivMLmods</code> (lift), <code>Ardenzard</code>/<code>spiritbuun</code>/<code>abhinand</code> (dflash), <code>tensorblock</code>, <code>TeichAI</code>; i els autors de l'E6: <code>c4ch3c4d3</code>, <code>dim-eleftheriou</code>, <code>ethanolivertroy</code> — fine-tuners de MITRE/NIST, perfil ideal per a la comunitat</div>
+          <p><span class="label">Hipòtesi</span><br>Si un model indie rendeix en aquesta tasca, el seu autor és un potencial col·laborador de la comunitat MotherHacker — el benchmark com a eina de scouting.</p>
+          <p><span class="label">Mesura</span><br>Els que passin un smoke de 100 títols amb dignitat: fitxa d'autor + resultats; contacte via MotherHacker si s'escau.</p>
+        </div>
+      </div>
+
+      <h3>Resultats experimentals (jurat gold-100, single; MAI a la corba oficial)</h3>
+      <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Exp</th><th>Model</th><th class="num">Err</th><th class="num">Exact</th><th class="num">M1x</th>
+          <th class="num">F1v</th><th class="num">F1p</th><th class="num">F1ver</th><th class="num">p50 ms</th><th>Tirada</th>
+        </tr></thead>
+        <tbody>
+          <tr class="top-row"><td>E6</td><td><code>mistral-7b-instruct-v0.3-mitre-v0.1</code></td><td class="num">0</td><td class="num">83</td><td class="num exact-hero">90</td><td class="num">0,96</td><td class="num">0,92</td><td class="num">0,99</td><td class="num">851</td><td>exp-e6 05/08</td></tr>
+          <tr><td>E6</td><td><code>mitre_gemma3</code> (3.9B)</td><td class="num">0</td><td class="num">82</td><td class="num">84</td><td class="num">0,90</td><td class="num">0,90</td><td class="num">1,00</td><td class="num">899</td><td>exp-e6 05/08</td></tr>
+          <tr><td>E6</td><td><code>llama-3.1-8b-instruct-mitre</code></td><td class="num">0</td><td class="num">81</td><td class="num">84</td><td class="num">0,93</td><td class="num">0,91</td><td class="num">0,96</td><td class="num">1.397</td><td>exp-e6 05/08</td></tr>
+          <tr><td>E6</td><td><code>hackidle-nist-coder-v1.1</code></td><td class="num">0</td><td class="num">78</td><td class="num">79</td><td class="num">0,91</td><td class="num">0,87</td><td class="num">0,98</td><td class="num">856</td><td>exp-e6 05/08</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <div class="callout verdict">
+        <b>Veredicte E6:</b> el domini no bat la mida al capdamunt (oficials 88/87 intactes), però
+        transforma bases dèbils — Mistral-7B v0.3 + MITRE marca el <b>M1x màxim mai mesurat (90)</b>,
+        i la família llama salta de 29 (1B pelat) a 81 exactes (8B + MITRE). Deriva de recerca anotada:
+        fine-tune de domini sobre base qwen3 amb <code>data/curated/splits/train</code>. Scouting:
+        <code>dim-eleftheriou</code> 2/2 a la part alta.
+      </div>
+    </section>
+
+    <section id="exclosos">
+      <h2><span class="idx">6</span>Exclosos del benchmark oficial (amb motiu)</h2>
+      <div class="section-note">Les exclusions de política (no tècniques) tenen via de sortida a «Proves experimentals»; aquestes files es mantenen perquè descriuen la frontera del benchmark oficial.</div>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Model</th><th>Motiu</th></tr></thead>
+        <tbody>
+          <tr><td><code>qwythos-9b-*</code>, <code>qwen3-14b-claude-*</code>, <code>gpt-oss-20b-claude-*</code>, <code>qwen3.5-27b-claude-*</code>, <code>qwen3.5-0.8b-claude-*</code>, <code>qwen3-4b-qwen3.6-plus-*</code>, <code>midas-fableagent-8b</code>, <code>qwen3-8b-claude-agentic-*</code>, <code>fable-qwen2.5-3b-*</code>, <code>lift</code></td><td>Distills/merges de comunitat — fora per decisió 2026-07-24 (traçabilitat)</td></tr>
+          <tr><td><code>*-heretic*</code>, <code>*-abliterated*</code>, <code>*-obliterated*</code></td><td>Merges uncensored; els dos gemma-12b amb metadades trencades (0,0 GB, ctx 4096)</td></tr>
+          <tr><td><code>ardenzard/qwen3.6-27b-dflash</code>, <code>spiritbuun/qwen3.6-27b-dflash</code>, <code>qwen3.6-35b-a3b-dflash</code>, <code>deepseek-*-draft-*</code>, <code>deepseek-v3-draft-*</code></td><td>Models <i>draft</i> per a decodificació especulativa, no standalone</td></tr>
+          <tr><td><code>gemma-4-12b-it-qat@*</code> (423M), <code>gemma-4-e4b-it-qat</code> (478M), <code>*-mmproj</code></td><td>Artefactes auxiliars (assistant/draft QAT, projectors de visió)</td></tr>
+          <tr><td><code>qwen3-4b-thinking-2507</code>, <code>phi-4-mini-reasoning</code>, <code>phi-4-reasoning-plus</code>, <code>deepseek-r1-distill-qwen-1.5b*</code>, <code>mistral-nemo-*-thinking-*</code></td><td>Thinking-only: fora del run massiu (decisió 2026-07-24); r1-0528 com a reserva</td></tr>
+          <tr><td><code>knowrl-nemotron-1.5b*</code> (8 quants), <code>deepseek-coder-1.3b-*</code>, <code>tutorai-chemistry-phi4</code>, <code>text-to-cypher</code>, <code>gpt</code> (163M), <code>prompt-guard-1.5b</code>, <code>distil-deepseek.v4...nsfw-0.1b</code></td><td>Distills/fine-tunes de comunitat, domini aliè o joguines</td></tr>
+          <tr><td><code>text-embedding-*</code></td><td>Embeddings — matcher semàntic futur, fora d'abast</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section id="lectures">
+      <h2><span class="idx">7</span>Lectures acumulades</h2>
+      <ol class="readings">
+        <li>La família <code>qwen3</code> domina la corba qualitat/cost sencera (0.6B→8B: 76→88 exactes al gold-100; 701→837 al gold-1k).</li>
+        <li>Mode <b>single</b> guanya el <b>per-field</b> a tota mida (sentència del 1k, decisió 2026-08-05).</li>
+        <li>Cost de la quantització mesurat amb pesos idèntics (<code>qwen3.5-0.8b</code>): Q8_0 75 vs Q4_K_M 62 exactes (−13 per −0,3 GB).</li>
+        <li>Patró M1x-alt/exacte-baix a gemma-3/llama/lfm2.5 mig resolt per la taula: el seu target_sw F1 és 0,31-0,41 (la resta: 0,84-0,96) — el parell i la versió van bé, però al·lucinen o ometen la plataforma, i el CPE exacte (v:p:v + target_sw) cau. Diagnòstic fi pendent als results.csv.</li>
+        <li>Cascada triada per al RAW: <code>qwen3-1.7b</code> (gruix) → <code>qwen3-8b</code> (cua) — <code>docs/raw-run-playbook.md</code>.</li>
+      </ol>
+    </section>
+
+    <footer>
+      Font: <code>E:\CLAUDE\CPEgenerator\out\model_catalog.md</code> · Dataset complet: <code>out/model_catalog.csv</code> ·
+      MotherHacker — R+D+i, open-source i comunitat.
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CPEgenerator v2 + KGCS — pilot status</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79;
+    --blue:#2E6CB5;
+    --blue-pale:#E8F0F8;
+    --blue-paler:#F4F8FC;
+    --ink:#16232E;
+    --grey:#5B6B77;
+    --line:#D8E3EC;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{
+    width:1920px;
+    height:1080px;
+    overflow:hidden;
+    background:#FFFFFF;
+    font-family:'IBM Plex Sans',sans-serif;
+    color:var(--ink);
+  }
+
+  body{
+    display:flex;
+    flex-direction:column;
+    padding:44px 76px 34px 76px;
+  }
+
+  /* ---------- HEADER ---------- */
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:2px solid var(--blue-dark);
+    padding-bottom:16px;
+    margin-bottom:26px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:40px;
+    color:var(--blue-dark);
+    letter-spacing:-0.5px;
+  }
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    font-weight:600;
+    color:var(--blue);
+    background:var(--blue-pale);
+    padding:8px 16px;
+    border-radius:4px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    flex:1.3;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:30px 40px 26px 40px;
+    background:var(--blue-paler);
+    border-radius:10px;
+    border:1px solid var(--line);
+    margin-bottom:24px;
+  }
+  .hero-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:23px;
+    color:var(--blue-dark);
+    margin-bottom:24px;
+  }
+  .bars{
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+  .bar-row{
+    display:flex;
+    align-items:center;
+    gap:26px;
+  }
+  .bar-label{
+    width:440px;
+    font-size:18px;
+    color:var(--grey);
+    font-weight:500;
+    line-height:1.4;
+  }
+  .bar-label b{ color:var(--ink); font-weight:600; }
+  .bar-track{
+    flex:1;
+    height:68px;
+    background:#FFFFFF;
+    border:1px solid var(--line);
+    border-radius:8px;
+    position:relative;
+    overflow:hidden;
+  }
+  .bar-fill{
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    padding-right:20px;
+    border-radius:7px 0 0 7px;
+  }
+  .bar-fill.old{ background:#AFC4D6; width:4.9%; min-width:70px; }
+  .bar-fill.new{ background:linear-gradient(90deg, var(--blue) 0%, var(--blue-dark) 100%); width:91.0%; }
+  .bar-fill .val{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:700;
+    font-size:28px;
+    color:#FFFFFF;
+  }
+  .bar-fill.old .val{ color:var(--blue-dark); position:absolute; left:calc(4.9% + 12px); }
+
+  .hero-footnote{
+    margin-top:26px;
+    font-size:14.5px;
+    line-height:1.65;
+    color:var(--grey);
+    border-top:1px dashed var(--line);
+    padding-top:16px;
+  }
+  .hero-footnote b{ color:var(--blue-dark); }
+
+  /* ---------- SECONDARY STRIP ---------- */
+  .strip{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    margin-bottom:24px;
+  }
+  .strip-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:19px;
+    color:var(--blue-dark);
+    margin-bottom:6px;
+  }
+  .strip-sub{
+    font-size:13.5px;
+    color:var(--grey);
+    margin-bottom:18px;
+  }
+  .models{
+    display:flex;
+    gap:22px;
+  }
+  .model-card{
+    flex:1;
+    background:#FFFFFF;
+    border:1px solid var(--line);
+    border-left:5px solid var(--blue);
+    border-radius:8px;
+    padding:20px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .model-name{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:16px;
+    color:var(--ink);
+  }
+  .model-metrics{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+  }
+  .model-metrics .num{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:700;
+    font-size:36px;
+    color:var(--blue-dark);
+  }
+  .model-metrics .unit{
+    font-size:13px;
+    color:var(--grey);
+    font-weight:500;
+  }
+  .model-latency{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;
+    color:var(--blue);
+    font-weight:600;
+  }
+  .model-bar{
+    height:8px;
+    background:var(--blue-pale);
+    border-radius:4px;
+    margin-top:6px;
+    overflow:hidden;
+  }
+  .model-bar-fill{
+    height:100%;
+    background:var(--blue);
+    border-radius:4px;
+  }
+
+  /* ---------- FOOTER LINES ---------- */
+  .footer{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    border-top:2px solid var(--blue-dark);
+    padding-top:16px;
+  }
+  .footer-line{
+    display:flex;
+    gap:12px;
+    align-items:baseline;
+    font-size:14.5px;
+    line-height:1.5;
+    color:var(--ink);
+  }
+  .footer-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:700;
+    font-size:12px;
+    color:#FFFFFF;
+    background:var(--blue-dark);
+    padding:3px 9px;
+    border-radius:3px;
+    letter-spacing:1px;
+    white-space:nowrap;
+  }
+  .footer-line span.text{ color:var(--grey); }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>CPEgenerator v2 + KGCS — pilot status</h1>
+    <div class="tag">MotherHacker · R&D · open-source</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">High-confidence automatic CPE resolution (M1x)</div>
+    <div class="bars">
+      <div class="bar-row">
+        <div class="bar-label"><b>TFM VulnDigger</b> (2021–2023, DistilBERT NER)<br>raw SCCM inventory, ~526k titles</div>
+        <div class="bar-track">
+          <div class="bar-fill old"><span class="val">4.9%</span></div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label"><b>CPEgenerator v2 + KGCS</b> local dictionary (2026, qwen3-8b, single-call)<br>annotated gold-1k set</div>
+        <div class="bar-track">
+          <div class="bar-fill new"><span class="val">91.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-footnote">
+      2023 figure measured on raw inventory; 2026 figure on clean annotated titles (exact CPE on gold-1k: <b>83.7%</b>).
+      Raw-inventory mass run in progress (cascade qwen3-1.7b → qwen3-8b over 487k titles); early real-inventory signal:
+      <b>20% M1x</b> on a live 82-title Windows inventory vs the 4.9% baseline.
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-title">Local quality / cost curve</div>
+    <div class="strip-sub">Exact CPEs per 1,000 gold titles @ median latency per title — RTX 3060 12GB, LM Studio, temperature 0, reasoning off</div>
+    <div class="models">
+      <div class="model-card">
+        <div class="model-name">qwen3-0.6b</div>
+        <div class="model-metrics"><span class="num">701</span><span class="unit">/ 1,000</span></div>
+        <div class="model-latency">256 ms</div>
+        <div class="model-bar"><div class="model-bar-fill" style="width:70.1%"></div></div>
+      </div>
+      <div class="model-card">
+        <div class="model-name">qwen3-1.7b</div>
+        <div class="model-metrics"><span class="num">753</span><span class="unit">/ 1,000</span></div>
+        <div class="model-latency">354 ms</div>
+        <div class="model-bar"><div class="model-bar-fill" style="width:75.3%"></div></div>
+      </div>
+      <div class="model-card">
+        <div class="model-name">qwen3-4b-instruct-2507</div>
+        <div class="model-metrics"><span class="num">795</span><span class="unit">/ 1,000</span></div>
+        <div class="model-latency">1.1 s</div>
+        <div class="model-bar"><div class="model-bar-fill" style="width:79.5%"></div></div>
+      </div>
+      <div class="model-card">
+        <div class="model-name">qwen3-8b</div>
+        <div class="model-metrics"><span class="num">837</span><span class="unit">/ 1,000</span></div>
+        <div class="model-latency">1.9 s</div>
+        <div class="model-bar"><div class="model-bar-fill" style="width:83.7%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-line">
+      <span class="footer-label">METHOD</span>
+      <span class="text">The LLM only proposes entities as JSON; a deterministic ABNF validator and the M1–M3 matcher decide. Dictionary: 1.77M CPEs served locally from the KGCS Neo4j graph. 177 offline tests.</span>
+    </div>
+    <div class="footer-line">
+      <span class="footer-label">STATUS</span>
+      <span class="text">14 local models benchmarked; extraction-mode decision closed (single-call beats per-field at every size); two-model cascade selected for the 487k raw run.</span>
+    </div>
+  </div>
+
+</body>
+</html>
