@@ -41,6 +41,15 @@ material de referència, els plans i els deliverables visuals.
 Cada document de referència, memòria i plans té també la seva versió HTML
 a `media/` (document complet + slide 1920×1080), llistada a `media/index.html`.
 
+## deliveries/ — paquets enviats
+
+`media/` és el "viu": sempre reflecteix l'estat actual. `deliveries/` és
+l'"enviat": instantànies datades (`.zip`) del que s'ha compartit fora del
+repo, amb un registre de qui/quan/perquè a
+[`deliveries/LOG.md`](deliveries/LOG.md). Els `.zip` no es versionen
+(`docs/deliveries/*.zip` al `.gitignore` — regenerables des del commit
+anotat a cada fila del log); només el `LOG.md` queda a git.
+
 ## On és la resta
 
 - **Evidència de benchmarks**: `../data/benchmarks/` — un directori per

@@ -8,3 +8,4 @@ data/cache/
 data/inventory/sccm/
 _to_delete/
 data/curated/
+docs/deliveries/*.zip
