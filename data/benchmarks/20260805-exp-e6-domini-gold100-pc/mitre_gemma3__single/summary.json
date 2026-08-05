@@ -1,0 +1,22 @@
+{
+  "model": "mitre_gemma3",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 82,
+  "m1x": 84,
+  "latency_ms_p50": 899,
+  "latency_ms_p95": 1027,
+  "tokens_in": 63059,
+  "tokens_out": 5243,
+  "wall_s": 117.9,
+  "vendor_f1_strict": 0.9,
+  "vendor_f1_partial": 0.94,
+  "product_f1_strict": 0.9,
+  "product_f1_partial": 0.94,
+  "version_f1_strict": 1.0,
+  "version_f1_partial": 1.0,
+  "target_sw_f1_strict": 0.9565,
+  "target_sw_f1_partial": 0.9565
+}

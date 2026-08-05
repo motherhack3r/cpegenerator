@@ -1,0 +1,22 @@
+{
+  "model": "mistral-7b-instruct-v0.3-mitre-v0.1",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 83,
+  "m1x": 90,
+  "latency_ms_p50": 851,
+  "latency_ms_p95": 968,
+  "tokens_in": 66497,
+  "tokens_out": 5043,
+  "wall_s": 135.7,
+  "vendor_f1_strict": 0.96,
+  "vendor_f1_partial": 0.97,
+  "product_f1_strict": 0.92,
+  "product_f1_partial": 0.96,
+  "version_f1_strict": 0.995,
+  "version_f1_partial": 0.995,
+  "target_sw_f1_strict": 0.8148,
+  "target_sw_f1_partial": 0.8148
+}

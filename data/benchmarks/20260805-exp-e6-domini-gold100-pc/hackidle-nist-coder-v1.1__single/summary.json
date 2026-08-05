@@ -1,0 +1,22 @@
+{
+  "model": "hackidle-nist-coder-v1.1",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 78,
+  "m1x": 79,
+  "latency_ms_p50": 856,
+  "latency_ms_p95": 1077,
+  "tokens_in": 59786,
+  "tokens_out": 4904,
+  "wall_s": 124.6,
+  "vendor_f1_strict": 0.9119,
+  "vendor_f1_partial": 0.9223,
+  "product_f1_strict": 0.87,
+  "product_f1_partial": 0.93,
+  "version_f1_strict": 0.98,
+  "version_f1_partial": 0.99,
+  "target_sw_f1_strict": 0.9565,
+  "target_sw_f1_partial": 0.9565
+}

@@ -1,0 +1,22 @@
+{
+  "model": "llama-3.1-8b-instruct-mitre",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 81,
+  "m1x": 84,
+  "latency_ms_p50": 1397,
+  "latency_ms_p95": 3254,
+  "tokens_in": 59911,
+  "tokens_out": 4595,
+  "wall_s": 257.5,
+  "vendor_f1_strict": 0.93,
+  "vendor_f1_partial": 0.955,
+  "product_f1_strict": 0.91,
+  "product_f1_partial": 0.955,
+  "version_f1_strict": 0.9648,
+  "version_f1_partial": 0.9799,
+  "target_sw_f1_strict": 0.9167,
+  "target_sw_f1_partial": 0.9167
+}
