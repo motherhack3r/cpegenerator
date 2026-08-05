@@ -20,8 +20,14 @@ python -m cpegen titles --input data\inventory\sccm\20221017\sccm_v_installed_so
 
 Compon el títol, descarta brossa (`-`, `---`), dedueix duplicats
 case-insensitive i filtra soroll d'inventari (KB/hotfix/language pack).
-El recompte de `written` fixa la durada del pas 2 (≈ 0,38 s/títol amb
-el 1.7b al PC). Mètriques a `titles.csv.metrics.json`.
+Mètriques a `titles.csv.metrics.json`.
+
+**✅ Executat i validat (2026-08-05, contenidor de la sessió; output ja
+a `out/raw_summary/titles.csv`)**: 280.901 files → **90.066 títols
+únics** (184.374 duplicats, 6.458 soroll, 3 massa curts, 0 brossa) en
+2,6 s. La dedup del 66% reescriu les estimacions: pas 2 ≈ **9,5 h**
+(90k × 0,38 s/títol amb el 1.7b al PC) i pas 3 ≈ **7 h** (cua ~14% ≈
+12-13k × 1,9 s amb el 8b) — cascada completa ≈ 1 dia de GPU.
 
 ## Pas 2 — Passada ràpida (hores/dies)
 
