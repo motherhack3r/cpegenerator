@@ -1,0 +1,22 @@
+{
+  "model": "qwen3-4b-instruct-2507",
+  "mode": "single",
+  "n": 1000,
+  "extraction_errors": 0,
+  "cpe_valid": 1000,
+  "cpe_exact": 795,
+  "m1x": 882,
+  "latency_ms_p50": 1145,
+  "latency_ms_p95": 1287,
+  "tokens_in": 598549,
+  "tokens_out": 47769,
+  "wall_s": 1204.2,
+  "vendor_f1_strict": 0.956,
+  "vendor_f1_partial": 0.9705,
+  "product_f1_strict": 0.885,
+  "product_f1_partial": 0.9385,
+  "version_f1_strict": 0.9789,
+  "version_f1_partial": 0.9854,
+  "target_sw_f1_strict": 0.8437,
+  "target_sw_f1_partial": 0.8437
+}
