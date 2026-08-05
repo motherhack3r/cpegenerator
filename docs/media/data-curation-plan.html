@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Pla de curació — datasets SCCM · CPEgenerator v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F6F9FC;
+    --ink:#16232E; --grey:#5B6B77; --grey-light:#8B99A3; --line:#DCE6EF;
+    --green:#2E7D5B; --amber:#B5762E; --red:#B54040;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); background:#FFFFFF; line-height:1.6; font-size:15px; }
+
+  .page{ display:flex; max-width:1400px; margin:0 auto; }
+  nav.toc{
+    position:sticky; top:0; align-self:flex-start; width:250px; flex-shrink:0;
+    padding:40px 20px 40px 32px; height:100vh; overflow-y:auto; border-right:1px solid var(--line);
+  }
+  nav.toc .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:5px 10px; border-radius:4px; letter-spacing:1.2px;
+    text-transform:uppercase; display:inline-block; margin-bottom:18px;
+  }
+  nav.toc h2{
+    font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase;
+    letter-spacing:1px; color:var(--grey-light); margin:0 0 12px 0; font-weight:600;
+  }
+  nav.toc ul{ list-style:none; padding:0; margin:0 0 24px 0; }
+  nav.toc li{ margin-bottom:2px; }
+  nav.toc a{
+    display:block; padding:6px 10px; border-radius:5px; color:var(--grey); text-decoration:none;
+    font-size:13.5px; font-weight:500; border-left:2px solid transparent;
+  }
+  nav.toc a:hover{ background:var(--blue-pale); color:var(--blue-dark); border-left:2px solid var(--blue); }
+  main{ flex:1; min-width:0; padding:40px 56px 100px 56px; }
+
+  header.doc-header{ border-bottom:2px solid var(--blue-dark); padding-bottom:22px; margin-bottom:34px; }
+  header.doc-header .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--blue);
+    letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;
+  }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:34px; color:var(--blue-dark); letter-spacing:-0.3px; margin:0 0 12px 0; }
+  .doc-meta{ font-size:13.5px; color:var(--grey); line-height:1.7; }
+  .doc-meta code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:12.5px; }
+
+  section{ margin-bottom:52px; scroll-margin-top:20px; }
+  h2{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:22px; color:var(--blue-dark);
+    margin:0 0 6px 0; padding-top:6px; display:flex; align-items:center; gap:12px;
+  }
+  h2 .idx{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:#FFFFFF;
+    background:var(--blue); width:26px; height:26px; border-radius:6px; display:flex;
+    align-items:center; justify-content:center; flex-shrink:0;
+  }
+  h3{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:17px; color:var(--blue-dark); margin:28px 0 10px 0; }
+  .section-note{ font-size:14px; color:var(--grey); margin:8px 0 20px 0; max-width:920px; }
+  p{ max-width:920px; }
+  p code, li code{
+    font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark);
+    padding:1px 6px; border-radius:3px; font-size:13px;
+  }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:8px; margin-bottom:14px; }
+  table{ border-collapse:collapse; width:100%; font-size:13px; }
+  thead th{
+    background:var(--blue-dark); color:#FFFFFF; font-family:'Space Grotesk',sans-serif;
+    font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.4px;
+    padding:10px 12px; text-align:left; position:sticky; top:0;
+  }
+  tbody td{ padding:9px 12px; border-top:1px solid var(--line); color:var(--ink); }
+  tbody tr:nth-child(even){ background:var(--blue-paler); }
+  tbody tr:hover{ background:var(--blue-pale); }
+  td.num, th.num{ text-align:right; font-family:'IBM Plex Mono',monospace; }
+  td code{ font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--blue-dark); font-weight:500; }
+  .exact-hero{ font-weight:700; color:var(--blue-dark); }
+  tr.top-row td{ background:#FBF6EC; }
+
+  .codeblock{
+    font-family:'IBM Plex Mono',monospace; font-size:13px; line-height:1.8;
+    background:var(--blue-paler); border:1px solid var(--line); border-radius:8px;
+    padding:16px 20px; margin:14px 0 24px 0; max-width:920px; color:var(--ink);
+    white-space:pre-wrap; word-break:break-word;
+  }
+  .codeblock .c{ color:var(--grey); }
+
+  ul.bullets, ol.readings{ padding-left:22px; max-width:920px; }
+  ul.bullets li, ol.readings li{ margin-bottom:9px; font-size:14.5px; }
+  ol.readings li{ margin-bottom:14px; }
+
+  ul.checklist{ list-style:none; padding-left:0; max-width:920px; }
+  ul.checklist li{ margin-bottom:10px; font-size:14.5px; padding-left:28px; position:relative; }
+  ul.checklist li::before{
+    content:"✓"; position:absolute; left:0; top:0; color:var(--green); font-weight:700;
+    background:var(--blue-paler); border-radius:4px; width:20px; height:20px; text-align:center; line-height:20px; font-size:12px;
+  }
+
+  .callout{
+    background:var(--blue-paler); border:1px solid var(--line); border-left:4px solid var(--blue);
+    border-radius:8px; padding:16px 20px; font-size:14px; color:var(--ink); margin:16px 0; max-width:920px;
+  }
+  .callout b{ color:var(--blue-dark); }
+
+  .flow{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:18px 0 22px 0; max-width:920px; }
+  .flow .node{
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600; color:var(--blue-dark);
+    background:var(--blue-pale); border:1px solid var(--line); border-radius:7px; padding:10px 14px;
+  }
+  .flow .arrow{ color:var(--grey-light); font-size:16px; }
+
+  footer{ max-width:920px; margin-top:60px; padding-top:20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--grey-light); }
+  footer code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:11.5px; }
+
+  @media print{ nav.toc{ display:none; } main{ padding:0; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <nav class="toc">
+    <div class="tag">MotherHacker · R&D</div>
+    <h2>Contingut</h2>
+    <ul>
+      <li><a href="#fonts">1 · Fonts</a></li>
+      <li><a href="#pipeline">2 · Pipeline de curació</a></li>
+      <li><a href="#sortides">3 · Sortides</a></li>
+      <li><a href="#estat">4 · Estat</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <header class="doc-header">
+      <div class="eyebrow">CPEgenerator v2 · Plans i playbooks · Curació SCCM</div>
+      <h1>Pla de curació — datasets SCCM (branca devel)</h1>
+      <div class="doc-meta">
+        Proposta acordada 2026-07-24. Objectiu: convertir els exports SCCM afegits a
+        <code>data/inventory/sccm/</code> en datasets curats que desbloquegin les dues fases pendents
+        de la v2 (Fase 1 — benchmark amb títols bruts reals; Fase 5 — escalat a inventari complet), i
+        deixar preparada la base per a un eventual re-entrenament de models (punt feble #2 de
+        <code>lessons-learned.md</code>: domain shift).<br>
+        Font: <code>docs/data-curation-plan.md</code> · Generat: <b>2026-08-05</b>
+      </div>
+    </header>
+
+    <section id="fonts">
+      <h2><span class="idx">1</span>Fonts</h2>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fitxer</th><th>Rol</th><th>Mida</th></tr></thead>
+        <tbody>
+          <tr><td><code>csv2cpe/oneshot/products.csv</code></td><td>Catàleg títol→CPE processat (export re-generat 2026-07-24, UTF-8 sense BOM, <code>;</code>, CRLF)</td><td>487.461 files</td></tr>
+          <tr><td><code>csv2cpe/oneshot/component_definitions-*.csv</code></td><td>Definicions de components</td><td>~8 MB cadascun</td></tr>
+          <tr><td>Exports RAW SCCM (títols agregats, <code>v_SoftwareProduct</code>)</td><td>Inventari brut real — input Fase 5</td><td>281k / 570k files</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <h3>Observacions de l'exploració (2026-07-24)</h3>
+      <ul class="bullets">
+        <li><code>products.csv</code>: 32 columnes; les rellevants són <code>CPE</code>, <code>Edition</code>, <code>Title</code>, <code>Product</code>, <code>Product Version</code>, <code>Vendor</code>, <code>Vuln DB ID</code> (hash estable, clau candidata), <code>Override *</code> / <code>Sync *</code> / <code>Created By</code> (traça de revisió).</li>
+        <li>La columna <code>CPE</code> és <b>multi-valor per disseny</b> (àlies separats per coma): 382.454 files amb 1 CPE, 57.320 amb 2, ~44.000 amb 3+, fins a 96 per cel·la. En les de 2, el ~87% difereixen només en el vendor (àlies tipus <code>woocommerce</code>/<code>automattic</code>); la resta en el nom de producte (<code>apache_solr</code>/<code>solr</code>). Les de molts CPEs són famílies de hardware o productes relacionats. Cal tractar-ho com a <i>alias set</i>, no com a error.</li>
+        <li><code>Edition</code> només és plena en 1.030 files (component edition del CPE 2.3), i mai en files multi-CPE.</li>
+        <li>Artefactes d'Excel: <code>Updated By</code> (epoch) degradat a notació científica — es descarta; formats de data heterogenis (<code>dd/mm/yyyy</code> i <code>mm/dd/yyyy</code>).</li>
+        <li>Contaminació detectada: àlies de vendor impossibles (p. ex. router Cisco amb àlies <code>appdynamics</code>/<code>clamav</code>) → cal quarantena.</li>
+        <li>4.904 files sense cap CPE.</li>
+      </ul>
+    </section>
+
+    <section id="pipeline">
+      <h2><span class="idx">2</span>Pipeline de curació</h2>
+      <ol class="readings">
+        <li><b>Parse + normalització</b> — UTF-8, <code>;</code>, CRLF; descartar camps corruptes per Excel (<code>Updated By</code>); explotar <code>CPE</code> en alias set; <code>Vuln DB ID</code> com a clau primària.</li>
+        <li><b>Validació sintàctica</b> — cada CPE pel validador ABNF de la Fase 2 (<code>src/cpegen/validator.py</code>). Rebuig amb log, mai silenciós.</li>
+        <li><b>Tiering de confiança</b>
+          <ul class="bullets" style="margin-top:8px;">
+            <li><b>Tier A</b>: files amb <code>Override *</code> (revisió humana explícita).</li>
+            <li><b>Tier B</b>: files <code>system</code> sense override.</li>
+            <li><b>Quarantena</b>: alias sets amb vendors incompatibles entre si o senyals de contaminació.</li>
+          </ul>
+        </li>
+        <li><b>Contrast amb diccionari NVD</b> — via <code>nvd.py</code> (cache + throttling); marcar deprecats i absents del diccionari. No es descarten: absent del diccionari ≠ incorrecte (és senyal per a M2).</li>
+        <li><b>Splits</b> — tres particions <b>disjuntes per producte</b> (mai per fila: versions del mateix producte no poden creuar splits): <code>benchmark-gold</code> / <code>train</code> / <code>test</code>, seed fixa, manifest versionat. Regla innegociable: si <code>products.csv</code> fa de gold del benchmark i de train set futur alhora, sense partició prèvia hi ha leakage i el benchmark queda invalidat.</li>
+        <li><b>Verificació</b> — mètriques del resultat (files per tier, taxa de rebuig per pas del pipeline) + tests pytest del mòdul de curació.</li>
+      </ol>
+
+      <div class="flow">
+        <div class="node">1. Parse + normalització</div>
+        <span class="arrow">→</span>
+        <div class="node">2. Validació ABNF</div>
+        <span class="arrow">→</span>
+        <div class="node">3. Tiering</div>
+        <span class="arrow">→</span>
+        <div class="node">4. Contrast NVD</div>
+        <span class="arrow">→</span>
+        <div class="node">5. Splits</div>
+        <span class="arrow">→</span>
+        <div class="node">6. Verificació</div>
+      </div>
+    </section>
+
+    <section id="sortides">
+      <h2><span class="idx">3</span>Sortides</h2>
+      <div class="codeblock">data/curated/
+├── MANIFEST.md            <span class="c"># comptes, decisions, seed, hash de les fonts</span>
+├── catalog_tier_a.csv     <span class="c"># títol → alias set CPE, revisió humana</span>
+├── catalog_tier_b.csv     <span class="c"># títol → alias set CPE, system</span>
+├── quarantine.csv         <span class="c"># sospitosos, amb motiu</span>
+├── splits/
+│   ├── benchmark_gold.csv
+│   ├── train.csv
+│   └── test.csv
+└── rejects.log            <span class="c"># descartats per pas, auditables</span></div>
+      <div class="callout">
+        Principi: la curació és un mòdul reproduïble (<code>cpegen curate</code> o script a
+        <code>src/cpegen/</code>), no un notebook one-off. El RAW no es toca mai; tot el que surt a
+        <code>data/curated/</code> es pot regenerar des de les fonts amb la mateixa seed.
+      </div>
+    </section>
+
+    <section id="estat">
+      <h2><span class="idx">4</span>Estat</h2>
+      <ul class="checklist">
+        <li>Exploració i diagnòstic de les fonts</li>
+        <li>Implementació passos 1–2 (parse + validació ABNF a granel) — <code>src/cpegen/curate.py</code> + <code>cpegen curate</code> (2026-08-04)</li>
+        <li>Tiering + contrast amb diccionari (passos 3–4) — <code>src/cpegen/tiering.py</code> + <code>cpegen tier</code> (2026-08-04; contrast 100% local contra el snapshot del KGCS, cap crida a l'NVD API)</li>
+        <li>Splits + manifest (pas 5) — <code>src/cpegen/splits.py</code> + <code>cpegen split</code> (2026-08-04)</li>
+        <li>Tests + mètriques finals (pas 6) — cada mòdul ha sortit amb els seus tests (155 en verd) i mètriques JSON auditables per pas</li>
+      </ul>
+
+      <h3>Resultats pas 5 (run 2026-08-04, seed 20260804)</h3>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Split</th><th class="num">Files</th><th class="num">Fracció</th></tr></thead>
+        <tbody>
+          <tr><td><code>benchmark_gold</code></td><td class="num">47.859</td><td class="num">10%</td></tr>
+          <tr><td><code>test</code></td><td class="num">47.859</td><td class="num">10%</td></tr>
+          <tr><td><code>train</code></td><td class="num">382.875</td><td class="num">80%</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>
+        83.646 famílies de producte (components connexes dels parells vendor:product via
+        union-find — els àlies de vendor i els renoms de producte no poden creuar splits). Invariant
+        verificat sobre la sortida real: 99.154 parells únics, <b>0 leaks</b>. La quarantena no entra
+        als splits. Detall a <code>data/curated/MANIFEST.md</code>.
+      </p>
+
+      <h3>Resultats passos 3–4 (run 2026-08-04, snapshot KGCS 1.766.927 CPEs)</h3>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mètrica</th><th class="num">Valor</th></tr></thead>
+        <tbody>
+          <tr><td>Tier A (override humà explícit)</td><td class="num">30.982</td></tr>
+          <tr><td>Tier B (resta; columna <code>creator</code> preservada)</td><td class="num">447.611 (113.060 creades per analistes sense override)</td></tr>
+          <tr><td>Quarantena</td><td class="num">1.969 (famílies: NX-OS 903, Node.js 408, AsyncOS 186, ClamAV 87…)</td></tr>
+          <tr><td>Àlies exactes al diccionari oficial</td><td class="num">86.989 / 686.647 (12,7%; 8.341 deprecats)</td></tr>
+          <tr><td>Parells (vendor, product) coneguts</td><td class="num exact-hero">265.592 (38,7%)</td></tr>
+          <tr><td>Temps</td><td class="num">~48 s</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>
+        Notes: l'exactitud baixa al diccionari és esperada (el diccionari NVD només té les versions
+        aparegudes en CVEs) i és justament el senyal M2 que buscàvem; l'absència mai rebutja. La
+        quarantena és cua de revisió, no descarte: regla <code>incompatible_vendors</code>
+        (multi-vendor + productes sense tokens comuns + algun parell desconegut al diccionari — els
+        parells que el diccionari coneix, p. ex. <code>cisco:nx-os</code>, queden exonerats).
+      </p>
+
+      <h3>Resultats passos 1–2 (run 2026-08-04, <code>products.csv</code> sencer)</h3>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mètrica</th><th class="num">Valor</th></tr></thead>
+        <tbody>
+          <tr><td>Files llegides</td><td class="num">486.933</td></tr>
+          <tr><td>Files al catàleg (<code>catalog_parsed.csv</code>)</td><td class="num">480.562 (98,7%)</td></tr>
+          <tr><td>Àlies CPE vàlids</td><td class="num">686.647 (0 invàlids re-validats: invariant ABNF)</td></tr>
+          <tr><td>Àlies rescatats per normalització canònica WFN</td><td class="num">170.079 (traça a <code>normalized.log</code>)</td></tr>
+          <tr><td>Àlies irrecuperables</td><td class="num">2.127</td></tr>
+          <tr><td>Files rebutjades</td><td class="num">4.601 sense CPE · 1.770 amb tots els àlies invàlids</td></tr>
+          <tr><td>Temps (portàtil no cal: contenidor, stdlib pur)</td><td class="num">~50 s</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>
+        Decisió clau (vegeu ROADMAP): els àlies que fallen l'ABNF només per valors sense normalitzar
+        (majúscules a <code>version</code>, parèntesis sense escapar, espais) es canonicalitzen amb el
+        binding WFN determinista i es revaliden; cada transformació queda a <code>normalized.log</code>
+        i la fila porta <code>n_normalized_aliases</code>. El rebuig estricte hauria perdut el 22% de
+        les files. <code>data/curated/</code> no es versiona (regenerable amb <code>cpegen curate</code>);
+        les mètriques de cada run queden a <code>curation_metrics.json</code> amb el sha256 de la font.
+      </p>
+    </section>
+
+    <footer>
+      Font: <code>docs/data-curation-plan.md</code> · Generat: 2026-08-05 ·
+      MotherHacker — R+D+i, open-source i comunitat.
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

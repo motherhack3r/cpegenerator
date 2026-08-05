@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Lliçons apreses — TFM 2023 · CPEgenerator v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79;
+    --blue:#2E6CB5;
+    --blue-pale:#E8F0F8;
+    --blue-paler:#F6F9FC;
+    --ink:#16232E;
+    --grey:#5B6B77;
+    --grey-light:#8B99A3;
+    --line:#DCE6EF;
+    --green:#2E7D5B;
+    --amber:#B5762E;
+    --red:#B54040;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    margin:0; font-family:'IBM Plex Sans',sans-serif; color:var(--ink);
+    background:#FFFFFF; line-height:1.6; font-size:15px;
+  }
+
+  .page{ display:flex; max-width:1400px; margin:0 auto; }
+  nav.toc{
+    position:sticky; top:0; align-self:flex-start; width:250px; flex-shrink:0;
+    padding:40px 20px 40px 32px; height:100vh; overflow-y:auto; border-right:1px solid var(--line);
+  }
+  nav.toc .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:5px 10px; border-radius:4px; letter-spacing:1.2px;
+    text-transform:uppercase; display:inline-block; margin-bottom:18px;
+  }
+  nav.toc h2{
+    font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase;
+    letter-spacing:1px; color:var(--grey-light); margin:0 0 12px 0; font-weight:600;
+  }
+  nav.toc ul{ list-style:none; padding:0; margin:0 0 24px 0; }
+  nav.toc li{ margin-bottom:2px; }
+  nav.toc a{
+    display:block; padding:6px 10px; border-radius:5px; color:var(--grey); text-decoration:none;
+    font-size:13.5px; font-weight:500; border-left:2px solid transparent;
+  }
+  nav.toc a:hover{ background:var(--blue-pale); color:var(--blue-dark); border-left:2px solid var(--blue); }
+  main{ flex:1; min-width:0; padding:40px 56px 100px 56px; }
+
+  header.doc-header{ border-bottom:2px solid var(--blue-dark); padding-bottom:22px; margin-bottom:34px; }
+  header.doc-header .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--blue);
+    letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:34px; color:var(--blue-dark);
+    letter-spacing:-0.3px; margin:0 0 12px 0;
+  }
+  .doc-meta{ font-size:13.5px; color:var(--grey); line-height:1.7; }
+  .doc-meta code{
+    font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark);
+    padding:1px 6px; border-radius:3px; font-size:12.5px;
+  }
+
+  section{ margin-bottom:52px; scroll-margin-top:20px; }
+  h2{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:22px; color:var(--blue-dark);
+    margin:0 0 6px 0; padding-top:6px; display:flex; align-items:center; gap:12px;
+  }
+  h2 .idx{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:#FFFFFF;
+    background:var(--blue); width:26px; height:26px; border-radius:6px; display:flex;
+    align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .section-note{ font-size:14px; color:var(--grey); margin:8px 0 20px 0; max-width:920px; }
+  p{ max-width:920px; }
+  p code{
+    font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark);
+    padding:1px 6px; border-radius:3px; font-size:13px;
+  }
+
+  .subitem{ margin:18px 0; max-width:920px; border-left:3px solid var(--line); padding-left:18px; }
+  .subitem.fail{ border-left-color:var(--red); }
+  .subitem.ok{ border-left-color:var(--green); }
+  .subitem .subhead{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px; color:var(--blue-dark);
+    margin-bottom:8px;
+  }
+  .subitem.fail .subhead::before{ content:"✕  "; color:var(--red); }
+  .subitem.ok .subhead::before{ content:"✓  "; color:var(--green); }
+
+  ul.bullets, ol.readings{ padding-left:22px; max-width:920px; }
+  ul.bullets li, ol.readings li{ margin-bottom:9px; font-size:14.5px; }
+  ol.readings li{ margin-bottom:16px; }
+  ul.bullets code, ol.readings code, .subitem code{
+    font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark);
+    padding:1px 6px; border-radius:3px; font-size:13px;
+  }
+
+  .callout{
+    background:var(--blue-paler); border:1px solid var(--line); border-left:4px solid var(--blue);
+    border-radius:8px; padding:16px 20px; font-size:14px; color:var(--ink); margin:16px 0; max-width:920px;
+  }
+  .callout b{ color:var(--blue-dark); }
+
+  footer{
+    max-width:920px; margin-top:60px; padding-top:20px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--grey-light);
+  }
+  footer code{
+    font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark);
+    padding:1px 6px; border-radius:3px; font-size:11.5px;
+  }
+
+  @media print{ nav.toc{ display:none; } main{ padding:0; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <nav class="toc">
+    <div class="tag">MotherHacker · R&D</div>
+    <h2>Contingut</h2>
+    <ul>
+      <li><a href="#va-fallar">1 · Què va fallar</a></li>
+      <li><a href="#va-funcionar">2 · Què va funcionar</a></li>
+      <li><a href="#punts-febles">3 · Punts febles del NER 2023</a></li>
+      <li><a href="#implicacions">4 · Implicacions per a la v2</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <header class="doc-header">
+      <div class="eyebrow">CPEgenerator v2 · Memòria del TFM (2021–2023) · Retrospectiva</div>
+      <h1>Lliçons apreses — TFM 2023</h1>
+      <div class="doc-meta">
+        Retrospectiva del projecte original, per no repetir camins morts.<br>
+        Font: <code>docs/lessons-learned.md</code> · Generat: <b>2026-08-05</b>
+      </div>
+    </header>
+
+    <section id="va-fallar">
+      <h2><span class="idx">1</span>Què va fallar</h2>
+
+      <div class="subitem fail">
+        <div class="subhead">LSTM seq2seq (caràcter a caràcter, títol → CPE sencer)</div>
+        <ul class="bullets">
+          <li>val_loss ~0.14 (vs ~0.002 del NER); runs de 10min–1.5h a Databricks, ~300 èpoques.</li>
+          <li>Problema de fons: generar la cadena CPE completa obliga el model a <i>inventar</i> vendors i products que no ha vist ("InkThemes Colorway" → <code>cpe:...:inedel:forms:...</code>). Al·lucinava amb confiança — el mateix risc que tindria un LLM generant CPEs sense validació.</li>
+          <li>Per camps individuals curts (vendor) funcionava acceptablement; per la cadena completa, no.</li>
+          <li>Evidència: <code>data/predictions/lstm_cpe.csv</code>, <code>lstm_vendor.csv</code>, <code>lstm_product.csv</code>.</li>
+        </ul>
+      </div>
+
+      <div class="subitem fail">
+        <div class="subhead">spaCy NER</div>
+        <p style="margin:0;">Fase intermèdia, només <code>cpe_product</code>; es va abandonar en favor de Transformers.</p>
+      </div>
+    </section>
+
+    <section id="va-funcionar">
+      <h2><span class="idx">2</span>Què va funcionar</h2>
+
+      <div class="subitem ok">
+        <div class="subhead">DistilBERT fine-tuned per token classification (<code>distilbert-base-uncased</code>)</div>
+        <ul class="bullets">
+          <li>Etiquetes BIO: <code>O, B-cpe_vendor, I-cpe_vendor, B-cpe_product, I-cpe_product, B-cpe_version</code></li>
+          <li>Hiperparàmetres finals: lr 2e-5, batch 16–64, ~10 èpoques, weight decay 0.01–0.05, seed 42</li>
+          <li>Train sets fins a 550k exemples (440k train / 110k test) generats des de CVE/NVD; eval_loss 0.002–0.004</li>
+          <li>Format d'anotació estil markdown/RASA: <code>[vendor](cpe_vendor) [product](cpe_product) [1.2.3](cpe_version)</code> — fàcil de generar i llegir</li>
+          <li>Scores d'inferència &gt; 0.999 per vendor/product en casos clars</li>
+          <li>Evidència: <code>data/mlflow_runs/ner_runs.csv</code>, <code>data/predictions/ner_predictions_2023.csv</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="punts-febles">
+      <h2><span class="idx">3</span>Punts febles del NER 2023 (oportunitats per a la v2)</h2>
+      <ol class="readings">
+        <li><b><code>version</code> era l'entitat més fluixa</b> — prediccions com "5.." (score 0.80) sobre "Gchq Stroom 5.0 Beta55". Sufixos beta/rc/build el confonien.</li>
+        <li><b>Entrenat amb títols "nets" de NVD, avaluat amb títols bruts de SCCM</b> — domain shift: "Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.30501" no s'assembla als exemples d'entrenament.</li>
+        <li><b>Sense raonament sobre coneixement del món</b>: no sabia que "Zoho Corp" és <code>zohocorp</code> al diccionari, ni que "draw.io for Confluence" implica <code>target_sw=confluence</code>.</li>
+        <li><b>El 91% de l'inventari quedava en M2/M3</b> sense mecanisme per progressar: ni desambiguació, ni consulta al diccionari en temps d'inferència, ni segona opinió.</li>
+        <li><b>Sense atributs més enllà de v:p:v</b>: <code>update</code>, <code>target_sw</code>, <code>part</code> es deduïen amb heurístiques al post-procés.</li>
+      </ol>
+    </section>
+
+    <section id="implicacions">
+      <h2><span class="idx">4</span>Implicacions de disseny per a la v2</h2>
+      <ul class="bullets">
+        <li>Mantenir un extractor barat per la primera passada (el NER 2023 encara serveix de baseline i pre-filtre).</li>
+        <li>L'LLM entra on el NER fallava: títols bruts, normalització de vendors, versions amb sufixos, atributs addicionals, i raonament amb accés al diccionari (agent amb eines).</li>
+        <li>Mai deixar que cap model (ni LLM) generi el CPE final sense passar pel validador ABNF + matching contra diccionari — la lliçó de l'LSTM.</li>
+        <li>El benchmark ha de incloure títols bruts reals (SCCM-like), no només gold sets nets de NVD.</li>
+      </ul>
+      <div class="callout">
+        Aquesta darrera lliçó és el <b>principi innegociable</b> del CPEgenerator v2: l'LLM proposa
+        entitats en JSON, el codi valida amb la gramàtica ABNF i el matcher M1–M3.
+      </div>
+    </section>
+
+    <footer>
+      Font: <code>docs/lessons-learned.md</code> · Generat: 2026-08-05 ·
+      MotherHacker — R+D+i, open-source i comunitat.
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

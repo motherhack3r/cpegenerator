@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Tour — ordre de lectura recomanat · CPEgenerator v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F6F9FC;
+    --ink:#16232E; --grey:#5B6B77; --grey-light:#8B99A3; --line:#DCE6EF;
+    --green:#2E7D5B; --amber:#B5762E;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); background:#FFFFFF; line-height:1.6; font-size:15px; }
+
+  .wrap{ max-width:900px; margin:0 auto; padding:48px 56px 100px 56px; }
+
+  header.doc-header{ border-bottom:2px solid var(--blue-dark); padding-bottom:22px; margin-bottom:12px; }
+  header.doc-header .top-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+  header.doc-header .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--blue);
+    letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;
+  }
+  .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:6px 12px; border-radius:4px; letter-spacing:1.2px;
+    text-transform:uppercase; white-space:nowrap; flex-shrink:0;
+  }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:32px; color:var(--blue-dark); letter-spacing:-0.3px; margin:0 0 12px 0; }
+  .doc-meta{ font-size:13.5px; color:var(--grey); line-height:1.7; max-width:760px; }
+  .doc-meta code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:12.5px; }
+
+  .path{ position:relative; margin-top:36px; }
+  .path::before{
+    content:""; position:absolute; left:27px; top:8px; bottom:8px; width:2px;
+    background:linear-gradient(var(--blue), var(--blue-pale));
+  }
+
+  .stop{ position:relative; display:flex; gap:22px; margin-bottom:28px; }
+  .stop-num{
+    flex-shrink:0; width:56px; height:56px; border-radius:50%; background:var(--blue-dark); color:#FFFFFF;
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:20px; display:flex;
+    align-items:center; justify-content:center; z-index:1; border:4px solid #FFFFFF;
+    box-shadow:0 0 0 2px var(--blue-pale);
+  }
+  .stop.bonus .stop-num{ background:var(--amber); box-shadow:0 0 0 2px #FBF6EC; }
+  .stop.finale .stop-num{ background:var(--green); box-shadow:0 0 0 2px #EAF3EE; }
+
+  .stop-card{
+    flex:1; border:1px solid var(--line); border-radius:10px; padding:18px 22px;
+    background:#FFFFFF; min-width:0;
+  }
+  .stop-eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:var(--grey-light);
+    text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;
+  }
+  .stop-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px; color:var(--ink); margin-bottom:6px; }
+  .stop-why{ font-size:14px; color:var(--grey); line-height:1.55; margin-bottom:14px; }
+  .stop-why b{ color:var(--blue-dark); }
+  .stop-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .stop-actions a{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; text-decoration:none;
+    padding:7px 14px; border-radius:6px; white-space:nowrap; border:1px solid var(--line);
+  }
+  .stop-actions a.primary{ background:var(--blue-dark); color:#FFFFFF; border-color:var(--blue-dark); }
+  .stop-actions a.primary:hover{ background:var(--blue); }
+  .stop-actions a.secondary{ background:#FFFFFF; color:var(--blue-dark); }
+  .stop-actions a.secondary:hover{ background:var(--blue-pale); }
+
+  .divider-note{
+    margin:8px 0 28px 78px; font-size:12.5px; color:var(--grey-light); font-style:italic;
+  }
+
+  footer{ margin-top:44px; padding-top:20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--grey-light); }
+  footer code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:11.5px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="doc-header">
+    <div class="top-row">
+      <div>
+        <div class="eyebrow">CPEgenerator v2 · docs/media · Tour guiat</div>
+        <h1>Tour — ordre de lectura recomanat</h1>
+      </div>
+      <div class="tag">MotherHacker · R&D · open-source</div>
+    </div>
+    <div class="doc-meta">
+      9 parades, ~15 minuts. Cada parada és una slide 1920×1080 autocontinguda; l'ordre segueix
+      el fil narratiu del projecte — d'on venim (TFM 2023), quines regles el governen, com es
+      prepara i s'executa a escala, i on som ara. Enllaç al document complet quan n'hi ha.<br>
+      Font: <code>docs/README.md</code> i <code>docs/media/*-slide.html</code> · Generat: <b>2026-08-05</b>
+    </div>
+  </header>
+
+  <div class="path">
+
+    <div class="stop">
+      <div class="stop-num">1</div>
+      <div class="stop-card">
+        <div class="stop-eyebrow">Memòria del TFM (2021–2023)</div>
+        <div class="stop-title">VulnDigger — TFM 2023: la línia de partida</div>
+        <div class="stop-why">D'on venim: <b>LSTM seq2seq</b> que al·lucinava vendors i products vs el
+          <b>DistilBERT NER</b> que va guanyar. El punt de partida abans de KGCS.</div>
+        <div class="stop-actions">
+          <a class="primary" href="tfm-2023-summary-slide.html">Veure slide →</a>
+          <a class="secondary" href="tfm-2023-summary.html">Document complet</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="stop">
+      <div class="stop-num">2</div>
+      <div class="stop-card">
+        <div class="stop-eyebrow">Memòria del TFM (2021–2023)</div>
+        <div class="stop-title">Lliçons del 2023 — per què l'LLM mai genera el CPE sol</div>
+        <div class="stop-why">El camí mort de l'LSTM defineix el <b>principi innegociable</b> de la v2:
+          cap model, ni un LLM, genera el CPE final sense passar pel validador.</div>
+        <div class="stop-actions">
+          <a class="primary" href="lessons-learned-slide.html">Veure slide →</a>
+          <a class="secondary" href="lessons-learned.html">Document complet</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider-note">↓ Amb el principi clar, entrem a la norma que el fa complir</div>
+
+    <div class="stop">
+      <div class="stop-num">3</div>
+      <div class="stop-card">
+        <div class="stop-eyebrow">Referència normativa</div>
+        <div class="stop-title">CPE 2.3 — el nucli normatiu del validador</div>
+        <div class="stop-why">El <b>Well-Formed Name</b> i els seus 11 atributs posicionals: la
+          gramàtica que qualsevol CPE ha de complir abans de ser acceptat.</div>
+        <div class="stop-actions">
+          <a class="primary" href="cpe-reference-slide.html">Veure slide →</a>
+          <a class="secondary" href="cpe-reference.html">Document complet</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="stop">
+      <div class="stop-num">4</div>
+      <div class="stop-card">
+        <div class="stop-eyebrow">Referència normativa</div>
+        <div class="stop-title">M1–M3: la classificació determinista</div>
+        <div class="stop-why">La línia base 2023 a batre (~4,9% M1x) i per què la classificació és
+          <b>purament determinista</b> — mai la confiança del model.</div>
+        <div class="stop-actions">
+          <a class="primary" href="match-rules-slide.html">Veure slide →</a>
+          <a class="secondary" href="match-rules.html">Document complet</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="stop">
+      <div class="stop-num">5</div>
+      <div class="stop-card">
+        <div class="stop-eyebrow">Referència normativa</div>
+        <div class="stop-title">Dos eixos, mai barrejats</div>
+        <div class="stop-why">El rigor metodològic darrere els números: extracció (MUC/SemEval'13) i
+          matching (M1–M3) s'avaluen per separat — l'error que la v1 no va veure.</div>
+        <div class="stop-actions">
+          <a class="primary" href="evaluation-slide.html">Veure slide →</a>
+          <a class="secondary" href="evaluation.html">Document complet</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider-note">↓ Amb la norma i l'avaluació fixades, toca preparar i executar a escala</div>
+
+    <div class="stop">
+      <div class="stop-num">6</div>
+      <div class="stop-card">
+        <div class="stop-eyebrow">Plans i playbooks</div>
+        <div class="stop-title">487k files SCCM → 3 splits, 0 leaks</div>
+        <div class="stop-why">Com es preparen les dades reals: de <code>products.csv</code> a splits
+          nets i disjunts per producte, sense fuites entre benchmark i entrenament.</div>
+        <div class="stop-actions">
+          <a class="primary" href="data-curation-plan-slide.html">Veure slide →</a>
+          <a class="secondary" href="data-curation-plan.html">Document complet</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="stop">
+      <div class="stop-num">7</div>
+      <div class="stop-card">
+        <div class="stop-eyebrow">Plans i playbooks</div>
+        <div class="stop-title">487k títols RAW — cascada qwen3-1.7b → qwen3-8b</div>
+        <div class="stop-why">El pla d'execució a escala real: un dia de GPU per processar tot
+          l'inventari brut, pas a pas, i tot reprendible si falla.</div>
+        <div class="stop-actions">
+          <a class="primary" href="raw-run-playbook-slide.html">Veure slide →</a>
+          <a class="secondary" href="raw-run-playbook.html">Document complet</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider-note">↓ I això és el que en surt</div>
+
+    <div class="stop finale">
+      <div class="stop-num">8</div>
+      <div class="stop-card">
+        <div class="stop-eyebrow">Estat</div>
+        <div class="stop-title">CPEgenerator v2 + KGCS — pilot status</div>
+        <div class="stop-why">L'arribada de tot el recorregut anterior: <b>4,9% → 91,0% M1x</b> —
+          resolució automàtica d'alta confiança sobre el gold-1k, i la corba qualitat/cost dels
+          14 models locals benchmarcats.</div>
+        <div class="stop-actions">
+          <a class="primary" href="slide.html">Veure slide →</a>
+          <a class="secondary" href="model_catalog.html">Catàleg de models</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="stop bonus">
+      <div class="stop-num">+</div>
+      <div class="stop-card">
+        <div class="stop-eyebrow">Bonus</div>
+        <div class="stop-title">Il regalo — Fase 7 'Nduja</div>
+        <div class="stop-why">Extra: la infografia que tanca la Fase 7, amb un altre format visual,
+          per a qui vulgui una síntesi diferent del mateix recorregut — actualitzada amb les xifres
+          del gold-1k.</div>
+        <div class="stop-actions">
+          <a class="primary" href="il-regalo-v2.html">Veure infografia →</a>
+          <a class="secondary" href="il-regalo.html">Original (07/2026)</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    Font: <code>docs/README.md</code> i <code>docs/media/*-slide.html</code> · Generat: 2026-08-05 ·
+    Vegeu també <code>docs/media/index.html</code> per a l'índex complet (documents + slides).<br>
+    MotherHacker — R+D+i, open-source i comunitat.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Avaluació — extracció vs matching · CPEgenerator v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F6F9FC;
+    --ink:#16232E; --grey:#5B6B77; --grey-light:#8B99A3; --line:#DCE6EF;
+    --green:#2E7D5B; --amber:#B5762E; --red:#B54040;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); background:#FFFFFF; line-height:1.6; font-size:15px; }
+
+  .page{ display:flex; max-width:1400px; margin:0 auto; }
+  nav.toc{
+    position:sticky; top:0; align-self:flex-start; width:250px; flex-shrink:0;
+    padding:40px 20px 40px 32px; height:100vh; overflow-y:auto; border-right:1px solid var(--line);
+  }
+  nav.toc .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:5px 10px; border-radius:4px; letter-spacing:1.2px;
+    text-transform:uppercase; display:inline-block; margin-bottom:18px;
+  }
+  nav.toc h2{
+    font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase;
+    letter-spacing:1px; color:var(--grey-light); margin:0 0 12px 0; font-weight:600;
+  }
+  nav.toc ul{ list-style:none; padding:0; margin:0 0 24px 0; }
+  nav.toc li{ margin-bottom:2px; }
+  nav.toc a{
+    display:block; padding:6px 10px; border-radius:5px; color:var(--grey); text-decoration:none;
+    font-size:13.5px; font-weight:500; border-left:2px solid transparent;
+  }
+  nav.toc a:hover{ background:var(--blue-pale); color:var(--blue-dark); border-left:2px solid var(--blue); }
+  main{ flex:1; min-width:0; padding:40px 56px 100px 56px; }
+
+  header.doc-header{ border-bottom:2px solid var(--blue-dark); padding-bottom:22px; margin-bottom:34px; }
+  header.doc-header .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--blue);
+    letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;
+  }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:34px; color:var(--blue-dark); letter-spacing:-0.3px; margin:0 0 12px 0; }
+  .doc-meta{ font-size:13.5px; color:var(--grey); line-height:1.7; }
+  .doc-meta code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:12.5px; }
+
+  section{ margin-bottom:52px; scroll-margin-top:20px; }
+  h2{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:22px; color:var(--blue-dark);
+    margin:0 0 6px 0; padding-top:6px; display:flex; align-items:center; gap:12px;
+  }
+  h2 .idx{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:#FFFFFF;
+    background:var(--blue); width:26px; height:26px; border-radius:6px; display:flex;
+    align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .section-note{ font-size:14px; color:var(--grey); margin:8px 0 20px 0; max-width:920px; }
+  p{ max-width:920px; }
+  p code, li code{
+    font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark);
+    padding:1px 6px; border-radius:3px; font-size:13px;
+  }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:8px; margin-bottom:14px; }
+  table{ border-collapse:collapse; width:100%; font-size:13px; }
+  thead th{
+    background:var(--blue-dark); color:#FFFFFF; font-family:'Space Grotesk',sans-serif;
+    font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.4px;
+    padding:10px 12px; text-align:left; position:sticky; top:0;
+  }
+  tbody td{ padding:9px 12px; border-top:1px solid var(--line); color:var(--ink); }
+  tbody tr:nth-child(even){ background:var(--blue-paler); }
+  td code{ font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--blue-dark); font-weight:500; }
+
+  ul.bullets, ol.readings{ padding-left:22px; max-width:920px; }
+  ul.bullets li, ol.readings li{ margin-bottom:9px; font-size:14.5px; }
+  ol.readings li{ margin-bottom:14px; }
+
+  .callout{
+    background:var(--blue-paler); border:1px solid var(--line); border-left:4px solid var(--blue);
+    border-radius:8px; padding:16px 20px; font-size:14px; color:var(--ink); margin:16px 0; max-width:920px;
+  }
+  .callout b{ color:var(--blue-dark); }
+  .callout.verdict{ border-left-color:var(--amber); background:#FBF6EC; }
+  .callout.verdict b{ color:var(--amber); }
+
+  .axis-flow{ display:flex; align-items:stretch; gap:18px; margin:18px 0 24px 0; max-width:920px; }
+  .axis-card{
+    flex:1; border:1px solid var(--line); border-radius:9px; padding:18px 20px;
+    background:var(--blue-paler);
+  }
+  .axis-card .axis-num{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:700; color:#FFFFFF;
+    background:var(--blue); padding:2px 8px; border-radius:4px; letter-spacing:0.5px;
+  }
+  .axis-card h4{ font-family:'Space Grotesk',sans-serif; font-size:16px; color:var(--blue-dark); margin:10px 0 6px 0; }
+  .axis-card p{ font-size:13.5px; margin:4px 0; }
+  .axis-sep{ display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--grey-light); flex:0 0 40px; }
+
+  footer{ max-width:920px; margin-top:60px; padding-top:20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--grey-light); }
+  footer code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:11.5px; }
+
+  @media print{ nav.toc{ display:none; } main{ padding:0; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <nav class="toc">
+    <div class="tag">MotherHacker · R&D</div>
+    <h2>Contingut</h2>
+    <ul>
+      <li><a href="#eix1">1 · Eix 1 — Extracció</a></li>
+      <li><a href="#eix2">2 · Eix 2 — Matching</a></li>
+      <li><a href="#separacio">3 · La separació</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <header class="doc-header">
+      <div class="eyebrow">CPEgenerator v2 · Referència normativa · Esquema d'avaluació</div>
+      <h1>Avaluació — extracció vs matching</h1>
+      <div class="doc-meta">
+        Dos eixos ortogonals, cadascun amb el seu esquema. Barrejar-los va ser l'error de la v1
+        (el "score final" del full de càlcul del TFM); la v2 els manté estrictament separats
+        (decisió 2026-07-24).<br>
+        Font: <code>docs/evaluation.md</code> · Generat: <b>2026-08-05</b>
+      </div>
+    </header>
+
+    <div class="axis-flow">
+      <div class="axis-card">
+        <span class="axis-num">EIX 1</span>
+        <h4>Qualitat de l'extracció</h4>
+        <p>MUC / SemEval-2013 · strict &amp; partial</p>
+      </div>
+      <div class="axis-sep">≠</div>
+      <div class="axis-card">
+        <span class="axis-num">EIX 2</span>
+        <h4>Resultat del matching</h4>
+        <p>M1–M3 · purament determinista</p>
+      </div>
+    </div>
+
+    <section id="eix1">
+      <h2><span class="idx">1</span>Eix 1 — Qualitat de l'extracció (entitats)</h2>
+      <p>
+        Com de bé el model (NER 2023, LLM directe, o agent) identifica <code>vendor</code>,
+        <code>product</code> i <code>version</code> dins del títol brut.
+      </p>
+      <p>
+        <b>Esquema</b>: MUC / SemEval-2013 Task 9.1, seguint la formulació de David S. Batista —
+        <i>Named-Entity evaluation metrics based on entity-level</i> (davidsbatista.net, 2018-05-09),
+        referència aportada per l'usuari i adoptada el 2026-07-14.
+      </p>
+      <p>Categories per parell (gold, predicció):</p>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Cat</th><th>Significat</th></tr></thead>
+        <tbody>
+          <tr><td><code>COR</code></td><td>correcte — coincidència exacta</td></tr>
+          <tr><td><code>INC</code></td><td>incorrecte — presents tots dos, cap solapament</td></tr>
+          <tr><td><code>PAR</code></td><td>parcial — solapament de frontera ("axigen mail" vs "axigen mail server")</td></tr>
+          <tr><td><code>MIS</code></td><td>missing — el gold hi és, la predicció no</td></tr>
+          <tr><td><code>SPU</code></td><td>spurious — la predicció hi és, el gold no</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>
+        Mètriques: <code>POSSIBLE = COR+INC+PAR+MIS</code>, <code>ACTUAL = COR+INC+PAR+SPU</code>;
+        <b>strict</b> <code>P = COR/ACTUAL</code>, <code>R = COR/POSSIBLE</code>; <b>partial</b>
+        substitueix <code>COR</code> per <code>COR + 0.5·PAR</code>. Els esquemes "type" i "exact" de
+        SemEval degeneren en "strict" aquí perquè el tipus d'entitat ve fixat pel camp.
+      </p>
+      <p><b>Implementació</b>: <code>src/cpegen/metrics.py</code> (docstring amb el detall), tests a
+        <code>tests/test_metrics.py</code>. Surt a <code>report.md</code> de cada run.</p>
+    </section>
+
+    <section id="eix2">
+      <h2><span class="idx">2</span>Eix 2 — Resultat del matching (M1–M3)</h2>
+      <p>
+        Què ha passat en comparar el WFN construït contra el diccionari oficial CPE:
+        <code>docs/match-rules.md</code> (taxonomia heretada del TFM 2023, necessària per comparar
+        amb la línia base ~4,9%).
+      </p>
+      <p>
+        <b>La classificació és purament determinista</b>: igualtat de camps + similitud d'edició
+        (llindar 0.8) contra el diccionari. Mateix WFN + mateixos candidats ⇒ mateixa regla, sigui
+        quin sigui el model que ha extret les entitats.
+      </p>
+    </section>
+
+    <section id="separacio">
+      <h2><span class="idx">3</span>La separació (què hem retirat i per què)</h2>
+      <p>La v1 barrejava la confiança del model dins la classificació:</p>
+      <ul class="bullets">
+        <li><b>Gate</b>: cap M1x si <code>NER score ≤ 0.8</code>. Evidència en contra: al run del
+          2026-07-14, 9 títols amb confiança exactament 0.8 i vendor+producte exactes al diccionari
+          van caure a M2 — haurien estat M1B.</li>
+        <li><b>"Score final"</b>: <code>mean(1, ner)</code>, <code>min(ner, dist(prod))</code>... —
+          mitjanes de quantitats incomparables (probabilitat d'un model vs distància d'edició). A més,
+          les confidences no són comparables entre models (NER 2023 vs LLMs diversos), cosa letal per a
+          un benchmark multi-model.</li>
+      </ul>
+      <p>Des del 2026-07-24:</p>
+      <ol class="readings">
+        <li><code>classify()</code> no rep la confiança; retorna <code>rule</code> + <code>similarity</code> (la similitud de diccionari que ha decidit la regla).</li>
+        <li>La confiança del model es reporta com a columna pròpia (<code>confidence</code>) a <code>results.csv</code>, sense cap pes en la classificació.</li>
+        <li>Si la confiança serveix com a porta (i amb quin llindar per model), ho dirà el benchmark de la Fase 1 empíricament — calibració, no axioma.</li>
+      </ol>
+      <div class="callout verdict">
+        "M1x = alta confiança" continua significant confiança <b>en el match</b> (existeix al
+        diccionari o és candidat sòlid), no en el model.
+      </div>
+    </section>
+
+    <footer>
+      Font: <code>docs/evaluation.md</code> · Generat: 2026-08-05 ·
+      MotherHacker — R+D+i, open-source i comunitat.
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

@@ -31,10 +31,16 @@ material de referència, els plans i els deliverables visuals.
 
 | Fitxer | Contingut |
 |---|---|
+| [`media/index.html`](media/index.html) | Índex de tots els documents i slides HTML de `docs/` (agrupat igual que aquest README) |
+| [`media/tour.html`](media/tour.html) | Tour guiat: ordre de lectura recomanat de les 9 slides (~15 min) — punt de partida suggerit abans de l'índex |
 | [`media/slide.html`](media/slide.html) | Slide d'estat dels pilots (1920×1080, autocontinguda): 4,9% TFM vs 91% M1x gold-1k, corba qualitat/cost. Xifres verificades contra `../data/benchmarks/` |
 | [`media/CPEgenerator v2 + KGCS — pilot status.pdf`](media/) | La mateixa slide, impresa a PDF |
 | [`media/model_catalog.html`](media/model_catalog.html) | Vista web del catàleg de models (foto datada — la font viva és `out/model_catalog.md` + `.csv`, regenerables) |
-| [`media/il-regalo.html`](media/il-regalo.html) | Infografia de la Fase 7 'Nduja (2026-07-24) |
+| [`media/il-regalo-v2.html`](media/il-regalo-v2.html) | Infografia de la Fase 7 'Nduja, realineada al sistema visual actual amb les xifres del gold-1k (2026-08-05) |
+| [`media/il-regalo.html`](media/il-regalo.html) | Versió original de la infografia (2026-07-24) — superada per `il-regalo-v2.html`, es manté com a instantània datada |
+
+Cada document de referència, memòria i plans té també la seva versió HTML
+a `media/` (document complet + slide 1920×1080), llistada a `media/index.html`.
 
 ## On és la resta
 

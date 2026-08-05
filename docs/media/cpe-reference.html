@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Referència CPE 2.3 — nucli normatiu · CPEgenerator v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F6F9FC;
+    --ink:#16232E; --grey:#5B6B77; --grey-light:#8B99A3; --line:#DCE6EF;
+    --green:#2E7D5B; --amber:#B5762E; --red:#B54040;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); background:#FFFFFF; line-height:1.6; font-size:15px; }
+
+  .page{ display:flex; max-width:1400px; margin:0 auto; }
+  nav.toc{
+    position:sticky; top:0; align-self:flex-start; width:250px; flex-shrink:0;
+    padding:40px 20px 40px 32px; height:100vh; overflow-y:auto; border-right:1px solid var(--line);
+  }
+  nav.toc .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:5px 10px; border-radius:4px; letter-spacing:1.2px;
+    text-transform:uppercase; display:inline-block; margin-bottom:18px;
+  }
+  nav.toc h2{
+    font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase;
+    letter-spacing:1px; color:var(--grey-light); margin:0 0 12px 0; font-weight:600;
+  }
+  nav.toc ul{ list-style:none; padding:0; margin:0 0 24px 0; }
+  nav.toc li{ margin-bottom:2px; }
+  nav.toc a{
+    display:block; padding:6px 10px; border-radius:5px; color:var(--grey); text-decoration:none;
+    font-size:13.5px; font-weight:500; border-left:2px solid transparent;
+  }
+  nav.toc a:hover{ background:var(--blue-pale); color:var(--blue-dark); border-left:2px solid var(--blue); }
+  main{ flex:1; min-width:0; padding:40px 56px 100px 56px; }
+
+  header.doc-header{ border-bottom:2px solid var(--blue-dark); padding-bottom:22px; margin-bottom:34px; }
+  header.doc-header .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--blue);
+    letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;
+  }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:34px; color:var(--blue-dark); letter-spacing:-0.3px; margin:0 0 12px 0; }
+  .doc-meta{ font-size:13.5px; color:var(--grey); line-height:1.7; }
+  .doc-meta code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:12.5px; }
+
+  section{ margin-bottom:52px; scroll-margin-top:20px; }
+  h2{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:22px; color:var(--blue-dark);
+    margin:0 0 6px 0; padding-top:6px; display:flex; align-items:center; gap:12px;
+  }
+  h2 .idx{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:#FFFFFF;
+    background:var(--blue); width:26px; height:26px; border-radius:6px; display:flex;
+    align-items:center; justify-content:center; flex-shrink:0;
+  }
+  h3{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:17px; color:var(--blue-dark); margin:28px 0 10px 0; }
+  .section-note{ font-size:14px; color:var(--grey); margin:8px 0 20px 0; max-width:920px; }
+  p{ max-width:920px; }
+  p code, li code{
+    font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark);
+    padding:1px 6px; border-radius:3px; font-size:13px;
+  }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:8px; margin-bottom:14px; }
+  table{ border-collapse:collapse; width:100%; font-size:13px; }
+  thead th{
+    background:var(--blue-dark); color:#FFFFFF; font-family:'Space Grotesk',sans-serif;
+    font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.4px;
+    padding:10px 12px; text-align:left; position:sticky; top:0;
+  }
+  tbody td{ padding:9px 12px; border-top:1px solid var(--line); color:var(--ink); }
+  tbody tr:nth-child(even){ background:var(--blue-paler); }
+  tbody tr:hover{ background:var(--blue-pale); }
+  td code{ font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--blue-dark); font-weight:500; }
+
+  .codeblock{
+    font-family:'IBM Plex Mono',monospace; font-size:13px; line-height:1.8;
+    background:var(--blue-paler); border:1px solid var(--line); border-radius:8px;
+    padding:16px 20px; margin:14px 0 24px 0; max-width:920px; color:var(--ink);
+    white-space:pre-wrap; word-break:break-word;
+  }
+  .codeblock .v{ color:var(--blue-dark); font-weight:600; }
+  .codeblock .c{ color:var(--grey); }
+
+  .wfn-strip{ display:flex; flex-wrap:wrap; gap:6px; margin:16px 0 8px 0; max-width:920px; }
+  .wfn-field{
+    font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#FFFFFF;
+    background:var(--blue); border-radius:5px; padding:8px 10px; text-align:center;
+  }
+  .wfn-field.lit{ background:var(--grey-light); }
+  .wfn-labels{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; max-width:920px; }
+  .wfn-labels span{
+    font-size:10.5px; color:var(--grey); text-align:center; width:78px;
+  }
+
+  ul.bullets, ol.readings{ padding-left:22px; max-width:920px; }
+  ul.bullets li, ol.readings li{ margin-bottom:9px; font-size:14.5px; }
+  ol.readings li{ margin-bottom:14px; }
+
+  .callout{
+    background:var(--blue-paler); border:1px solid var(--line); border-left:4px solid var(--blue);
+    border-radius:8px; padding:16px 20px; font-size:14px; color:var(--ink); margin:16px 0; max-width:920px;
+  }
+  .callout b{ color:var(--blue-dark); }
+
+  footer{ max-width:920px; margin-top:60px; padding-top:20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--grey-light); }
+  footer code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:11.5px; }
+
+  @media print{ nav.toc{ display:none; } main{ padding:0; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <nav class="toc">
+    <div class="tag">MotherHacker · R&D</div>
+    <h2>Contingut</h2>
+    <ul>
+      <li><a href="#specs">1 · Les 4 especificacions</a></li>
+      <li><a href="#wfn">2 · Well-Formed Name (WFN)</a></li>
+      <li><a href="#binding">3 · Formatted string binding</a></li>
+      <li><a href="#matching">4 · Matching (NISTIR 7696)</a></li>
+      <li><a href="#diccionari">5 · Diccionari oficial i API</a></li>
+      <li><a href="#trampes">6 · Trampes conegudes</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <header class="doc-header">
+      <div class="eyebrow">CPEgenerator v2 · Referència normativa · Nucli CPE 2.3</div>
+      <h1>Referència CPE 2.3 — nucli normatiu</h1>
+      <div class="doc-meta">
+        Destil·lat dels NISTIR 7695–7698 (còpies locals a <code>POLIMI\TFM\05.Data Exploratory\cpe\</code>).<br>
+        Font: <code>docs/cpe-reference.md</code> · Generat: <b>2026-08-05</b>
+      </div>
+    </header>
+
+    <section id="specs">
+      <h2><span class="idx">1</span>Les 4 especificacions</h2>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>NISTIR</th><th>Títol</th><th>Rol</th></tr></thead>
+        <tbody>
+          <tr><td><code>7695</code></td><td>Naming Specification</td><td>Defineix WFN i els dos bindings (URI 2.2, formatted string 2.3)</td></tr>
+          <tr><td><code>7696</code></td><td>Name Matching</td><td>Com comparar dos noms: DISJOINT / EQUAL / SUBSET / SUPERSET</td></tr>
+          <tr><td><code>7697</code></td><td>Dictionary</td><td>El diccionari oficial (NVD) i les regles per acceptar-hi entrades</td></tr>
+          <tr><td><code>7698</code></td><td>Applicability Language</td><td>Expressions lògiques AND/OR sobre CPEs (usat als CVE configurations)</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section id="wfn">
+      <h2><span class="idx">2</span>Well-Formed Name (WFN)</h2>
+      <p>Representació lògica: conjunt no ordenat de parells atribut-valor.</p>
+      <p><b>11 atributs</b>: <code>part</code>, <code>vendor</code>, <code>product</code>, <code>version</code>, <code>update</code>, <code>edition</code>, <code>language</code>, <code>sw_edition</code>, <code>target_sw</code>, <code>target_hw</code>, <code>other</code></p>
+      <ul class="bullets">
+        <li><code>part</code>: <code>a</code> (aplicació), <code>o</code> (sistema operatiu), <code>h</code> (hardware)</li>
+        <li>Valors possibles: cadena, <code>ANY</code> (qualsevol) o <code>NA</code> (no aplicable)</li>
+        <li>Convenció: minúscules; espais → guió baix (<code>_</code>)</li>
+      </ul>
+      <p>Exemple WFN:</p>
+      <div class="codeblock">wfn:[part="a", vendor="in2code", product="femanager", version="5\.5\.1", target_sw="typo3"]</div>
+    </section>
+
+    <section id="binding">
+      <h2><span class="idx">3</span>Formatted string binding (CPE 2.3)</h2>
+      <div class="codeblock">cpe:2.3:part:vendor:product:version:update:edition:language:sw_edition:target_sw:target_hw:other
+<span class="v">cpe:2.3:a:in2code:femanager:5.5.1:*:*:*:*:typo3:*:*</span></div>
+
+      <div class="wfn-strip">
+        <div class="wfn-field lit">cpe:2.3</div>
+        <div class="wfn-field">a</div>
+        <div class="wfn-field">in2code</div>
+        <div class="wfn-field">femanager</div>
+        <div class="wfn-field">5.5.1</div>
+        <div class="wfn-field lit">*</div>
+        <div class="wfn-field lit">*</div>
+        <div class="wfn-field lit">*</div>
+        <div class="wfn-field lit">*</div>
+        <div class="wfn-field">typo3</div>
+        <div class="wfn-field lit">*</div>
+        <div class="wfn-field lit">*</div>
+      </div>
+      <div class="wfn-labels">
+        <span>prefix</span><span>part</span><span>vendor</span><span>product</span><span>version</span>
+        <span>update</span><span>edition</span><span>language</span><span>sw_edition</span>
+        <span>target_sw</span><span>target_hw</span><span>other</span>
+      </div>
+
+      <ul class="bullets">
+        <li><code>*</code> = ANY, <code>-</code> = NA (posicionals, sempre 11 camps després de <code>cpe:2.3:</code>)</li>
+        <li><b>Escapat</b>: alfanumèrics, <code>_</code> i <code>-</code> van sense escapar; qualsevol altre caràcter imprimible s'escapa amb <code>\</code> (p. ex. <code>5\.5\.1</code> en WFN; a la formatted string el punt va literal: <code>5.5.1</code>, però <code>:</code> o <code>~</code> s'escapen)</li>
+        <li>Wildcards <code>*</code> i <code>?</code> només a inici/final d'un valor, mai al mig</li>
+      </ul>
+
+      <h3>Gramàtica ABNF (essència, NISTIR 7695 §6.2)</h3>
+      <div class="codeblock">cpe-name    = "cpe:2.3:" component-list
+component-list = part *10(":" comp)
+part        = "a" / "o" / "h" / "*" / "-"
+comp        = logical / avstring
+logical     = "*" / "-"
+avstring    = *( unreserved / quoted ) <span class="c">; amb wildcards opcionals a extrems</span>
+unreserved  = ALPHA / DIGIT / "_"     <span class="c">; minúscules</span>
+quoted      = "\" special             <span class="c">; qualsevol caràcter especial</span></div>
+      <p class="section-note">(La gramàtica completa amb <code>spec_chrs</code>, restriccions de wildcards i el binding/unbinding algorithm és al §6 del NISTIR 7695 — consultar el PDF si cal implementar el parser fil per randa.)</p>
+    </section>
+
+    <section id="matching">
+      <h2><span class="idx">4</span>Matching (NISTIR 7696)</h2>
+      <p>Comparació atribut a atribut entre un <i>source</i> i un <i>target</i>; el resultat per atribut és un dels 4 conjunts, i el resultat global:</p>
+      <ul class="bullets">
+        <li><b>EQUAL</b>: tots els atributs iguals</li>
+        <li><b>SUBSET</b>: el source és més específic que el target</li>
+        <li><b>SUPERSET</b>: el source és més general</li>
+        <li><b>DISJOINT</b>: cap relació</li>
+      </ul>
+      <div class="callout">
+        Per al nostre cas: un WFN generat amb <code>version</code> concreta contra una entrada de
+        diccionari amb <code>version=ANY</code> → <b>SUBSET</b> (candidat vàlid).
+      </div>
+    </section>
+
+    <section id="diccionari">
+      <h2><span class="idx">5</span>Diccionari oficial i API</h2>
+      <ul class="bullets">
+        <li><b>NVD CPE API 2.0</b>: <code>https://services.nvd.nist.gov/rest/json/cpes/2.0</code> — paràmetres útils: <code>keywordSearch</code>, <code>cpeMatchString</code>, <code>lastModStartDate</code>. Requereix API key per rate limits raonables (demanar a nvd.nist.gov/developers).</li>
+        <li>L'antic feed XML del diccionari està deprecat en favor de l'API. <i>Verificat en viu (2026-07): límits 5 req/30 s sense key i 50 amb key; el <code>cpeMatchString</code> ha de complir la gramàtica de match string (especials escapats, p. ex. <code>visual_c\+\+</code>) o l'API retorna <b>404</b> — que també fa servir per a "cap resultat". El client de <code>src/cpegen/nvd.py</code> ja ho gestiona.</i></li>
+        <li>El 2023 el matching es feia contra un dump local del diccionari MITRE; valorar cache local + refresc incremental via <code>lastModStartDate</code>.</li>
+      </ul>
+    </section>
+
+    <section id="trampes">
+      <h2><span class="idx">6</span>Trampes conegudes (experiència 2023)</h2>
+      <ul class="bullets">
+        <li>Títols d'inventari amb arquitectura/idioma incrustats ("(x64)", "en-us") que no són cap atribut CPE net.</li>
+        <li>Versions amb sufixos: "beta", "rc2", "build 125482" → sovint van a <code>update</code>, no a <code>version</code>.</li>
+        <li>Vendors que no existeixen al diccionari amb el nom comercial ("Zoho Corp" → <code>zohocorp</code>).</li>
+        <li>El mateix producte pot tenir entrades amb <code>target_sw</code> diferent (plugin per wordpress/joomla/node.js).</li>
+      </ul>
+    </section>
+
+    <footer>
+      Font: <code>docs/cpe-reference.md</code> · Generat: 2026-08-05 ·
+      MotherHacker — R+D+i, open-source i comunitat.
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

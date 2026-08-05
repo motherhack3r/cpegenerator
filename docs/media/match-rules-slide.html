@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>M1–M3: la classificació determinista</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F4F8FC;
+    --ink:#16232E; --grey:#5B6B77; --line:#D8E3EC;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1920px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); }
+  body{ display:flex; flex-direction:column; padding:44px 76px 34px 76px; }
+
+  .header{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid var(--blue-dark); padding-bottom:16px; margin-bottom:24px; }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:36px; color:var(--blue-dark); letter-spacing:-0.5px; }
+  .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:8px 16px; border-radius:4px; letter-spacing:1.5px;
+    text-transform:uppercase; white-space:nowrap;
+  }
+
+  .hero{
+    flex:1.1; display:flex; flex-direction:column; justify-content:center;
+    padding:28px 40px 24px 40px; background:var(--blue-paler); border-radius:10px;
+    border:1px solid var(--line); margin-bottom:22px;
+  }
+  .hero-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:21px; color:var(--blue-dark); margin-bottom:20px; }
+
+  .stackbar{ display:flex; width:100%; height:64px; border-radius:8px; overflow:hidden; border:1px solid var(--line); }
+  .seg{ display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#FFFFFF; overflow:hidden; white-space:nowrap; }
+  .seg.m1{ background:var(--blue-dark); }
+  .seg.m1a{ background:var(--blue); }
+  .seg.m1b{ background:#6C97C4; }
+  .seg.m1c{ background:#9FBEDD; }
+  .seg.m2{ background:#C9D8E8; color:var(--blue-dark); }
+  .seg.m2b{ background:#DCE6EF; color:var(--blue-dark); }
+  .seg.m3{ background:#EEF3F8; color:var(--blue-dark); }
+  .legend{ display:flex; gap:20px; margin-top:12px; font-size:13px; color:var(--grey); flex-wrap:wrap; }
+  .legend .dot{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:middle; }
+
+  .hero-footnote{ margin-top:20px; font-size:14.5px; line-height:1.6; color:var(--grey); border-top:1px dashed var(--line); padding-top:14px; }
+  .hero-footnote b{ color:var(--blue-dark); }
+
+  .strip{ flex:1; display:flex; flex-direction:column; justify-content:center; margin-bottom:22px; }
+  .strip-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px; color:var(--blue-dark); margin-bottom:14px; }
+  .facts{ display:flex; gap:20px; }
+  .fact-card{
+    flex:1; background:#FFFFFF; border:1px solid var(--line); border-left:5px solid var(--blue);
+    border-radius:8px; padding:18px 20px; display:flex; flex-direction:column; gap:6px;
+  }
+  .fact-card .num{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:24px; color:var(--blue-dark); }
+  .fact-card .label{ font-size:13px; color:var(--grey); font-weight:500; line-height:1.4; }
+
+  .footer{ display:flex; flex-direction:column; gap:9px; border-top:2px solid var(--blue-dark); padding-top:14px; }
+  .footer-line{ display:flex; gap:12px; align-items:baseline; font-size:14px; line-height:1.5; color:var(--ink); }
+  .footer-label{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px; color:#FFFFFF;
+    background:var(--blue-dark); padding:3px 9px; border-radius:3px; letter-spacing:1px; white-space:nowrap;
+  }
+  .footer-line span.text{ color:var(--grey); }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>M1–M3: la classificació determinista</h1>
+    <div class="tag">MotherHacker · R&D · open-source</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">Línia base 2023 sobre ~526k títols reals — el que la v2 ha de batre</div>
+    <div class="stackbar">
+      <div class="seg m1" style="width:1.18%"></div>
+      <div class="seg m1a" style="width:1.91%"></div>
+      <div class="seg m1b" style="width:0.76%"></div>
+      <div class="seg m1c" style="width:1.04%"></div>
+      <div class="seg m2" style="width:53.28%">M2 · 53,28%</div>
+      <div class="seg m2b" style="width:3.52%"></div>
+      <div class="seg m3" style="width:38.31%">M3 · 38,31%</div>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--blue-dark)"></span>M1 1,18%</span>
+      <span><span class="dot" style="background:var(--blue)"></span>M1A 1,91%</span>
+      <span><span class="dot" style="background:#6C97C4"></span>M1B 0,76%</span>
+      <span><span class="dot" style="background:#9FBEDD"></span>M1C 1,04%</span>
+      <span><span class="dot" style="background:#C9D8E8"></span>M2 53,28%</span>
+      <span><span class="dot" style="background:#DCE6EF"></span>M2B 3,52%</span>
+      <span><span class="dot" style="background:#EEF3F8;border:1px solid var(--line)"></span>M3 38,31%</span>
+    </div>
+    <div class="hero-footnote">
+      Resolució automàtica amb alta confiança (M1+M1A+M1B+M1C): <b>~4,9%</b>. La resta són candidats a CPE nou.
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-title">Determinisme, no confiança del model</div>
+    <div class="facts">
+      <div class="fact-card">
+        <div class="num">Purament determinista</div>
+        <div class="label">Igualtat de camps + similitud d'edició (llindar 0.8) contra el diccionari. Mateix WFN ⇒ mateixa regla, sigui quin sigui el model.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">9 títols</div>
+        <div class="label">Amb confiança exactament 0.8 i vendor+producte exactes al diccionari, degradats erròniament a M2 (run 2026-07-14) — l'evidència que va tombar el gate.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">Retirat 2026-07-24</div>
+        <div class="label">El gate "NER score ≤ 0.8" i el "score final" (mitjanes de quantitats incomparables) surten de la classificació.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">M2+M2B+M3 → M1x</div>
+        <div class="label">Objectiu de la v2: millor extracció (LLM), millor normalització, o millor matching.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-line">
+      <span class="footer-label">MÈTODE</span>
+      <span class="text">classify() no rep la confiança del model; retorna rule + similarity. La confiança es reporta com a columna informativa (confidence) a results.csv.</span>
+    </div>
+    <div class="footer-line">
+      <span class="footer-label">FONT</span>
+      <span class="text">docs/match-rules.md · Generat: 2026-08-05</span>
+    </div>
+  </div>
+
+</body>
+</html>

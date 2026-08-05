@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Lliçons del 2023 — per què l'LLM mai genera el CPE sol</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79;
+    --blue:#2E6CB5;
+    --blue-pale:#E8F0F8;
+    --blue-paler:#F4F8FC;
+    --ink:#16232E;
+    --grey:#5B6B77;
+    --line:#D8E3EC;
+    --red:#B54040;
+    --red-pale:#F7EAEA;
+    --green:#2E7D5B;
+    --green-pale:#EAF3EE;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{
+    width:1920px; height:1080px; overflow:hidden;
+    background:#FFFFFF; font-family:'IBM Plex Sans',sans-serif; color:var(--ink);
+  }
+  body{ display:flex; flex-direction:column; padding:44px 76px 34px 76px; }
+
+  .header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-bottom:2px solid var(--blue-dark); padding-bottom:16px; margin-bottom:24px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:36px;
+    color:var(--blue-dark); letter-spacing:-0.5px;
+  }
+  .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600;
+    color:var(--blue); background:var(--blue-pale); padding:8px 16px; border-radius:4px;
+    letter-spacing:1.5px; text-transform:uppercase; white-space:nowrap;
+  }
+
+  .hero{
+    flex:1.2; display:flex; flex-direction:column; justify-content:center;
+    padding:28px 40px 24px 40px; background:var(--blue-paler); border-radius:10px;
+    border:1px solid var(--line); margin-bottom:22px;
+  }
+  .hero-title{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:22px;
+    color:var(--blue-dark); margin-bottom:20px;
+  }
+  .compare{ display:flex; gap:24px; align-items:stretch; }
+  .compare-card{
+    flex:1; border-radius:9px; padding:22px 26px; display:flex; flex-direction:column; gap:8px;
+    border:1px solid var(--line);
+  }
+  .compare-card.fail{ background:var(--red-pale); border-left:5px solid var(--red); }
+  .compare-card.ok{ background:var(--green-pale); border-left:5px solid var(--green); }
+  .compare-card .ctitle{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:17px;
+  }
+  .compare-card.fail .ctitle{ color:var(--red); }
+  .compare-card.ok .ctitle{ color:var(--green); }
+  .compare-card .cnum{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:30px; color:var(--ink);
+  }
+  .compare-card .cdesc{ font-size:14px; color:var(--grey); line-height:1.5; }
+  .compare-arrow{
+    display:flex; align-items:center; justify-content:center; font-size:34px; color:var(--blue);
+    flex:0 0 60px;
+  }
+
+  .hero-footnote{
+    margin-top:22px; font-size:14px; line-height:1.6; color:var(--grey);
+    border-top:1px dashed var(--line); padding-top:14px;
+  }
+  .hero-footnote b{ color:var(--blue-dark); }
+
+  .strip{ flex:1; display:flex; flex-direction:column; justify-content:center; margin-bottom:22px; }
+  .strip-title{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px;
+    color:var(--blue-dark); margin-bottom:14px;
+  }
+  .points{ display:flex; gap:20px; }
+  .point-card{
+    flex:1; background:#FFFFFF; border:1px solid var(--line); border-left:5px solid var(--blue);
+    border-radius:8px; padding:18px 20px; font-size:14px; line-height:1.5; color:var(--ink);
+  }
+  .point-card b{ color:var(--blue-dark); }
+
+  .footer{
+    display:flex; flex-direction:column; gap:9px;
+    border-top:2px solid var(--blue-dark); padding-top:14px;
+  }
+  .footer-line{ display:flex; gap:12px; align-items:baseline; font-size:14px; line-height:1.5; color:var(--ink); }
+  .footer-label{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px; color:#FFFFFF;
+    background:var(--blue-dark); padding:3px 9px; border-radius:3px; letter-spacing:1px; white-space:nowrap;
+  }
+  .footer-line span.text{ color:var(--grey); }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Lliçons del 2023 — per què l'LLM mai genera el CPE sol</h1>
+    <div class="tag">MotherHacker · R&D · open-source</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">El camí mort que defineix el principi innegociable de la v2</div>
+    <div class="compare">
+      <div class="compare-card fail">
+        <div class="ctitle">✕ LSTM seq2seq</div>
+        <div class="cnum">val_loss ~0.14</div>
+        <div class="cdesc">Generava la cadena CPE sencera i <b>inventava vendors/products</b> no vistos — al·lucinava amb confiança.</div>
+      </div>
+      <div class="compare-arrow">→</div>
+      <div class="compare-card ok">
+        <div class="ctitle">✓ DistilBERT NER</div>
+        <div class="cnum">eval_loss 0.002–0.004</div>
+        <div class="cdesc">Fine-tuned per token classification, scores &gt;0.999 en casos clars — però <b>version</b> seguia sent l'entitat més fluixa.</div>
+      </div>
+    </div>
+    <div class="hero-footnote">
+      La lliçó de l'LSTM: cap model — ni un LLM — pot generar el CPE final sense passar pel validador ABNF i el matcher contra el diccionari.
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-title">Punts febles del NER 2023 → oportunitats per a la v2</div>
+    <div class="points">
+      <div class="point-card"><b>91%</b> de l'inventari quedava en M2/M3, sense mecanisme per progressar: cap desambiguació ni consulta al diccionari en temps d'inferència.</div>
+      <div class="point-card">Domain shift: entrenat amb títols nets de NVD, avaluat amb títols bruts de SCCM.</div>
+      <div class="point-card">Sense raonament de món: no sabia que "Zoho Corp" és <b>zohocorp</b>, ni que certs títols impliquen <b>target_sw</b>.</div>
+      <div class="point-card">Implicació per a la v2: extractor barat + LLM amb eines i accés al diccionari, sempre validat.</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-line">
+      <span class="footer-label">MÈTODE</span>
+      <span class="text">Mantenir l'extractor barat (NER 2023) com a pre-filtre; l'LLM entra on el NER fallava — títols bruts, normalització, versions amb sufixos, atributs addicionals.</span>
+    </div>
+    <div class="footer-line">
+      <span class="footer-label">FONT</span>
+      <span class="text">docs/lessons-learned.md · Generat: 2026-08-05</span>
+    </div>
+  </div>
+
+</body>
+</html>

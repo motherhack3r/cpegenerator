@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>487k títols RAW — cascada qwen3-1.7b → qwen3-8b</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F4F8FC;
+    --ink:#16232E; --grey:#5B6B77; --line:#D8E3EC;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1920px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); }
+  body{ display:flex; flex-direction:column; padding:44px 76px 34px 76px; }
+
+  .header{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid var(--blue-dark); padding-bottom:16px; margin-bottom:24px; }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:34px; color:var(--blue-dark); letter-spacing:-0.5px; }
+  .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:8px 16px; border-radius:4px; letter-spacing:1.5px;
+    text-transform:uppercase; white-space:nowrap;
+  }
+
+  .hero{
+    flex:1.15; display:flex; flex-direction:column; justify-content:center;
+    padding:28px 40px 24px 40px; background:var(--blue-paler); border-radius:10px;
+    border:1px solid var(--line); margin-bottom:22px;
+  }
+  .hero-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:21px; color:var(--blue-dark); margin-bottom:20px; }
+  .facts{ display:flex; gap:20px; }
+  .fact-card{
+    flex:1; background:#FFFFFF; border:1px solid var(--line); border-left:5px solid var(--blue);
+    border-radius:8px; padding:18px 20px; display:flex; flex-direction:column; gap:6px;
+  }
+  .fact-card .num{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:28px; color:var(--blue-dark); }
+  .fact-card .label{ font-size:13px; color:var(--grey); font-weight:500; line-height:1.4; }
+  .hero-footnote{ margin-top:20px; font-size:14px; line-height:1.6; color:var(--grey); border-top:1px dashed var(--line); padding-top:14px; }
+  .hero-footnote b{ color:var(--blue-dark); }
+
+  .strip{ flex:1; display:flex; flex-direction:column; justify-content:center; margin-bottom:22px; }
+  .strip-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px; color:var(--blue-dark); margin-bottom:14px; }
+  .flow{ display:flex; align-items:center; gap:8px; }
+  .flow .node{
+    flex:1; display:flex; flex-direction:column; gap:4px; align-items:center;
+    font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:var(--blue-dark);
+    background:#FFFFFF; border:1px solid var(--line); border-left:4px solid var(--blue); border-radius:8px;
+    padding:14px 16px; text-align:center;
+  }
+  .flow .node .t{ font-size:12px; color:var(--blue); font-weight:700; }
+  .flow .arrow{ color:var(--grey); font-size:18px; flex:0 0 16px; text-align:center; }
+
+  .footer{ display:flex; flex-direction:column; gap:9px; border-top:2px solid var(--blue-dark); padding-top:14px; }
+  .footer-line{ display:flex; gap:12px; align-items:baseline; font-size:14px; line-height:1.5; color:var(--ink); }
+  .footer-label{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px; color:#FFFFFF;
+    background:var(--blue-dark); padding:3px 9px; border-radius:3px; letter-spacing:1px; white-space:nowrap;
+  }
+  .footer-line span.text{ color:var(--grey); }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>487k títols RAW — cascada qwen3-1.7b → qwen3-8b</h1>
+    <div class="tag">MotherHacker · R&D · open-source</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">Fase 7, pas 4 — llest per executar, tot reprendible</div>
+    <div class="facts">
+      <div class="fact-card">
+        <div class="num">90.066</div>
+        <div class="label">Títols únics de 280.901 files (184.374 duplicats, 6.458 soroll) — dedup en 2,6 s.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">~9,5 h</div>
+        <div class="label">Estimació pas 2: 90k títols × 0,38 s/títol amb qwen3-1.7b al PC.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">~7 h</div>
+        <div class="label">Estimació pas 3: cua ~14% (≈12-13k títols) × 1,9 s amb qwen3-8b.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">≈1 dia de GPU</div>
+        <div class="label">Cascada completa. Comparació final contra la línia base 2023 (~4,9% M1x).</div>
+      </div>
+    </div>
+    <div class="hero-footnote">
+      Tot és reprendible: <code style="font-family:'IBM Plex Mono',monospace;">--resume</code> salta els títols ja presents a <b>results.csv</b> — qualsevol tall es recupera rellançant exactament la mateixa ordre.
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-title">Pipeline del run</div>
+    <div class="flow">
+      <div class="node">Pas 1 — Preparar títols<span class="t">2,6 s</span></div>
+      <span class="arrow">→</span>
+      <div class="node">Pas 2 — Passada ràpida (1.7b)<span class="t">~9,5 h</span></div>
+      <span class="arrow">→</span>
+      <div class="node">Pas 3 — Cascada (8b)<span class="t">~7 h</span></div>
+      <span class="arrow">→</span>
+      <div class="node">Pas 4 — Arxivar<span class="t">resum + provenance</span></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-line">
+      <span class="footer-label">MÈTODE</span>
+      <span class="text">Escriptura incremental per fila; pas 3 re-executa només la cua no-M1x i fusiona amb traça completa (escalated_by, fast_rule).</span>
+    </div>
+    <div class="footer-line">
+      <span class="footer-label">FONT</span>
+      <span class="text">docs/raw-run-playbook.md · Generat: 2026-08-05</span>
+    </div>
+  </div>
+
+</body>
+</html>

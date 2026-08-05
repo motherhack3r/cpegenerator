@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Playbook — Run massiu del RAW SCCM · CPEgenerator v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F6F9FC;
+    --ink:#16232E; --grey:#5B6B77; --grey-light:#8B99A3; --line:#DCE6EF;
+    --green:#2E7D5B; --amber:#B5762E; --red:#B54040;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); background:#FFFFFF; line-height:1.6; font-size:15px; }
+
+  .page{ display:flex; max-width:1400px; margin:0 auto; }
+  nav.toc{
+    position:sticky; top:0; align-self:flex-start; width:250px; flex-shrink:0;
+    padding:40px 20px 40px 32px; height:100vh; overflow-y:auto; border-right:1px solid var(--line);
+  }
+  nav.toc .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:5px 10px; border-radius:4px; letter-spacing:1.2px;
+    text-transform:uppercase; display:inline-block; margin-bottom:18px;
+  }
+  nav.toc h2{
+    font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase;
+    letter-spacing:1px; color:var(--grey-light); margin:0 0 12px 0; font-weight:600;
+  }
+  nav.toc ul{ list-style:none; padding:0; margin:0 0 24px 0; }
+  nav.toc li{ margin-bottom:2px; }
+  nav.toc a{
+    display:block; padding:6px 10px; border-radius:5px; color:var(--grey); text-decoration:none;
+    font-size:13.5px; font-weight:500; border-left:2px solid transparent;
+  }
+  nav.toc a:hover{ background:var(--blue-pale); color:var(--blue-dark); border-left:2px solid var(--blue); }
+  main{ flex:1; min-width:0; padding:40px 56px 100px 56px; }
+
+  header.doc-header{ border-bottom:2px solid var(--blue-dark); padding-bottom:22px; margin-bottom:34px; }
+  header.doc-header .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--blue);
+    letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;
+  }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:34px; color:var(--blue-dark); letter-spacing:-0.3px; margin:0 0 12px 0; }
+  .doc-meta{ font-size:13.5px; color:var(--grey); line-height:1.7; }
+  .doc-meta code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:12.5px; }
+  .doc-meta b.status{
+    display:inline-block; background:var(--green); color:#FFFFFF; font-size:11.5px; font-weight:600;
+    padding:2px 8px; border-radius:4px; letter-spacing:0.4px; text-transform:uppercase;
+  }
+
+  section{ margin-bottom:52px; scroll-margin-top:20px; }
+  h2{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:22px; color:var(--blue-dark);
+    margin:0 0 6px 0; padding-top:6px; display:flex; align-items:center; gap:12px;
+  }
+  h2 .idx{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:#FFFFFF;
+    background:var(--blue); width:26px; height:26px; border-radius:6px; display:flex;
+    align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .section-note{ font-size:14px; color:var(--grey); margin:8px 0 20px 0; max-width:920px; }
+  p{ max-width:920px; }
+  p code, li code{
+    font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark);
+    padding:1px 6px; border-radius:3px; font-size:13px;
+  }
+
+  .codeblock{
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; line-height:1.7;
+    background:var(--blue-paler); border:1px solid var(--line); border-radius:8px;
+    padding:16px 20px; margin:14px 0 18px 0; max-width:920px; color:var(--ink);
+    white-space:pre-wrap; word-break:break-word;
+  }
+
+  .callout{
+    background:var(--blue-paler); border:1px solid var(--line); border-left:4px solid var(--blue);
+    border-radius:8px; padding:16px 20px; font-size:14px; color:var(--ink); margin:16px 0 24px 0; max-width:920px;
+  }
+  .callout b{ color:var(--blue-dark); }
+  .callout.done{ border-left-color:var(--green); background:#EAF3EE; }
+  .callout.done b{ color:var(--green); }
+
+  ul.bullets, ol.readings{ padding-left:22px; max-width:920px; }
+  ul.bullets li, ol.readings li{ margin-bottom:9px; font-size:14.5px; }
+  ol.readings li{ margin-bottom:14px; }
+
+  footer{ max-width:920px; margin-top:60px; padding-top:20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--grey-light); }
+  footer code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:11.5px; }
+
+  @media print{ nav.toc{ display:none; } main{ padding:0; } }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <nav class="toc">
+    <div class="tag">MotherHacker · R&D</div>
+    <h2>Contingut</h2>
+    <ul>
+      <li><a href="#prerequisits">1 · Prerequisits</a></li>
+      <li><a href="#pas1">2 · Pas 1 — Preparar els títols</a></li>
+      <li><a href="#pas2">3 · Pas 2 — Passada ràpida</a></li>
+      <li><a href="#pas3">4 · Pas 3 — Cascada amb el 8b</a></li>
+      <li><a href="#pas4">5 · Pas 4 — Arxivar</a></li>
+      <li><a href="#despres">6 · Després</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <header class="doc-header">
+      <div class="eyebrow">CPEgenerator v2 · Plans i playbooks · Run massiu RAW</div>
+      <h1>Playbook — Run massiu del RAW SCCM (Fase 7, pas 4)</h1>
+      <div class="doc-meta">
+        Estat: <span class="status">llest per executar</span> (tooling committejat a <code>3de2e78</code>,
+        decisions 2026-08-05 al ROADMAP: mode single + cascada <code>qwen3-1.7b</code> →
+        <code>qwen3-8b</code>). Tot és reprendible: qualsevol tall es recupera rellançant la mateixa ordre.<br>
+        Font: <code>docs/raw-run-playbook.md</code> · Generat: <b>2026-08-05</b>
+      </div>
+    </header>
+
+    <section id="prerequisits">
+      <h2><span class="idx">1</span>Prerequisits</h2>
+      <ul class="bullets">
+        <li>LM Studio engegat a <code>http://127.0.0.1:1234</code> amb JIT loading actiu (els models es carreguen sols a la primera petició).</li>
+        <li>Snapshot del diccionari a <code>data/cache/cpe_dictionary.jsonl.gz</code> (fet 2026-08-04 des del KGCS; <code>python -m cpegen dict</code> per verificar).</li>
+        <li>Suite verda: <code>pytest</code> (177 tests, offline).</li>
+      </ul>
+    </section>
+
+    <section id="pas1">
+      <h2><span class="idx">2</span>Pas 1 — Preparar els títols (segons)</h2>
+      <div class="codeblock">python -m cpegen titles --input data\inventory\sccm\20221017\sccm_v_installed_software_data_summary.csv --output out\raw_summary\titles.csv --cols ProductName00 --version-col ProductVersion00</div>
+      <p>
+        Compon el títol, descarta brossa (<code>-</code>, <code>---</code>), dedueix duplicats
+        case-insensitive i filtra soroll d'inventari (KB/hotfix/language pack). Mètriques a
+        <code>titles.csv.metrics.json</code>.
+      </p>
+      <div class="callout done">
+        <b>✅ Executat i validat (2026-08-05, contenidor de la sessió; output ja a
+        <code>out/raw_summary/titles.csv</code>)</b>: 280.901 files → <b>90.066 títols únics</b>
+        (184.374 duplicats, 6.458 soroll, 3 massa curts, 0 brossa) en 2,6 s. La dedup del 66%
+        reescriu les estimacions: pas 2 ≈ <b>9,5 h</b> (90k × 0,38 s/títol amb el 1.7b al PC) i pas 3
+        ≈ <b>7 h</b> (cua ~14% ≈ 12-13k × 1,9 s amb el 8b) — cascada completa ≈ <b>1 dia de GPU</b>.
+      </div>
+    </section>
+
+    <section id="pas2">
+      <h2><span class="idx">3</span>Pas 2 — Passada ràpida (hores/dies)</h2>
+      <div class="codeblock">python -m cpegen run --input out\raw_summary\titles.csv --output out\raw_summary\fast --provider lmstudio --model qwen3-1.7b --dict data\cache\cpe_dictionary.jsonl.gz --offline --resume</div>
+      <p>
+        Escriptura incremental per fila: un tall a l'hora 30 costa una fila. Per continuar després
+        d'un tall: <b>exactament la mateixa ordre</b> (<code>--resume</code> salta els títols ja
+        presents a <code>results.csv</code>). Monitoratge: el comptador <code>[n/total]</code> a
+        stderr, la mida de <code>out\raw_summary\fast\results.csv</code>, i els Developer Logs de LM
+        Studio.
+      </p>
+    </section>
+
+    <section id="pas3">
+      <h2><span class="idx">4</span>Pas 3 — Cascada amb el 8b (hores)</h2>
+      <div class="codeblock">python -m cpegen escalate --input out\raw_summary\fast\results.csv --output out\raw_summary\cascade --model qwen3-8b --offline</div>
+      <p>
+        Re-executa només la cua no-M1x i fusiona a <code>results_merged.csv</code> amb traça completa
+        (<code>escalated_by</code>, <code>fast_rule</code>) i el comptador de transicions de regla al
+        final (quants M2/M3 pugen a M1x). També reprendible amb la mateixa ordre.
+      </p>
+    </section>
+
+    <section id="pas4">
+      <h2><span class="idx">5</span>Pas 4 — Arxivar</h2>
+      <p>
+        Per als runs massius, la convenció de <code>data/benchmarks/README.md</code> diu:
+        <b>només resum + provenance</b> (el per-fila es queda a <code>out/</code>): <code>bench</code>-style
+        no aplica; copiar <code>titles.csv.metrics.json</code>, els comptats del pas 2/3 i un
+        <code>PROVENANCE.md</code> a <code>data/benchmarks/YYYYMMDD-raw-summary-pc/</code> i committejar.
+      </p>
+    </section>
+
+    <section id="despres">
+      <h2><span class="idx">6</span>Després (en aquest ordre)</h2>
+      <ol class="readings">
+        <li><b>Vulnerabilitats del regal</b>: <code>cpegen vulns --input out\raw_summary\cascade\results_merged.csv</code> sobre els M1/M1A — el producte final per al company calabrès (necessita NVD API en viu; <code>NVD_API_KEY</code> recomanada).</li>
+        <li><b>Segona tanda RAW</b>: <code>v_SoftwareProduct.csv</code> (570k) amb <code>--cols CompanyName,ProductName --version-col ProductVersion</code>.</li>
+        <li><b>Rèplica al laptop</b> dels benchmarks gold (mateixes ordres; completar <code>data/benchmarks/machines/laptop.md</code> amb el one-liner de PowerShell) — material de reproduïbilitat per al paper.</li>
+        <li><b>Comparació amb la línia base 2023</b> (~4,9% M1x sobre RAW): la xifra final de la 'Nduja surt del <code>results_merged.csv</code>.</li>
+      </ol>
+    </section>
+
+    <footer>
+      Font: <code>docs/raw-run-playbook.md</code> · Generat: 2026-08-05 ·
+      MotherHacker — R+D+i, open-source i comunitat.
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

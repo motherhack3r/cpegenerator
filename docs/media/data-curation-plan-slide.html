@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>487k files SCCM curats sense leakage</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F4F8FC;
+    --ink:#16232E; --grey:#5B6B77; --line:#D8E3EC;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1920px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); }
+  body{ display:flex; flex-direction:column; padding:44px 76px 34px 76px; }
+
+  .header{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid var(--blue-dark); padding-bottom:16px; margin-bottom:24px; }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:34px; color:var(--blue-dark); letter-spacing:-0.5px; }
+  .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:8px 16px; border-radius:4px; letter-spacing:1.5px;
+    text-transform:uppercase; white-space:nowrap;
+  }
+
+  .hero{
+    flex:1.15; display:flex; flex-direction:column; justify-content:center;
+    padding:28px 40px 24px 40px; background:var(--blue-paler); border-radius:10px;
+    border:1px solid var(--line); margin-bottom:22px;
+  }
+  .hero-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:21px; color:var(--blue-dark); margin-bottom:20px; }
+  .facts{ display:flex; gap:20px; }
+  .fact-card{
+    flex:1; background:#FFFFFF; border:1px solid var(--line); border-left:5px solid var(--blue);
+    border-radius:8px; padding:18px 20px; display:flex; flex-direction:column; gap:6px;
+  }
+  .fact-card .num{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:28px; color:var(--blue-dark); }
+  .fact-card .label{ font-size:13px; color:var(--grey); font-weight:500; line-height:1.4; }
+  .hero-footnote{ margin-top:20px; font-size:14px; line-height:1.6; color:var(--grey); border-top:1px dashed var(--line); padding-top:14px; }
+  .hero-footnote b{ color:var(--blue-dark); }
+
+  .strip{ flex:1; display:flex; flex-direction:column; justify-content:center; margin-bottom:22px; }
+  .strip-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px; color:var(--blue-dark); margin-bottom:14px; }
+  .flow{ display:flex; align-items:center; gap:8px; }
+  .flow .node{
+    flex:1; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:var(--blue-dark);
+    background:#FFFFFF; border:1px solid var(--line); border-left:4px solid var(--blue); border-radius:8px;
+    padding:14px 16px; text-align:center;
+  }
+  .flow .arrow{ color:var(--grey); font-size:18px; flex:0 0 16px; text-align:center; }
+
+  .footer{ display:flex; flex-direction:column; gap:9px; border-top:2px solid var(--blue-dark); padding-top:14px; }
+  .footer-line{ display:flex; gap:12px; align-items:baseline; font-size:14px; line-height:1.5; color:var(--ink); }
+  .footer-label{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px; color:#FFFFFF;
+    background:var(--blue-dark); padding:3px 9px; border-radius:3px; letter-spacing:1px; white-space:nowrap;
+  }
+  .footer-line span.text{ color:var(--grey); }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>487k files SCCM → 3 splits, 0 leaks</h1>
+    <div class="tag">MotherHacker · R&D · open-source</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">De products.csv al benchmark: curació reproduïble en ~48 s</div>
+    <div class="facts">
+      <div class="fact-card">
+        <div class="num">480.562 / 486.933</div>
+        <div class="label">Files parsejades al catàleg (98,7%) — 686.647 àlies CPE vàlids, 0 invàlids re-validats.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">170.079</div>
+        <div class="label">Àlies rescatats per normalització canònica WFN. El rebuig estricte hauria perdut el 22% de les files.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">265.592 (38,7%)</div>
+        <div class="label">Parells (vendor, product) coneguts al diccionari NVD — snapshot KGCS 1.766.927 CPEs.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">83.646 famílies</div>
+        <div class="label">Splits disjunts per producte (union-find) — 99.154 parells únics, 0 leaks.</div>
+      </div>
+    </div>
+    <div class="hero-footnote">
+      Splits: <b>benchmark_gold 47.859 (10%)</b> · <b>test 47.859 (10%)</b> · <b>train 382.875 (80%)</b> — seed 20260804.
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-title">Pipeline de curació (6 passos, tots ✅ — 155 tests en verd)</div>
+    <div class="flow">
+      <div class="node">1. Parse + normalització</div>
+      <span class="arrow">→</span>
+      <div class="node">2. Validació ABNF</div>
+      <span class="arrow">→</span>
+      <div class="node">3. Tiering</div>
+      <span class="arrow">→</span>
+      <div class="node">4. Contrast NVD</div>
+      <span class="arrow">→</span>
+      <div class="node">5. Splits</div>
+      <span class="arrow">→</span>
+      <div class="node">6. Verificació</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-line">
+      <span class="footer-label">MÈTODE</span>
+      <span class="text">Mòdul reproduïble (cpegen curate/tier/split), no notebook one-off. El RAW no es toca mai; data/curated/ es regenera amb la mateixa seed.</span>
+    </div>
+    <div class="footer-line">
+      <span class="footer-label">FONT</span>
+      <span class="text">docs/data-curation-plan.md · Generat: 2026-08-05</span>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>VulnDigger 2023 — la línia de partida</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79;
+    --blue:#2E6CB5;
+    --blue-pale:#E8F0F8;
+    --blue-paler:#F4F8FC;
+    --ink:#16232E;
+    --grey:#5B6B77;
+    --line:#D8E3EC;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{
+    width:1920px; height:1080px; overflow:hidden;
+    background:#FFFFFF; font-family:'IBM Plex Sans',sans-serif; color:var(--ink);
+  }
+  body{ display:flex; flex-direction:column; padding:44px 76px 34px 76px; }
+
+  .header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-bottom:2px solid var(--blue-dark); padding-bottom:16px; margin-bottom:24px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:38px;
+    color:var(--blue-dark); letter-spacing:-0.5px;
+  }
+  .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600;
+    color:var(--blue); background:var(--blue-pale); padding:8px 16px; border-radius:4px;
+    letter-spacing:1.5px; text-transform:uppercase; white-space:nowrap;
+  }
+
+  .hero{
+    flex:1.15; display:flex; flex-direction:column; justify-content:center;
+    padding:28px 40px 24px 40px; background:var(--blue-paler); border-radius:10px;
+    border:1px solid var(--line); margin-bottom:22px;
+  }
+  .hero-title{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:22px;
+    color:var(--blue-dark); margin-bottom:20px;
+  }
+  .facts{ display:flex; gap:22px; }
+  .fact-card{
+    flex:1; background:#FFFFFF; border:1px solid var(--line); border-left:5px solid var(--blue);
+    border-radius:8px; padding:20px 22px; display:flex; flex-direction:column; gap:8px;
+  }
+  .fact-card .num{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:32px; color:var(--blue-dark);
+  }
+  .fact-card .label{ font-size:14px; color:var(--grey); font-weight:500; line-height:1.4; }
+
+  .hero-footnote{
+    margin-top:22px; font-size:14px; line-height:1.6; color:var(--grey);
+    border-top:1px dashed var(--line); padding-top:14px;
+  }
+  .hero-footnote b{ color:var(--blue-dark); }
+
+  .strip{ flex:1; display:flex; flex-direction:column; justify-content:center; margin-bottom:22px; }
+  .strip-title{
+    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px;
+    color:var(--blue-dark); margin-bottom:6px;
+  }
+  .strip-sub{ font-size:13px; color:var(--grey); margin-bottom:14px; }
+
+  .stackbar{
+    display:flex; width:100%; height:56px; border-radius:8px; overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .seg{ display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace;
+        font-size:12px; font-weight:600; color:#FFFFFF; overflow:hidden; white-space:nowrap; }
+  .seg.m1{ background:var(--blue-dark); }
+  .seg.m1a{ background:var(--blue); }
+  .seg.m1b{ background:#6C97C4; }
+  .seg.m1c{ background:#9FBEDD; }
+  .seg.m2{ background:#C9D8E8; color:var(--blue-dark); }
+  .seg.m2b{ background:#DCE6EF; color:var(--blue-dark); }
+  .seg.m3{ background:#EEF3F8; color:var(--blue-dark); }
+  .legend{ display:flex; gap:18px; margin-top:10px; font-size:12px; color:var(--grey); flex-wrap:wrap; }
+  .legend .dot{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:middle; }
+
+  .footer{
+    display:flex; flex-direction:column; gap:9px;
+    border-top:2px solid var(--blue-dark); padding-top:14px;
+  }
+  .footer-line{ display:flex; gap:12px; align-items:baseline; font-size:14px; line-height:1.5; color:var(--ink); }
+  .footer-label{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px; color:#FFFFFF;
+    background:var(--blue-dark); padding:3px 9px; border-radius:3px; letter-spacing:1px; white-space:nowrap;
+  }
+  .footer-line span.text{ color:var(--grey); }
+  .footer-line.source span.text{ font-size:12.5px; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>VulnDigger — TFM 2023: la línia de partida</h1>
+    <div class="tag">MotherHacker · R&D · open-source</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">De l'LSTM que al·lucina al DistilBERT NER que guanya</div>
+    <div class="facts">
+      <div class="fact-card">
+        <div class="num">~0.14</div>
+        <div class="label">LSTM seq2seq (títol → CPE sencer): <b>val_loss</b>. Inventava vendors i products no vistos.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">0.002–0.004</div>
+        <div class="label">DistilBERT NER (guanyador): <b>eval_loss</b>. Fine-tuning de <code>distilbert-base-uncased</code>.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">550k</div>
+        <div class="label">Exemples d'entrenament (440k train / 110k test), generats des de CVE/NVD.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">265 MB</div>
+        <div class="label">Model final (GOLD), etiquetes BIO vendor/product/version.</div>
+      </div>
+    </div>
+    <div class="hero-footnote">
+      Arquitectura: Azure Data Factory → Data Lake → Databricks (MLflow) → model NER → pipeline d'inferència amb post-processat i validació de candidats.
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-title">Validació amb dades reals (~526k títols SCCM, 2024)</div>
+    <div class="strip-sub">Matching M1–M3 contra el diccionari MITRE — ~5% resolt automàticament amb alta confiança, la resta candidats a CPEs nous</div>
+    <div class="stackbar">
+      <div class="seg m1" style="width:1.2%"></div>
+      <div class="seg m1a" style="width:1.9%"></div>
+      <div class="seg m1b" style="width:0.8%"></div>
+      <div class="seg m1c" style="width:1.0%"></div>
+      <div class="seg m2" style="width:53.3%">M2 · 53,3%</div>
+      <div class="seg m2b" style="width:3.5%"></div>
+      <div class="seg m3" style="width:38.3%">M3 · 38,3%</div>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--blue-dark)"></span>M1 1,2%</span>
+      <span><span class="dot" style="background:var(--blue)"></span>M1A 1,9%</span>
+      <span><span class="dot" style="background:#6C97C4"></span>M1B 0,8%</span>
+      <span><span class="dot" style="background:#9FBEDD"></span>M1C 1,0%</span>
+      <span><span class="dot" style="background:#C9D8E8"></span>M2 53,3%</span>
+      <span><span class="dot" style="background:#DCE6EF"></span>M2B 3,5%</span>
+      <span><span class="dot" style="background:#EEF3F8;border:1px solid var(--line)"></span>M3 38,3%</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-line">
+      <span class="footer-label">MÈTODE</span>
+      <span class="text">Baseline heurístic → LSTM seq2seq (fallat: al·lucinava CPEs sencers) → DistilBERT NER (guanyador, fine-tuned per token classification).</span>
+    </div>
+    <div class="footer-line source">
+      <span class="footer-label">FONT</span>
+      <span class="text">docs/tfm-2023-summary.md · Generat: 2026-08-05</span>
+    </div>
+  </div>
+
+</body>
+</html>

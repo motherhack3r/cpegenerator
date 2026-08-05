@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Dos eixos, mai barrejats</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F4F8FC;
+    --ink:#16232E; --grey:#5B6B77; --line:#D8E3EC; --grey-light:#8B99A3;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1920px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); }
+  body{ display:flex; flex-direction:column; padding:44px 76px 34px 76px; }
+
+  .header{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid var(--blue-dark); padding-bottom:16px; margin-bottom:24px; }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:34px; color:var(--blue-dark); letter-spacing:-0.5px; }
+  .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:8px 16px; border-radius:4px; letter-spacing:1.5px;
+    text-transform:uppercase; white-space:nowrap;
+  }
+
+  .hero{
+    flex:1.15; display:flex; flex-direction:column; justify-content:center;
+    padding:28px 40px 24px 40px; background:var(--blue-paler); border-radius:10px;
+    border:1px solid var(--line); margin-bottom:22px;
+  }
+  .hero-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:21px; color:var(--blue-dark); margin-bottom:20px; }
+
+  .compare{ display:flex; gap:24px; align-items:stretch; }
+  .compare-card{
+    flex:1; border-radius:9px; padding:22px 26px; display:flex; flex-direction:column; gap:8px;
+    border:1px solid var(--line); background:#FFFFFF; border-left:5px solid var(--blue);
+  }
+  .compare-card .ctitle{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:17px; color:var(--blue-dark); }
+  .compare-card .cdesc{ font-size:14px; color:var(--grey); line-height:1.5; }
+  .compare-card code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:12.5px; }
+  .compare-sep{ display:flex; align-items:center; justify-content:center; font-size:30px; color:var(--grey-light); flex:0 0 60px; }
+
+  .hero-footnote{ margin-top:20px; font-size:14px; line-height:1.6; color:var(--grey); border-top:1px dashed var(--line); padding-top:14px; }
+  .hero-footnote b{ color:var(--blue-dark); }
+
+  .strip{ flex:1; display:flex; flex-direction:column; justify-content:center; margin-bottom:22px; }
+  .strip-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px; color:var(--blue-dark); margin-bottom:14px; }
+  .facts{ display:flex; gap:20px; }
+  .fact-card{
+    flex:1; background:#FFFFFF; border:1px solid var(--line); border-left:5px solid var(--blue);
+    border-radius:8px; padding:18px 20px; display:flex; flex-direction:column; gap:6px;
+  }
+  .fact-card .num{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:24px; color:var(--blue-dark); }
+  .fact-card .label{ font-size:13px; color:var(--grey); font-weight:500; line-height:1.4; }
+
+  .footer{ display:flex; flex-direction:column; gap:9px; border-top:2px solid var(--blue-dark); padding-top:14px; }
+  .footer-line{ display:flex; gap:12px; align-items:baseline; font-size:14px; line-height:1.5; color:var(--ink); }
+  .footer-label{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px; color:#FFFFFF;
+    background:var(--blue-dark); padding:3px 9px; border-radius:3px; letter-spacing:1px; white-space:nowrap;
+  }
+  .footer-line span.text{ color:var(--grey); }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Dos eixos, mai barrejats</h1>
+    <div class="tag">MotherHacker · R&D · open-source</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">Extracció (MUC/SemEval'13) i matching (M1–M3) — l'error de la v1 va ser fondre'ls</div>
+    <div class="compare">
+      <div class="compare-card">
+        <div class="ctitle">EIX 1 — Extracció</div>
+        <div class="cdesc">5 categories per parell: <code>COR / INC / PAR / MIS / SPU</code>. Strict <code>P=COR/ACTUAL</code>, <code>R=COR/POSSIBLE</code>; partial substitueix COR per COR+0,5·PAR.</div>
+      </div>
+      <div class="compare-sep">≠</div>
+      <div class="compare-card">
+        <div class="ctitle">EIX 2 — Matching</div>
+        <div class="cdesc">M1–M3, purament determinista: igualtat de camps + similitud d'edició (llindar 0.8) contra el diccionari.</div>
+      </div>
+    </div>
+    <div class="hero-footnote">
+      "M1x = alta confiança" significa confiança <b>en el match</b> (existeix al diccionari o és candidat sòlid), mai en el model.
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-title">Per què es van separar (decisió 2026-07-24)</div>
+    <div class="facts">
+      <div class="fact-card">
+        <div class="num">9 títols</div>
+        <div class="label">Amb confiança exactament 0.8 i vendor+producte exactes, caiguts a M2 al run del 2026-07-14 — el gate els hauria d'haver deixat passar.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">mean(1, ner)</div>
+        <div class="label">El "score final" barrejava probabilitat del model amb distància d'edició — quantitats incomparables entre models.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">classify()</div>
+        <div class="label">Ja no rep la confiança; retorna rule + similarity. La confiança viu com a columna `confidence` a results.csv.</div>
+      </div>
+      <div class="fact-card">
+        <div class="num">Fase 1</div>
+        <div class="label">Si la confiança serveix com a porta, i amb quin llindar, ho decidirà el benchmark empíricament — no un axioma.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-line">
+      <span class="footer-label">MÈTODE</span>
+      <span class="text">src/cpegen/metrics.py implementa l'esquema d'extracció (tests a tests/test_metrics.py); docs/match-rules.md formalitza el matching.</span>
+    </div>
+    <div class="footer-line">
+      <span class="footer-label">FONT</span>
+      <span class="text">docs/evaluation.md · Generat: 2026-08-05</span>
+    </div>
+  </div>
+
+</body>
+</html>
