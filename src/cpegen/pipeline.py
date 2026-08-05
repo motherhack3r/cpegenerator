@@ -200,6 +200,7 @@ def run(input_path: Path, output_dir: Path, provider_name: str | None = None,
         agent_mode: str = "off", max_turns: int = 8,
         dictionary_path: Path | None = None,
         extract_mode: str = "single",
+        resume: bool = False,
         progress=None) -> tuple[list[RowResult], Report | None]:
     """Run the pipeline over a CSV of titles; evaluate if annotations exist.
 
@@ -223,33 +224,49 @@ def run(input_path: Path, output_dir: Path, provider_name: str | None = None,
     if limit:
         gold = gold[:limit]
 
-    rows: list[RowResult] = []
-    for i, g in enumerate(gold):
-        if agent_mode == "all":
-            row = agent_row(run_agent(g.title, agent_provider, toolbox,
-                                      max_turns=max_turns))
-        else:
-            extract_fn = (extract_per_field if extract_mode == "per-field"
-                          else extract)
-            row = process_title(g.title, provider, nvd,
-                                extract_fn=extract_fn)
-            if agent_mode == "escalate" and needs_escalation(row):
-                row = escalate_title(row, agent_provider, toolbox, max_turns)
-        rows.append(row)
-        if progress:
-            progress(i + 1, len(gold))
-
-    # results CSV
+    # Streaming write with optional resume: every processed row lands on
+    # disk immediately, so a killed multi-day RAW run continues where it
+    # stopped (titles already present in results.csv are skipped).
     results_path = output_dir / "results.csv"
-    with open(results_path, "w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(asdict(rows[0]).keys()))
-        writer.writeheader()
-        for row in rows:
+    done: set[str] = set()
+    if resume and results_path.exists():
+        with open(results_path, newline="", encoding="utf-8") as fh:
+            for prev in csv.DictReader(fh):
+                done.add(prev["title"])
+
+    fieldnames = list(asdict(RowResult(title="")).keys())
+    rows: list[RowResult] = []
+    with open(results_path, "a" if done else "w", newline="",
+              encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        if not done:
+            writer.writeheader()
+        for i, g in enumerate(gold):
+            if g.title in done:
+                if progress:
+                    progress(i + 1, len(gold))
+                continue
+            if agent_mode == "all":
+                row = agent_row(run_agent(g.title, agent_provider, toolbox,
+                                          max_turns=max_turns))
+            else:
+                extract_fn = (extract_per_field if extract_mode == "per-field"
+                              else extract)
+                row = process_title(g.title, provider, nvd,
+                                    extract_fn=extract_fn)
+                if agent_mode == "escalate" and needs_escalation(row):
+                    row = escalate_title(row, agent_provider, toolbox,
+                                         max_turns)
+            rows.append(row)
             writer.writerow(asdict(row))
+            fh.flush()
+            if progress:
+                progress(i + 1, len(gold))
 
     report = None
     has_annotations = any(g.vendor or g.product for g in gold)
-    if has_annotations:
-        report = evaluate(rows, gold)
+    if has_annotations and rows:
+        # On resume, only freshly processed rows are evaluated.
+        report = evaluate(rows, [g for g in gold if g.title not in done])
         (output_dir / "report.md").write_text(report.to_markdown(), encoding="utf-8")
     return rows, report

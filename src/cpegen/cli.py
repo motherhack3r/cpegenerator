@@ -55,6 +55,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         agent_mode=agent_mode,
         max_turns=getattr(args, "max_turns", 8),
         dictionary_path=Path(args.dict) if getattr(args, "dict", None) else None,
+        resume=getattr(args, "resume", False),
         progress=progress,
     )
     print(file=sys.stderr)
@@ -202,6 +203,49 @@ def cmd_bench(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_titles(args: argparse.Namespace) -> int:
+    from .titles import extract_titles
+
+    def progress(done: int) -> None:
+        print(f"\r[{done}] rows scanned", end="", file=sys.stderr, flush=True)
+
+    stats = extract_titles(
+        Path(args.input), Path(args.output),
+        cols=[c.strip() for c in args.cols.split(",") if c.strip()],
+        version_col=args.version_col, sep=args.sep,
+        keep_noise=args.keep_noise, progress=progress)
+    print(file=sys.stderr)
+    print(f"Titles: {stats['written']} written from {stats['rows_read']} "
+          f"rows ({stats['duplicates']} duplicates, {stats['noise']} noise, "
+          f"{stats['garbage']} garbage, {stats['too_short']} too short) "
+          f"-> {args.output}")
+    return 0
+
+
+def cmd_escalate(args: argparse.Namespace) -> int:
+    from .cascade import escalate_results
+
+    def progress(done: int, total: int) -> None:
+        print(f"\r[{done}/{total}] escalated", end="", file=sys.stderr,
+              flush=True)
+
+    stats = escalate_results(
+        fast_results=Path(args.input), output_dir=Path(args.output),
+        model=args.model, provider_name=args.provider,
+        offline=args.offline,
+        cache_path=Path(args.cache) if args.cache else None,
+        dictionary_path=Path(args.dict) if args.dict else None,
+        limit=args.limit, progress=progress)
+    print(file=sys.stderr)
+    print(f"Cascade: {stats['tail']}/{stats['rows']} rows in the tail, "
+          f"{stats['escalated_done']} escalated; M1x "
+          f"{stats['m1x_before']} -> {stats['m1x_after']}")
+    for t, n in list(stats["transitions"].items())[:8]:
+        print(f"  {n:6d}  {t}")
+    print(f"-> {Path(args.output) / 'results_merged.csv'}")
+    return 0
+
+
 def cmd_vulns(args: argparse.Namespace) -> int:
     from .vulns import CVEClient, check_results, write_csv
 
@@ -247,6 +291,9 @@ def _add_common_run_args(p: argparse.ArgumentParser, default_output: str) -> Non
     p.add_argument("--dict", default=None,
                    help="local CPE dictionary snapshot (see 'cpegen dict "
                         "--build'); NVD API is then only hit on misses")
+    p.add_argument("--resume", action="store_true",
+                   help="skip titles already present in the output "
+                        "results.csv (long runs survive interruptions)")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -370,6 +417,44 @@ def main(argv: list[str] | None = None) -> int:
                             "~5x latency and can eat the whole max_tokens "
                             "budget thinking (empty content -> row error)")
     p_ben.set_defaults(func=cmd_bench)
+
+    p_tit = sub.add_parser(
+        "titles",
+        help="extract deduplicated free-text titles from a raw SCCM "
+             "export (input prep for the Phase-7 mass run)")
+    p_tit.add_argument("--input", required=True, help="raw export CSV")
+    p_tit.add_argument("--output", required=True,
+                       help="output titles CSV (one per row)")
+    p_tit.add_argument("--cols", required=True,
+                       help="comma-separated columns composing the title, "
+                            "e.g. CompanyName,ProductName,ProductVersion "
+                            "or ProductName00")
+    p_tit.add_argument("--version-col", default=None, dest="version_col",
+                       help="version column, appended only when not "
+                            "already inside the composed title")
+    p_tit.add_argument("--sep", default=",", help="input delimiter")
+    p_tit.add_argument("--keep-noise", action="store_true",
+                       dest="keep_noise",
+                       help="keep KB/hotfix/language-pack noise")
+    p_tit.set_defaults(func=cmd_titles)
+
+    p_esc = sub.add_parser(
+        "escalate",
+        help="cascade: re-run the non-M1x tail of a results.csv with a "
+             "bigger model and merge (decision 2026-08-05)")
+    p_esc.add_argument("--input", required=True,
+                       help="fast-pass results.csv")
+    p_esc.add_argument("--output", required=True, help="output directory")
+    p_esc.add_argument("--model", required=True,
+                       help="big model key (e.g. qwen3-8b)")
+    p_esc.add_argument("--provider", default="lmstudio",
+                       choices=["anthropic", "openai", "lmstudio", "mock",
+                                "replay"])
+    p_esc.add_argument("--dict", default="data/cache/cpe_dictionary.jsonl.gz")
+    p_esc.add_argument("--offline", action="store_true")
+    p_esc.add_argument("--cache", default=None)
+    p_esc.add_argument("--limit", type=int, default=None)
+    p_esc.set_defaults(func=cmd_escalate)
 
     p_vul = sub.add_parser(
         "vulns",
