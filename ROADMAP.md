@@ -66,10 +66,32 @@ servidor local (63 models descarregats; claus exactes de LM Studio):
 | Reserva cua difícil | `deepseek-r1-0528-qwen3-8b` |
 | Futur matcher semàntic (fora d'abast ara) | `text-embedding-qwen3-embedding-0.6b` — pendent de descàrrega; `text-embedding-nomic-embed-text-v1.5` ja local com a alternativa |
 
+### Fase 8 — Fine-tune de domini (PROPOSTA, no prioritzada)
+
+Anotada el 2026-08-05 arran de l'experiment E6 (vegeu
+`data/benchmarks/20260805-exp-e6-domini-gold100-pc/`): un fine-tune
+MITRE comunitari sobre un Mistral-7B v0.3 (base antiga) va marcar el
+M1x màxim mesurat al gold-100 (90, per sobre dels 89 dels generalistes
+oficials). Hipòtesi: **un fine-tune de domini sobre una base qwen3
+moderna hauria de superar el sostre actual** (qwen3-8b: 88 exactes /
+91% M1x al gold-1k).
+
+Els actius ja existeixen: train set curat amb splits disjunts per
+producte (`data/curated/splits/train`, 382k files — el "per si de cas"
+del pla de curació), benchmark i avaluació MUC/SemEval en marxa, i
+gold-1k com a jurat. Cost estimat: entrenament QLoRA en local o cloud
+puntual.
+
+**No es prioritza**: primer el run del RAW amb la cascada (Fase 7 pas
+4), la rèplica al laptop i el regal del calabrès. Es revisarà quan la
+Fase 7 estigui tancada.
+
 ## Decisions
+
 
 | Data | Decisió | Motiu |
 |---|---|---|
+| 2026-08-05 | S'anota la Fase 8 (fine-tune de domini sobre base qwen3 amb el train split curat) com a proposta NO prioritzada | Evidència de l'E6: un tuning MITRE sobre una base vella iguala el M1x dels millors generalistes; la idea té els actius llestos (train split, harness, jurats) però prioritzar-la ara desenfocaria la Fase 7 — es revisita en tancar el RAW |
 | 2026-08-05 | Model per al run massiu: **cascada** `qwen3-1.7b` (passada ràpida a tot) → `qwen3-8b` (només la cua no-M1x), triada amb l'usuari sobre les alternatives d'un sol model. Implementació: `--resume` a `run` (escriptura incremental per fila: un run de dies sobreviu a talls), `cpegen titles` (prep del RAW: composició de columnes, dedup case-insensitive, filtre de soroll d'inventari) i `cpegen escalate` (re-run de la cua + merge amb `escalated_by` i `fast_rule`) | Extrapolant el 1k: 1.7b sol ≈ 52 h amb 75% exacte; 8b sol ≈ 11 dies amb 84%. La cascada dona la qualitat del 8b on importa (la cua, ~14% del volum) per ~4 dies totals — i és la hipòtesi híbrida invertida de la 'Nduja executada literalment: el petit fa el gruix, el gran rebla |
 | 2026-08-05 | Mode d'extracció per al run massiu: **crida única JSON** (el per-field queda descartat i el codi es conserva com a braç documentat del benchmark) | Sentència del 1k complet, 5 mides de model: el millor per-field (8b, 558 exactes) és pitjor que el pitjor single (0.6b, 701) i costa 1,4-6× més. Causa mesurada: sense context creuat, la frontera vendor/product s'esfondra (F1p 0,374 al 1.7b), i per sota d'1B el model fa eco del few-shot (0.6b: 903/1000 "microsoft"). Resol la qüestió oberta del 2026-07-24 amb evidència, no opinió |
 | 2026-08-04 | Arxiu versionat de benchmarks a `data/benchmarks/` (un directori per tirada amb resultats per-fila, resums i `PROVENANCE.md`; convenció al README del directori). `out/` continua sent working area gitignored | Els runs costen hores d'inferència i són l'evidència d'un eventual paper: no poden viure només en una carpeta ignorada del laptop. Es versionen les tirades sobre gold sets (KB-MB); dels runs massius sobre el RAW només resum + provenance. Primer arxiu: `20260804-pilot1-gold100` |
