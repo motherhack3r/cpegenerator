@@ -1,0 +1,22 @@
+{
+  "model": "phi-4-mini-instruct",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 65,
+  "m1x": 70,
+  "latency_ms_p50": 952,
+  "latency_ms_p95": 1053,
+  "tokens_in": 57099,
+  "tokens_out": 4688,
+  "wall_s": 164.2,
+  "vendor_f1_strict": 0.82,
+  "vendor_f1_partial": 0.85,
+  "product_f1_strict": 0.8,
+  "product_f1_partial": 0.86,
+  "version_f1_strict": 0.9749,
+  "version_f1_partial": 0.9849,
+  "target_sw_f1_strict": 0.8636,
+  "target_sw_f1_partial": 0.8636
+}

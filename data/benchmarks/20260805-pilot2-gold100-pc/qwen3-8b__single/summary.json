@@ -1,0 +1,22 @@
+{
+  "model": "qwen3-8b",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 88,
+  "m1x": 89,
+  "latency_ms_p50": 4210,
+  "latency_ms_p95": 4887,
+  "tokens_in": 60186,
+  "tokens_out": 4743,
+  "wall_s": 438.9,
+  "vendor_f1_strict": 0.98,
+  "vendor_f1_partial": 0.99,
+  "product_f1_strict": 0.91,
+  "product_f1_partial": 0.955,
+  "version_f1_strict": 0.995,
+  "version_f1_partial": 0.995,
+  "target_sw_f1_strict": 0.9565,
+  "target_sw_f1_partial": 0.9565
+}

@@ -1,0 +1,22 @@
+{
+  "model": "nvidia/nemotron-3-nano-4b",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 85,
+  "m1x": 89,
+  "latency_ms_p50": 3144,
+  "latency_ms_p95": 3583,
+  "tokens_in": 61911,
+  "tokens_out": 5782,
+  "wall_s": 391.6,
+  "vendor_f1_strict": 0.99,
+  "vendor_f1_partial": 0.995,
+  "product_f1_strict": 0.89,
+  "product_f1_partial": 0.94,
+  "version_f1_strict": 0.9796,
+  "version_f1_partial": 0.9796,
+  "target_sw_f1_strict": 0.9362,
+  "target_sw_f1_partial": 0.9362
+}

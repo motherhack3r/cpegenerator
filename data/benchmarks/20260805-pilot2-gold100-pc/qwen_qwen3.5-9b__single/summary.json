@@ -1,0 +1,22 @@
+{
+  "model": "qwen/qwen3.5-9b",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 81,
+  "m1x": 84,
+  "latency_ms_p50": 6521,
+  "latency_ms_p95": 8633,
+  "tokens_in": 62178,
+  "tokens_out": 4724,
+  "wall_s": 734.1,
+  "vendor_f1_strict": 0.9447,
+  "vendor_f1_partial": 0.9648,
+  "product_f1_strict": 0.89,
+  "product_f1_partial": 0.945,
+  "version_f1_strict": 0.9749,
+  "version_f1_partial": 0.9849,
+  "target_sw_f1_strict": 0.8936,
+  "target_sw_f1_partial": 0.8936
+}

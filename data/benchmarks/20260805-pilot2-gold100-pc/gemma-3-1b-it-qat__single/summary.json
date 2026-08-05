@@ -1,0 +1,22 @@
+{
+  "model": "gemma-3-1b-it-qat",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 33,
+  "m1x": 76,
+  "latency_ms_p50": 317,
+  "latency_ms_p95": 352,
+  "tokens_in": 63059,
+  "tokens_out": 4649,
+  "wall_s": 99.5,
+  "vendor_f1_strict": 0.94,
+  "vendor_f1_partial": 0.95,
+  "product_f1_strict": 0.8,
+  "product_f1_partial": 0.895,
+  "version_f1_strict": 0.9749,
+  "version_f1_partial": 0.9749,
+  "target_sw_f1_strict": 0.4124,
+  "target_sw_f1_partial": 0.4227
+}

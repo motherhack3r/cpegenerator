@@ -1,0 +1,22 @@
+{
+  "model": "lfm2.5-1.2b-instruct",
+  "mode": "single",
+  "n": 100,
+  "extraction_errors": 0,
+  "cpe_valid": 100,
+  "cpe_exact": 13,
+  "m1x": 66,
+  "latency_ms_p50": 426,
+  "latency_ms_p95": 453,
+  "tokens_in": 61792,
+  "tokens_out": 6360,
+  "wall_s": 112.7,
+  "vendor_f1_strict": 0.88,
+  "vendor_f1_partial": 0.895,
+  "product_f1_strict": 0.74,
+  "product_f1_partial": 0.83,
+  "version_f1_strict": 0.98,
+  "version_f1_partial": 0.98,
+  "target_sw_f1_strict": 0.3051,
+  "target_sw_f1_partial": 0.3051
+}
