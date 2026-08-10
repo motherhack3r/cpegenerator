@@ -31,22 +31,29 @@ Objectiu: generar i validar WFN/CPE 2.3 a partir de títols de software en text 
 ## Estat actual
 
 Fases 0, 2, 3, 4 i 6 completades: pipeline CLI funcional (`python -m cpegen`)
-amb validador ABNF, extractor LLM multi-proveïdor (anthropic/openai/mock/replay),
-matcher M1–M3, agent tool-use, i el cicle `inventory` → `run` → `vulns` validat
-end-to-end amb dades reals (2026-07-14).
+amb validador ABNF, extractor LLM multi-proveïdor (anthropic/openai/lmstudio/
+mock/replay), matcher M1–M3 purament determinista (`docs/evaluation.md`),
+agent tool-use, i el cicle `inventory` → `run` → `vulns` validat end-to-end
+amb dades reals (2026-07-14).
 
-2026-07-24: classificació M1–M3 purament determinista (gate de confiança `> 0.8`
-i "score final" retirats; `docs/evaluation.md`), exports SCCM reals a `devel`
-amb pla de curació (`docs/data-curation-plan.md`), i oberta la **Fase 7 'Nduja**
-(branca `feature/nduja`): models locals petits via LM Studio sobre el RAW SCCM.
+2026-08-04/05: curació SCCM completa (passos 1–6 del pla: `cpegen curate`/
+`tier`/`split`, 480k files curades, splits disjunts per producte, 0 leaks);
+diccionari CPE local des del KGCS (1,77M entrades, snapshot a
+`data/cache/cpe_dictionary.jsonl.gz`) amb lookup híbrid (`run --dict`);
+harness `cpegen bench` amb provider `lmstudio` natiu (reasoning off real,
+temperature 0) i arxiu versionat a `data/benchmarks/` amb PROVENANCE.
 
-2026-08-04/05: pla de curació complet (passos 1–5: `cpegen curate`/`tier`/
-`split`, 480k files curades, splits disjunts per producte, 0 leaks);
-diccionari CPE local des del KGCS (`cpegen dict --build --from-neo4j`,
-1,77M entrades) amb lookup híbrid (`run --dict`); harness `cpegen bench`
-amb provider `lmstudio` natiu (reasoning off real, temperature 0) i
-arxiu versionat a `data/benchmarks/` amb PROVENANCE per tirada.
+2026-08-05 — **sentència del benchmark gold-1k** (5 models × 2 modes,
+`data/benchmarks/20260805-final-gold1k-pc/`): mode crida única JSON guanya
+sense pal·liatius (el millor per-field queda sota el pitjor single a 1,4-6×
+el cost); corba single 701→837 exactes (0.6B→8B), genoll al `qwen3-1.7b`,
+sostre al `qwen3-8b` (91% M1x). Decisió de run massiu: **cascada**
+`qwen3-1.7b` → `qwen3-8b` (només la cua no-M1x). Tooling llest i testejat
+(`cpegen titles` / `run --resume` / `cpegen escalate`); prep del RAW summary
+ja executada (280.901 → 90.066 títols únics; cascada estimada ≈ 1 dia de
+GPU). Fase 8 (fine-tune de domini) anotada com a proposta no prioritzada.
 
-Següent: completar la matriu pilot al PC, matriu 1k amb els finalistes,
-rèplica al laptop i run del RAW — ordre d'execució a `ROADMAP.md`
-(Fase 7), que té el registre complet de decisions.
+Següent: run del RAW al PC amb la cascada (ordres exactes a
+`docs/raw-run-playbook.md`), `vulns` sobre els M1x (el regal del calabrès),
+segona tanda amb `v_SoftwareProduct` (570k) i rèplica al laptop — registre
+complet de decisions a `ROADMAP.md` (Fase 7).
