@@ -1,0 +1,50 @@
+{
+ "7-Zip 25.00 (x64)": {
+  "vendor": "7-zip",
+  "product": "7-zip",
+  "version": "25.00",
+  "update": null,
+  "target_sw": null,
+  "confidence": 0.95
+ },
+ "Mozilla Firefox (x64 en-US)": {
+  "vendor": "mozilla",
+  "product": "firefox",
+  "version": "141.0",
+  "update": null,
+  "target_sw": null,
+  "confidence": 0.95
+ },
+ "Notepad++ (64-bit x64)": {
+  "vendor": "notepad-plus-plus",
+  "product": "notepad\\+\\+",
+  "version": "8.7.1",
+  "update": null,
+  "target_sw": null,
+  "confidence": 0.9
+ },
+ "Python 3.12.4 (64-bit)": {
+  "vendor": "python",
+  "product": "python",
+  "version": "3.12.4",
+  "update": null,
+  "target_sw": null,
+  "confidence": 0.95
+ },
+ "VLC media player": {
+  "vendor": "videolan",
+  "product": "vlc_media_player",
+  "version": "3.0.21",
+  "update": null,
+  "target_sw": null,
+  "confidence": 0.9
+ },
+ "Microsoft Update Health Tools": {
+  "vendor": "microsoft",
+  "product": "update_health_tools",
+  "version": "5.72.0.0",
+  "update": null,
+  "target_sw": null,
+  "confidence": 0.7
+ }
+}

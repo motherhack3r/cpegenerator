@@ -7,7 +7,7 @@ valuosa igualment.
 
 - **Data del run**: 2026-08-05, ~13:1x–13:4x CEST.
 - **Màquina**: `pc` (vegeu `../machines/pc.md`).
-- **Codi**: CPEgenerator v2, commit `c109c4c` (sense canvis de codi
+- **Codi**: CPEgenerator v2, commit `43a24e4` (sense canvis de codi
   respecte del benchmark oficial — mateix harness exacte).
 - **Ordre**: `cpegen bench --offline --limit 100 --output
   out/bench_exp_e6 --modes single --models mitre_gemma3,

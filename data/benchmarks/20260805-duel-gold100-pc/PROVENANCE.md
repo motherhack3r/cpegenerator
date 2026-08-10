@@ -3,7 +3,7 @@
 - **Data del run**: 2026-08-05, ~01:04–01:16 CEST.
 - **Màquina**: `pc` (vegeu `../machines/pc.md`: RTX 3060 12 GB, driver
   610.88, i7-14700F, 64 GB RAM, Windows 11 Home).
-- **Codi**: CPEgenerator v2, commit `d17b7ba` (fallback del camp
+- **Codi**: CPEgenerator v2, commit `7e5188a` (fallback del camp
   `reasoning` a l'endpoint natiu).
 - **Ordre**: `cpegen bench --offline --limit 100 --output out/bench_duel
   --modes single --models qwen3-4b-instruct-2507,qwen_qwen3.5-0.8b`
@@ -12,7 +12,7 @@
   `reasoning: "off"` per al 0.8b (té capability), camp descartat
   automàticament per al 2507 (instruct pur: el rebutja amb 400 — un
   intent inicial del run va morir per aquest 400 abans del fix
-  `d17b7ba`; aquest arxiu és el run net posterior).
+  `7e5188a`; aquest arxiu és el run net posterior).
 - **Servidor**: LM Studio a `http://127.0.0.1:1234`; catàleg al
   `lmstudio_models.json` de `../20260804-pilot1-gold100/` (sense canvis).
 - **Models**: `qwen3-4b-instruct-2507` (qwen3, 4B, Q4_K_M, 2,5 GB,

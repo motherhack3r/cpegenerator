@@ -10,3 +10,4 @@ _to_delete/
 data/curated/
 docs/deliveries/*.zip
 .ideas/
+data/inventory/private/
