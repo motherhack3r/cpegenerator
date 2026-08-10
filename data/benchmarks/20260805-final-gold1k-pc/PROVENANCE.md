@@ -2,7 +2,7 @@
 
 - **Data del run**: 2026-08-05, ~01:50–05:30 CEST (nocturn, desatès).
 - **Màquina**: `pc` (vegeu `../machines/pc.md`).
-- **Codi**: CPEgenerator v2, commit `8e86597`.
+- **Codi**: CPEgenerator v2, commit `d17b7ba`.
 - **Ordre**: `cpegen bench --offline --output out/bench_1k --models
   qwen3-0.6b,qwen_qwen3.5-0.8b,qwen3-1.7b,qwen3-4b-instruct-2507,qwen3-8b`
   (modes per defecte: single + per-field; sense `--limit`).

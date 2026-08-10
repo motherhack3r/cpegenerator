@@ -1,6 +1,6 @@
 # Playbook — Run massiu del RAW SCCM (Fase 7, pas 4)
 
-Estat: **llest per executar** (tooling committejat a `3de2e78`, decisions
+Estat: **llest per executar** (tooling committejat a `1ce24ac`, decisions
 2026-08-05 al ROADMAP: mode single + cascada `qwen3-1.7b` → `qwen3-8b`).
 Tot és reprendible: qualsevol tall es recupera rellançant la mateixa ordre.
 

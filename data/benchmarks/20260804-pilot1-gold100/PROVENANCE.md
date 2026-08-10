@@ -5,7 +5,7 @@
   610.88, i7-14700F, 64 GB RAM, Windows 11 Home). *Corregit
   2026-08-04: una primera versió deia erròniament "laptop" — els
   pilots corren al PC; el laptop queda per a la rèplica completa.*
-- **Codi**: CPEgenerator v2, commit `c9d1698` (provider `lmstudio`
+- **Codi**: CPEgenerator v2, commit `fe2f496` (provider `lmstudio`
   natiu via `/api/v1/chat`).
 - **Ordre**: `cpegen bench --offline --limit 100 --output
   out/bench_pilot --models google/gemma-4-e4b,qwen3-1.7b`

@@ -3,7 +3,7 @@
 - **Data del run**: 2026-08-05, ~01:20–02:40 CEST (desatès, nocturn).
 - **Màquina**: `pc` (vegeu `../machines/pc.md`: RTX 3060 12 GB, driver
   610.88, i7-14700F, 64 GB RAM, Windows 11 Home).
-- **Codi**: CPEgenerator v2, commit `8e86597`.
+- **Codi**: CPEgenerator v2, commit `d17b7ba`.
 - **Ordre**: `cpegen bench --offline --limit 100 --output out/bench_pilot2
   --modes single --models qwen2.5-0.5b-instruct,qwen3-0.6b,
   lmstudio-community/qwen3.5-0.8b,llama-3.2-1b-instruct,
