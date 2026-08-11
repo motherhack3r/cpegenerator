@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPEgenerator — explicat per a tothom</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --blue-dark:#1F4E79;
+  --blue:#2E6CB5;
+  --blue-pale:#E8F0F8;
+  --blue-paler:#F6F9FC;
+  --ink:#16232E;
+  --grey:#5B6B77;
+  --grey-light:#8B99A3;
+  --line:#DCE6EF;
+  --green:#2E7D5B;
+  --green-pale:#EAF3EE;
+  --red:#A94442;
+  --red-pale:#F9EDED;
+  --amber:#B5762E;
+  --amber-pale:#FBF6EC;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --disp:'Space Grotesk',var(--sans);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);color:var(--ink);background:#fff;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto;padding:0 28px 90px}
+
+header{padding:56px 0 30px;border-bottom:2px solid var(--blue-dark)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:14px;font-weight:600}
+h1{font-family:var(--disp);font-weight:700;font-size:44px;line-height:1.08;color:var(--blue-dark);letter-spacing:-.02em}
+.tagline{margin-top:16px;font-size:18px;color:var(--grey);max-width:640px}
+
+section{margin-top:56px}
+h2{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue-dark);margin-bottom:8px}
+h2::before{content:"";display:inline-block;width:24px;height:3px;background:var(--blue);margin-right:10px;vertical-align:middle;border-radius:2px}
+.lead{font-size:16.5px;color:var(--grey);max-width:680px;margin-bottom:22px}
+.lead b{color:var(--ink)}
+
+/* two worlds */
+.worlds{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:stretch}
+.world{border:1px solid var(--line);border-radius:12px;padding:20px 22px;background:#fff}
+.world.left{border-top:4px solid var(--grey-light)}
+.world.right{border-top:4px solid var(--blue)}
+.whead{font-family:var(--disp);font-weight:700;font-size:16px;margin-bottom:2px}
+.world.left .whead{color:var(--grey)}
+.world.right .whead{color:var(--blue-dark)}
+.wsub{font-size:12.5px;color:var(--grey-light);margin-bottom:14px}
+.sticker{font-family:var(--mono);font-size:12.5px;color:var(--grey);background:var(--blue-paler);border:1px solid var(--line);border-radius:6px;padding:7px 10px;margin-top:8px;transform:rotate(-.6deg)}
+.sticker:nth-child(odd){transform:rotate(.7deg)}
+.wgap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--grey-light)}
+.wgap .q{font-family:var(--disp);font-weight:700;font-size:26px;color:var(--red)}
+.wgap .qtxt{font-size:11.5px;text-align:center;max-width:90px;line-height:1.35}
+@media(max-width:640px){.worlds{grid-template-columns:1fr}.wgap{flex-direction:row}}
+
+/* id card */
+.idcard{background:linear-gradient(135deg,var(--blue-pale),#fff 65%);border:1px solid var(--blue);border-radius:14px;padding:22px 26px;max-width:520px;box-shadow:0 6px 18px rgba(31,78,121,.10)}
+.idtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.idtitle{font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--blue-dark)}
+.chip{width:34px;height:24px;border-radius:5px;background:linear-gradient(135deg,#D9C36A,#B89B3E);border:1px solid #A98F3A}
+.idrow{display:grid;grid-template-columns:130px 1fr;gap:8px;padding:7px 0;border-top:1px dashed var(--line);font-size:14px}
+.idrow .k{color:var(--grey-light);font-size:12px;text-transform:uppercase;letter-spacing:.06em;align-self:center}
+.idrow .v{font-family:var(--mono);font-weight:600;color:var(--blue-dark)}
+.idfoot{margin-top:14px;font-family:var(--mono);font-size:10.5px;color:var(--grey-light);word-break:break-all}
+.idnote{font-size:13px;color:var(--grey);margin-top:14px;max-width:520px}
+
+/* duet */
+.duet{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.person{border:1px solid var(--line);border-radius:12px;padding:22px;background:#fff}
+.person.reader{border-top:4px solid var(--amber)}
+.person.notary{border-top:4px solid var(--blue)}
+.picon{font-size:34px;line-height:1;margin-bottom:10px}
+.pname{font-family:var(--disp);font-weight:700;font-size:18px;color:var(--ink)}
+.prole{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:2px 0 12px}
+.person.reader .prole{color:var(--amber)}
+.person.notary .prole{color:var(--blue)}
+.person p{font-size:14px;color:var(--grey)}
+.person p b{color:var(--ink)}
+.pwarn{margin-top:12px;font-size:12.5px;border-radius:8px;padding:9px 12px}
+.person.reader .pwarn{background:var(--amber-pale);color:var(--amber)}
+.person.notary .pwarn{background:var(--blue-pale);color:var(--blue-dark)}
+@media(max-width:640px){.duet{grid-template-columns:1fr}}
+
+.principle{background:var(--blue-dark);color:#fff;border-radius:12px;padding:30px 34px;margin-top:20px}
+.principle .big{font-family:var(--disp);font-size:26px;font-weight:700;line-height:1.2}
+.principle .big .accent{color:#9CC3EE}
+.principle .sub{color:#C7DAEF;font-size:14px;margin-top:8px;max-width:600px}
+
+/* stamps */
+.stamps{display:flex;gap:14px;margin-top:18px;flex-wrap:wrap}
+.stamp{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.1em;padding:10px 18px;border-radius:8px;border:2.5px solid;transform:rotate(-2deg)}
+.stamp.ok{color:var(--green);border-color:var(--green);background:var(--green-pale)}
+.stamp.ko{color:var(--red);border-color:var(--red);background:var(--red-pale);transform:rotate(1.5deg)}
+.stampnote{font-size:13px;color:var(--grey-light);align-self:center}
+
+/* team funnel */
+.funnel{display:flex;flex-direction:column;gap:12px}
+.frow{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:14px 18px;background:#fff}
+.ficon{font-size:28px;text-align:center}
+.ftext{font-size:14px;color:var(--grey)}
+.ftext b{color:var(--ink)}
+.ftag{font-family:var(--mono);font-size:11px;color:var(--blue);background:var(--blue-pale);border-radius:4px;padding:2px 8px;margin-left:6px;white-space:nowrap}
+.fdown{text-align:center;color:var(--grey-light);font-size:15px}
+
+/* result bars */
+.chartcard{background:#fff;border:1px solid var(--line);border-radius:10px;padding:24px 26px;margin-top:6px}
+.brow{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;margin-top:14px}
+.blabel{font-size:13.5px;color:var(--grey);text-align:right}
+.blabel b{display:block;color:var(--ink)}
+.btrack{position:relative;height:34px;background:var(--blue-paler);border-radius:6px;border:1px solid var(--line);overflow:hidden}
+.bfill{position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-family:var(--disp);font-weight:700;font-size:14px;color:#fff;border-radius:5px 0 0 5px}
+.bfill.grey{background:#AFC4D6}
+.bfill.blue{background:linear-gradient(90deg,var(--blue),var(--blue-dark))}
+.chartnote{font-size:12px;color:var(--grey-light);margin-top:16px}
+
+footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);font-size:12.5px;color:var(--grey-light);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+footer code{font-family:var(--mono);font-size:11.5px;color:var(--blue-dark);background:var(--blue-pale);padding:1px 6px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">MotherHacker · open source · explicat per a tothom</div>
+  <h1>Els programes del teu ordinador tenen forats.<br>Quins?</h1>
+  <p class="tagline">CPEgenerator respon aquesta pregunta automàticament.
+  Per entendre com, no cal saber res d'informàtica — només cal una història
+  de motes, carnets d'identitat i un notari molt tossut.</p>
+</header>
+
+<section>
+  <h2>El problema: dos mons que no es parlen</h2>
+  <p class="lead">Cada dia es descobreixen forats de seguretat en programes
+  de tot el món, i es publiquen en un <b>catàleg mundial</b>. Per saber si
+  et toquen, hauries de creuar aquest catàleg amb la llista de programes
+  que tens instal·lats. El problema: <b>parlen idiomes diferents</b>.</p>
+
+  <div class="worlds">
+    <div class="world left">
+      <div class="whead">El teu ordinador</div>
+      <div class="wsub">Cada programa s'apunta com vol, com motes en una llista de convidats</div>
+      <div class="sticker">7-Zip 25.00 (x64)</div>
+      <div class="sticker">Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.30501</div>
+      <div class="sticker">Mozilla Firefox (x64 en-US)</div>
+    </div>
+    <div class="wgap">
+      <div class="q">?</div>
+      <div class="qtxt">qui és qui?</div>
+    </div>
+    <div class="world right">
+      <div class="whead">El catàleg mundial de forats</div>
+      <div class="wsub">Cada programa hi consta amb el seu nom oficial, sempre igual</div>
+      <div class="sticker">7-zip · versió 25.00 → forat conegut ⚠</div>
+      <div class="sticker">visual_c++ · 2013 → cap forat ✓</div>
+      <div class="sticker">firefox · 141.0 → cap forat ✓</div>
+    </div>
+  </div>
+
+  <p class="lead" style="margin-top:22px">Una empresa gran té
+  <b>centenars de milers</b> d'aquestes etiquetes desordenades. Fer la
+  traducció a mà és impossible.</p>
+</section>
+
+<section>
+  <h2>La solució comença amb un carnet d'identitat</h2>
+  <p class="lead">El món de la seguretat té una mena de <b>DNI per al
+  software</b>: una fitxa oficial amb tres dades clau. Si aconsegueixes
+  omplir-la bé, el catàleg de forats et respon a l'instant.</p>
+
+  <div class="idcard">
+    <div class="idtop">
+      <div class="idtitle">Carnet d'identitat del software</div>
+      <div class="chip"></div>
+    </div>
+    <div class="idrow"><div class="k">Qui el fa</div><div class="v">igor pavlov (7-zip)</div></div>
+    <div class="idrow"><div class="k">Com es diu</div><div class="v">7-zip</div></div>
+    <div class="idrow"><div class="k">Quina versió</div><div class="v">25.00</div></div>
+    <div class="idfoot">tècnicament: cpe:2.3:a:7-zip:7-zip:25.00:*:*:*:*:*:*:*</div>
+  </div>
+  <p class="idnote">Tota la feina del CPEgenerator és aquesta: convertir
+  cada etiqueta desordenada en un carnet ben omplert.</p>
+</section>
+
+<section>
+  <h2>Com ho fa: el lector i el notari</h2>
+  <p class="lead">Aquí entra la part interessant. El sistema són
+  <b>dos personatges amb papers molt diferents</b>:</p>
+
+  <div class="duet">
+    <div class="person reader">
+      <div class="picon">🔍</div>
+      <div class="pname">El lector</div>
+      <div class="prole">una intel·ligència artificial</div>
+      <p>Llegeix l'etiqueta desordenada i <b>proposa</b> les tres dades del
+      carnet: qui el fa, com es diu, quina versió. És boníssim desxifrant
+      garbuixos.</p>
+      <div class="pwarn">⚠ Però té un defecte: quan no ho sap,
+      <b>s'ho inventa amb tota la seguretat del món</b>. Mai no li pots
+      deixar firmar el document final.</div>
+    </div>
+    <div class="person notary">
+      <div class="picon">🖋</div>
+      <div class="pname">El notari</div>
+      <div class="prole">codi estricte, zero imaginació</div>
+      <p>Agafa la proposta del lector i la <b>comprova</b>: que compleixi
+      les normes oficials al peu de la lletra i que quadri amb el registre
+      oficial. No interpreta, no improvisa, no es cansa.</p>
+      <div class="pwarn">✓ Només el notari pot segellar un carnet.
+      Sempre. Sense excepcions.</div>
+    </div>
+  </div>
+
+  <div class="stamps">
+    <div class="stamp ok">VÀLID ✓</div>
+    <div class="stamp ko">REBUTJAT ✕</div>
+    <div class="stampnote">— cada carnet acaba amb un dels dos segells; cap es dona per bo "perquè la IA ho diu"</div>
+  </div>
+
+  <div class="principle">
+    <div class="big">La IA <span class="accent">proposa</span>.<br>El codi <span class="accent">valida</span>.</div>
+    <div class="sub">Aquesta és la regla d'or del projecte. Ve d'una lliçó
+    apresa el 2023: un model d'IA que generava els carnets sencers
+    s'inventava fabricants que no existien — i ho feia amb total
+    convicció. Des de llavors, la IA mai no escriu el resultat final.</div>
+  </div>
+</section>
+
+<section>
+  <h2>El truc de l'eficiència: l'aprenent i el mestre</h2>
+  <p class="lead">Amb centenars de milers d'etiquetes, no pots pagar un
+  expert car per a cadascuna. La solució és la de qualsevol taller:</p>
+
+  <div class="funnel">
+    <div class="frow">
+      <div class="ficon">🏃</div>
+      <div class="ftext"><b>L'aprenent ràpid</b> (una IA petita que corre a
+      l'ordinador de casa) fa una primera passada a <b>totes</b> les
+      etiquetes. La majoria les resol bé i en mil·lisegons.
+      <span class="ftag">~86% resolt</span></div>
+    </div>
+    <div class="fdown">▼ només els casos que se li resisteixen</div>
+    <div class="frow">
+      <div class="ficon">🧠</div>
+      <div class="ftext"><b>El mestre</b> (una IA més gran i més lenta)
+      només mira la pila dels difícils. Qualitat màxima on realment cal.
+      <span class="ftag">la resta</span></div>
+    </div>
+    <div class="fdown">▼ i al final, sempre</div>
+    <div class="frow">
+      <div class="ficon">🖋</div>
+      <div class="ftext"><b>El notari revisa cada carnet</b>, vingui de
+      l'aprenent o del mestre. El segell no es delega mai.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>I funciona?</h2>
+  <p class="lead">La versió del 2023 (la tesi original) i la d'avui,
+  sobre el mateix tipus de prova — de cada 100 etiquetes, quantes acaben
+  amb carnet segellat i creuades amb el catàleg de forats:</p>
+
+  <div class="chartcard">
+    <div class="brow">
+      <div class="blabel"><b>2023</b>tesi original</div>
+      <div class="btrack"><div class="bfill grey" style="width:5%"></div><span style="position:absolute;left:calc(5% + 8px);top:0;bottom:0;display:flex;align-items:center;font-family:var(--disp);font-weight:700;font-size:14px;color:var(--grey)">5 de 100</span></div>
+    </div>
+    <div class="brow">
+      <div class="blabel"><b>2026</b>CPEgenerator v2</div>
+      <div class="btrack"><div class="bfill blue" style="width:91%">91 de 100</div></div>
+    </div>
+    <div class="chartnote">Xifres del joc de proves de referència (1.000
+    etiquetes revisades a mà): 2023 = ~4,9% de resolució automàtica amb
+    alta confiança sobre inventari real; 2026 = 91% amb el millor model
+    local provat. Detall i evidència completa al repositori
+    (data/benchmarks/).</div>
+  </div>
+
+  <p class="lead" style="margin-top:22px">El resultat pràctic: una llista
+  que diu <b>"aquests programes teus tenen forats coneguts — actualitza'ls"</b>,
+  generada sola, amb cada resposta verificada.</p>
+</section>
+
+<footer>
+  <div>CPEgenerator v2 · projecte open source de MotherHacker · continuació del TFM VulnDigger (POLIMI 2021–2023)</div>
+  <div><code>github.com/motherhack3r/cpegenerator</code></div>
+</footer>
+
+</div>
+</body>
+</html>
