@@ -125,7 +125,7 @@ def cmd_dict(args: argparse.Namespace) -> int:
     d = LocalDictionary.load(path)
     print(f"Snapshot {path}: {d.size} entries, "
           f"{len(d.by_pair)} vendor:product pairs, "
-          f"{len(d.by_vendor)} vendors")
+          f"{len(d.vendor_reps)} vendors, {len(d.product_reps)} products")
     return 0
 
 
@@ -243,6 +243,32 @@ def cmd_escalate(args: argparse.Namespace) -> int:
     for t, n in list(stats["transitions"].items())[:8]:
         print(f"  {n:6d}  {t}")
     print(f"-> {Path(args.output) / 'results_merged.csv'}")
+    return 0
+
+
+def cmd_reclassify(args: argparse.Namespace) -> int:
+    from .dictionary import HybridDictionary, LocalDictionary
+    from .nvd import NVDClient
+    from .pipeline import reclassify_results
+
+    def progress(done: int, total: int) -> None:
+        print(f"\r[{done}/{total}] reclassified", end="", file=sys.stderr,
+              flush=True)
+
+    nvd = NVDClient(Path(args.cache) if args.cache
+                    else Path("data/cache/nvd_cache.json"),
+                    offline=args.offline)
+    lookup = (HybridDictionary(LocalDictionary.load(Path(args.dict)), nvd)
+              if args.dict else nvd)
+    stats = reclassify_results(Path(args.input), Path(args.output), lookup,
+                               progress=progress)
+    print(file=sys.stderr)
+    print(f"Reclassified {stats['reclassified']}/{stats['rows']} rows "
+          f"({stats['unchanged_invalid']} without valid CPE, "
+          f"{stats['cpe_mismatch']} rebuild mismatches)")
+    for t, n in sorted(stats["transitions"].items(), key=lambda x: -x[1])[:12]:
+        print(f"  {n:6d}  {t}")
+    print(f"-> {Path(args.output) / 'results.csv'}")
     return 0
 
 
@@ -455,6 +481,19 @@ def main(argv: list[str] | None = None) -> int:
     p_esc.add_argument("--cache", default=None)
     p_esc.add_argument("--limit", type=int, default=None)
     p_esc.set_defaults(func=cmd_escalate)
+
+    p_rec = sub.add_parser(
+        "reclassify",
+        help="re-run dictionary lookup + M1-M3 classification over an "
+             "existing results.csv without re-extracting (matcher or "
+             "dictionary fixes should not cost GPU hours)")
+    p_rec.add_argument("--input", required=True,
+                       help="results.csv from a previous run")
+    p_rec.add_argument("--output", required=True, help="output directory")
+    p_rec.add_argument("--dict", default="data/cache/cpe_dictionary.jsonl.gz")
+    p_rec.add_argument("--offline", action="store_true")
+    p_rec.add_argument("--cache", default=None)
+    p_rec.set_defaults(func=cmd_reclassify)
 
     p_vul = sub.add_parser(
         "vulns",

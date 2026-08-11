@@ -30,6 +30,7 @@ RULE_NAMES = {
     "M2": "New product candidate",
     "M2B": "New vendor candidate",
     "M3": "Other candidates",
+    "M4": "No dictionary match",
 }
 HIGH_CONFIDENCE = {"M1", "M1A", "M1B", "M1C"}
 
@@ -63,7 +64,7 @@ class MatchResult:
 
     similarity is the dictionary-side edit similarity that drove the
     rule (1.0 for exact-field rules; sim(version) for M1B; sim(product)
-    for M2; sim(vendor) for M3; 0.0 for the catch-all).
+    for M2; sim(vendor) for M3; 0.0 for M4, the no-signal bucket).
     """
 
     rule: str
@@ -140,7 +141,13 @@ def classify(wfn: WFN, candidates: list[DictEntry]) -> MatchResult:
         return MatchResult("M1C", RULE_NAMES["M1C"], 1.0, None,
                            detail="vendor and product exist separately in dictionary")
 
-    # M2: vendor matches, product merely similar -> new product candidate.
+    # M2: vendor known to the dictionary, product is not (under that
+    # vendor) -> new product candidate. This is the 2023 baseline's
+    # operational meaning (53% of the inventory landed here): the vendor
+    # anchors the row, the similarity is reported as signal, and the
+    # best entry is only cited as a match when it clears the threshold.
+    # Requiring sim > 0.8 to enter the bucket at all (pre-2026-08-11
+    # behaviour) silently dumped these rows into the catch-all.
     best_m2 = None
     for entry, w in parsed:
         ev, ep, _ = fields(w)
@@ -148,9 +155,12 @@ def classify(wfn: WFN, candidates: list[DictEntry]) -> MatchResult:
             sim = similarity(product, ep)
             if best_m2 is None or sim > best_m2[1]:
                 best_m2 = (entry, sim)
-    if best_m2 and best_m2[1] > SIMILARITY_THRESHOLD:
-        return MatchResult("M2", RULE_NAMES["M2"], best_m2[1],
-                           best_m2[0].cpe_name)
+    if best_m2:
+        entry, sim = best_m2
+        matched = entry.cpe_name if sim > SIMILARITY_THRESHOLD else None
+        return MatchResult("M2", RULE_NAMES["M2"], sim, matched,
+                           detail="vendor exists in dictionary; "
+                                  f"best product similarity {sim:.2f}")
 
     # M3 (rule): product matches, vendor merely similar.
     best_m3 = None
@@ -168,6 +178,11 @@ def classify(wfn: WFN, candidates: list[DictEntry]) -> MatchResult:
                            product_exact_entries[0][0].cpe_name,
                            detail="product exists, vendor unknown to dictionary")
 
-    # Catch-all: other candidates (baseline lumps these into M3).
-    return MatchResult("M3", RULE_NAMES["M3"], 0.0, None,
-                       detail="no rule matched")
+    # M4: no dictionary signal at all — neither the vendor nor the
+    # product is known. v2 addition (2026-08-11): the 2023 baseline
+    # lumped these into M3 "Other candidates", which made the M3 bucket
+    # unreadable (a row with zero candidates wore the same label as a
+    # product match under a similar vendor). For baseline comparisons,
+    # v2's M3+M4 together correspond to 2023's M3.
+    return MatchResult("M4", RULE_NAMES["M4"], 0.0, None,
+                       detail="vendor and product both unknown to dictionary")

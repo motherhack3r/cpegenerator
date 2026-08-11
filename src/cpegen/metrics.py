@@ -40,6 +40,9 @@ ENTITIES = ("vendor", "product", "version", "target_sw")
 BASELINE_2023 = {
     "M1": 1.18, "M1A": 1.91, "M1B": 0.76, "M1C": 1.04,
     "M2": 53.28, "M2B": 3.52, "M3": 38.31,
+    # M4 is a v2 addition (no-signal bucket, split out of the baseline's
+    # M3 on 2026-08-11): compare v2's M3+M4 against the baseline's M3.
+    "M4": None,
 }
 BASELINE_HIGH_CONFIDENCE = 4.89  # M1+M1A+M1B+M1C (%)
 
@@ -186,10 +189,12 @@ class Report:
         lines.append("| Regla | Count | % | Base 2023 % |")
         lines.append("|---|---:|---:|---:|")
         total = sum(self.rule_counts.values()) or 1
-        for rule in ("M1", "M1A", "M1B", "M1C", "M2", "M2B", "M3"):
+        for rule in ("M1", "M1A", "M1B", "M1C", "M2", "M2B", "M3", "M4"):
             cnt = self.rule_counts.get(rule, 0)
+            base = BASELINE_2023.get(rule)
+            base_s = f"{base:.2f}%" if base is not None else "— (dins M3)"
             lines.append(f"| {rule} | {cnt} | {100 * cnt / total:.1f}% "
-                         f"| {BASELINE_2023[rule]:.2f}% |")
+                         f"| {base_s} |")
         hi = sum(self.rule_counts.get(r, 0) for r in ("M1", "M1A", "M1B", "M1C"))
         lines.append("")
         lines.append(f"**Resolució automàtica d'alta confiança (M1x): "

@@ -11,9 +11,14 @@ Three pieces:
 - :func:`build_snapshot` — resumable full dump (checkpoint after every
   page; a killed run continues where it left off). The network fetch is
   injectable, so tests run offline.
-- :class:`LocalDictionary` — in-memory ``(vendor, product)`` index over
-  the snapshot, exposing the same ``candidates_for`` contract as
-  ``NVDClient`` (exact pair first, vendor-only fallback, capped).
+- :class:`LocalDictionary` — in-memory indexes over the snapshot
+  (``(vendor, product)`` pairs, vendor-side and product-side
+  representatives), exposing the same ``candidates_for`` contract as
+  ``NVDClient``: exact pair first; on miss, the union of the vendor's
+  catalog and the product's entries under *other* vendors — the local
+  stand-in for the API's keyword fallback, without which the M1C, M2B
+  and M3 rules can never fire offline (defect found on the 10k RAW
+  pilot, 2026-08-11).
 - :class:`HybridDictionary` — local first, wrapped client on miss;
   ``keyword`` always delegates (title scans belong to the API/cache).
 """
@@ -211,11 +216,24 @@ def build_snapshot(out_path: Path = DEFAULT_SNAPSHOT,
 
 @dataclass
 class LocalDictionary:
-    """In-memory (vendor, product) index over a snapshot file."""
+    """In-memory indexes over a snapshot file.
+
+    ``by_pair`` holds every entry (all versions) keyed by
+    ``(vendor, product)`` — the M1/M1A/M1B path needs the full version
+    list. ``vendor_reps`` and ``product_reps`` hold ONE representative
+    entry per distinct ``(vendor, product)`` pair, keyed by vendor and
+    by product respectively: classification of the non-pair rules (M1C,
+    M2, M2B, M3) only compares vendor/product fields, so one entry per
+    pair carries the full signal at a fraction of the candidate volume
+    (e.g. vendor ``hp``: 22k entries but far fewer distinct products —
+    an un-deduplicated vendor fallback both blew past CANDIDATE_CAP and
+    biased the similarity search to an arbitrary slice).
+    """
 
     by_pair: dict[tuple[str, str], list[DictEntry]] = field(
         default_factory=dict)
-    by_vendor: dict[str, list[DictEntry]] = field(default_factory=dict)
+    vendor_reps: dict[str, list[DictEntry]] = field(default_factory=dict)
+    product_reps: dict[str, list[DictEntry]] = field(default_factory=dict)
     size: int = 0
     hits: int = 0
     misses: int = 0
@@ -236,25 +254,48 @@ class LocalDictionary:
                 if len(comps) != 13:
                     continue  # counted as invalid at build time
                 vendor, product = comps[3], comps[4]
-                d.by_pair.setdefault((vendor, product), []).append(entry)
-                d.by_vendor.setdefault(vendor, []).append(entry)
+                pair = (vendor, product)
+                bucket = d.by_pair.setdefault(pair, [])
+                if not bucket:  # first sighting of this pair
+                    d.vendor_reps.setdefault(vendor, []).append(entry)
+                    d.product_reps.setdefault(product, []).append(entry)
+                bucket.append(entry)
                 d.size += 1
         return d
 
     def candidates_for(self, vendor: str | None,
                        product: str | None) -> list[DictEntry]:
-        """Same contract as NVDClient.candidates_for, minus keyword."""
-        results: list[DictEntry] = []
+        """Same contract as NVDClient.candidates_for.
+
+        Exact pair first (all versions). On pair miss, the union of the
+        vendor's product representatives and the product's entries under
+        other vendors — the offline equivalent of the API's vendor
+        prefix + keyword fallbacks, and the candidate set the M1C, M2,
+        M2B and M3 rules need to be reachable at all.
+        """
         if vendor and product:
             results = self.by_pair.get(
                 (bind_component(vendor), bind_component(product)), [])
-        if not results and vendor:
-            results = self.by_vendor.get(bind_component(vendor), [])
-        if results:
+            if results:
+                self.hits += 1
+                return results[:CANDIDATE_CAP]
+        union: list[DictEntry] = []
+        seen: set[str] = set()
+        if vendor:
+            for e in self.vendor_reps.get(bind_component(vendor), []):
+                if e.cpe_name not in seen:
+                    seen.add(e.cpe_name)
+                    union.append(e)
+        if product:
+            for e in self.product_reps.get(bind_component(product), []):
+                if e.cpe_name not in seen:
+                    seen.add(e.cpe_name)
+                    union.append(e)
+        if union:
             self.hits += 1
         else:
             self.misses += 1
-        return results[:CANDIDATE_CAP]
+        return union[:CANDIDATE_CAP]
 
 
 class HybridDictionary:

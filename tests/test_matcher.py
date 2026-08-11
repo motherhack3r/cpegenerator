@@ -83,10 +83,28 @@ def test_m2b_new_vendor():
     assert res.rule == "M2B"
 
 
-def test_no_candidates_falls_to_m3():
+def test_no_candidates_is_m4():
+    # v2 split (2026-08-11): no dictionary signal at all is its own
+    # bucket, not "M3 Other candidates" — a row with zero candidates
+    # must not wear the same label as a real vendor-similarity match.
     res = classify(wfn(), [])
-    assert res.rule == "M3"
+    assert res.rule == "M4"
+    assert res.similarity == 0.0
     assert res.matched_cpe is None
+
+
+def test_m2_vendor_known_product_new():
+    # The HP DropBoxPlugin case (10k RAW pilot row 332): vendor exists
+    # in the dictionary, product does not, similarity under threshold.
+    # Baseline semantics: "New product candidate" (M2), with the
+    # similarity reported as signal and no matched_cpe cited.
+    w = wfn(vendor="hp", product="dropboxplugin", version="28.11")
+    dict_entries = [entry("cpe:2.3:a:hp:deskjet_taplugin:60.0.196.0:*:*:*:*:*:*:*")]
+    res = classify(w, dict_entries)
+    assert res.rule == "M2"
+    assert res.matched_cpe is None          # below threshold: no citation
+    assert 0.0 < res.similarity <= 0.8      # but the signal is reported
+    assert not res.high_confidence
 
 
 def test_confidence_does_not_gate_classification():
@@ -105,3 +123,12 @@ def test_deprecated_entries_ignored():
     dict_entries = [entry(w.bind(), deprecated=True)]
     res = classify(w, dict_entries)
     assert res.rule != "M1"
+
+
+def test_m2_above_threshold_cites_match():
+    w = wfn(product="femanagers")  # 1 edit away, sim > 0.8
+    dict_entries = [entry("cpe:2.3:a:in2code:femanager:5.5.1:*:*:*:*:*:*:*")]
+    res = classify(w, dict_entries)
+    assert res.rule == "M2"
+    assert res.matched_cpe is not None
+    assert res.similarity > 0.8

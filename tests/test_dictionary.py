@@ -102,11 +102,38 @@ def test_local_dictionary_binds_raw_values(tmp_path):
     assert len(hits) == 1 and hits[0].cpe_name == CPES[2]
 
 
-def test_local_dictionary_vendor_fallback_and_miss(tmp_path):
+def test_local_dictionary_vendor_fallback_dedups_to_reps(tmp_path):
+    # On pair miss the fallback returns ONE representative per distinct
+    # (vendor, product) pair — not every version. Classification of the
+    # non-pair rules only reads vendor/product fields, and an
+    # un-deduplicated fallback biased the similarity search (2026-08-11).
     d = LocalDictionary.load(_snapshot(tmp_path))
-    assert len(d.candidates_for("7-zip", "unknown_product")) == 2  # vendor
+    hits = d.candidates_for("7-zip", "unknown_product")
+    assert len(hits) == 1 and hits[0].cpe_name in {CPES[0], CPES[1]}
     assert d.candidates_for("no_such_vendor", "x") == []
     assert d.misses == 1
+
+
+def test_local_dictionary_product_fallback_across_vendors(tmp_path):
+    # The offline stand-in for the API keyword fallback: an unknown
+    # vendor with a product the dictionary knows under OTHER vendors
+    # must surface those entries — without this, M2B/M3/M1C are
+    # unreachable offline (0 occurrences across the 10k RAW pilot).
+    d = LocalDictionary.load(_snapshot(tmp_path))
+    hits = d.candidates_for("some_new_vendor", "7-zip")
+    assert len(hits) == 1
+    assert hits[0].cpe_name in {CPES[0], CPES[1]}
+
+
+def test_local_dictionary_union_vendor_and_product(tmp_path):
+    # vendor known (7-zip) + product known under another vendor
+    # (notepad++): the candidate set is the union of both sides, which
+    # is what lets M1C ("vendor and product exist separately") fire.
+    d = LocalDictionary.load(_snapshot(tmp_path))
+    hits = d.candidates_for("7-zip", "notepad++")
+    names = {e.cpe_name for e in hits}
+    assert CPES[2] in names                 # product side
+    assert names & {CPES[0], CPES[1]}       # vendor side
 
 
 def _fake_post(rows):

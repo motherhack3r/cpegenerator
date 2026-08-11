@@ -19,6 +19,7 @@ material de referència, els plans i els deliverables visuals.
 |---|---|
 | [`tfm-2023-summary.md`](tfm-2023-summary.md) | Resum complet del projecte original VulnDigger (POLIMI) |
 | [`lessons-learned.md`](lessons-learned.md) | Retrospectiva: què va funcionar, què no, i què n'hereta la v2 |
+| [`llm-official-cpe-anecdote.md`](llm-official-cpe-anecdote.md) | La lliçó LSTM, viva el 2026: un LLM generalista presenta com a "official" un CPE que no existeix a l'NVD (verificat) — l'argument del principi innegociable |
 
 ## Plans i playbooks
 

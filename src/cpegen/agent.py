@@ -41,7 +41,7 @@ Method:
    the same software.
 3. Use bind_and_validate to see the exact CPE your entities produce and
    fix any grammar errors it reports.
-4. Use classify_match to check the match quality; if it returns M2/M2B/M3,
+4. Use classify_match to check the match quality; if it returns M2/M2B/M3/M4,
    consider alternative vendor/product spellings and try again (you have a
    limited budget of turns, spend it wisely).
 5. Call submit with your best entities and an honest confidence in [0,1].

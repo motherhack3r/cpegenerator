@@ -69,7 +69,7 @@ TOOL_SCHEMAS = [
         "description": (
             "Classify the entities against the dictionary with the M1-M3 rules "
             "(deterministic; your confidence is echoed back but never affects the rule). Returns the rule (M1/M1A/M1B/M1C = high-confidence "
-            "match or valid new-CPE candidate; M2/M2B/M3 = weak candidate) and "
+            "match or valid new-CPE candidate; M2/M2B/M3/M4 = weak or no candidate) and "
             "the matched dictionary CPE if any."
         ),
         "input_schema": {

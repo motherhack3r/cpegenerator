@@ -92,11 +92,11 @@ def test_agent_loop_mock_end_to_end(tmp_path):
     assert res.error == ""
 
 
-def test_agent_loop_no_dictionary_falls_to_m3(tmp_path):
+def test_agent_loop_no_dictionary_falls_to_m4(tmp_path):
     tb = make_toolbox(tmp_path)
     res = run_agent("google protobuf 3.6.1", MockAgentProvider(), tb)
     assert res.valid
-    assert res.rule == "M3"
+    assert res.rule == "M4"
 
 
 def test_agent_budget_exhausted(tmp_path):
@@ -169,9 +169,9 @@ def test_run_escalate_mode_offline(tmp_path):
                        offline=True, agent_mode="escalate",
                        cache_path=tmp_path / "cache.json")
     assert len(rows) == 1
-    # offline+empty dict -> fast pass lands M3 -> escalated to agent
+    # offline+empty dict -> fast pass lands M4 -> escalated to agent
     assert rows[0].stage == "agent"
-    assert rows[0].fast_rule == "M3"
+    assert rows[0].fast_rule == "M4"
     assert rows[0].agent_turns == 3
     assert rows[0].valid
     assert report is not None

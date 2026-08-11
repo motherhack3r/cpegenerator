@@ -71,5 +71,5 @@ def test_lookup_error_does_not_kill_the_run(tmp_path, monkeypatch):
     row = process_title("in2code femanager 5.5.1 for typo3",
                         MockProvider(), client)
     assert row.valid  # CPE still produced and validated
-    assert row.rule == "M3"  # classified with no candidates
+    assert row.rule == "M4"  # classified with no candidates (v2 no-signal bucket)
     assert "nvd lookup failed" in row.note

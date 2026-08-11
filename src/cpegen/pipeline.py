@@ -270,3 +270,78 @@ def run(input_path: Path, output_dir: Path, provider_name: str | None = None,
         report = evaluate(rows, [g for g in gold if g.title not in done])
         (output_dir / "report.md").write_text(report.to_markdown(), encoding="utf-8")
     return rows, report
+
+
+def reclassify_results(results_path: Path, output_dir: Path, nvd,
+                       progress=None) -> dict:
+    """Re-run dictionary lookup + M1-M3 classification over an existing
+    results.csv WITHOUT re-extracting.
+
+    The extractions (vendor/product/version/update/target_sw) stored in
+    the rows are reused verbatim: the WFN is rebuilt deterministically,
+    revalidated, and reclassified against the (possibly fixed or
+    refreshed) dictionary. Rows without a valid CPE are copied through
+    untouched. Motivation: a classification-layer fix should not cost
+    hours of GPU re-extraction (10k RAW pilot, 2026-08-11).
+
+    Returns stats including the rule transition counts.
+    """
+    from .extractor import Extraction
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with open(results_path, newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        fieldnames = reader.fieldnames or []
+        rows = list(reader)
+
+    transitions: dict[str, int] = {}
+    stats = {"rows": len(rows), "reclassified": 0, "unchanged_invalid": 0,
+             "cpe_mismatch": 0, "transitions": transitions}
+    out_path = output_dir / "results.csv"
+    with open(out_path, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        writer.writeheader()
+        for i, row in enumerate(rows):
+            if row.get("valid") != "True" or not row.get("cpe"):
+                stats["unchanged_invalid"] += 1
+                writer.writerow(row)
+                if progress:
+                    progress(i + 1, len(rows))
+                continue
+            ext = Extraction(
+                title=row["title"],
+                vendor=row.get("vendor") or None,
+                product=row.get("product") or None,
+                version=row.get("version") or None,
+                update=row.get("update") or None,
+                target_sw=row.get("target_sw") or None)
+            wfn = build_wfn(ext)
+            if wfn is None or wfn.bind() != row["cpe"]:
+                # The stored CPE is the source of truth; a rebuild
+                # mismatch is counted and the row passes through as-is.
+                stats["cpe_mismatch"] += 1
+                writer.writerow(row)
+                if progress:
+                    progress(i + 1, len(rows))
+                continue
+            vendor = wfn.vendor if isinstance(wfn.vendor, str) else None
+            product = wfn.product if isinstance(wfn.product, str) else None
+            try:
+                candidates = nvd.candidates_for(vendor, product)
+            except Exception as exc:
+                candidates = []
+                row["note"] = f"nvd lookup failed: {exc}"
+            match = classify(wfn, candidates)
+            old_rule = row.get("rule", "")
+            if old_rule != match.rule:
+                key = f"{old_rule or '(none)'} -> {match.rule}"
+                transitions[key] = transitions.get(key, 0) + 1
+            row["rule"] = match.rule
+            row["rule_name"] = match.rule_name
+            row["match_similarity"] = str(round(match.similarity, 4))
+            row["matched_cpe"] = match.matched_cpe or ""
+            stats["reclassified"] += 1
+            writer.writerow(row)
+            if progress:
+                progress(i + 1, len(rows))
+    return stats
