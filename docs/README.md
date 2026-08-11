@@ -38,6 +38,7 @@ material de referència, els plans i els deliverables visuals.
 | [`media/CPEgenerator v2 + KGCS — pilot status.pdf`](media/) | La mateixa slide, impresa a PDF |
 | [`media/model_catalog.html`](media/model_catalog.html) | Vista web del catàleg de models (foto datada — la font viva és `out/model_catalog.md` + `.csv`, regenerables) |
 | [`media/explicat-per-a-tothom.html`](media/explicat-per-a-tothom.html) | Infografia de divulgació per a públic general (agost 2026): què fa el projecte sense argot — el carnet d'identitat del software, "la IA proposa, el codi valida" (el lector i el notari), la cascada (l'aprenent i el mestre) i el 5→91 de cada 100 |
+| [`media/dins-la-maquina.html`](media/dins-la-maquina.html) | Infografia de divulgació, nivell 2 (agost 2026): la lògica interna del lector i el notari — anatomia del CPE 2.3 camp a camp, títol → JSON → bind WFN → validació ABNF → diccionari i M1–M4, i el mode agent amb eines |
 | [`media/il-regalo.html`](media/il-regalo.html) | Infografia de la Fase 7 'Nduja (juliol 2026), actualitzada 2026-08-05 amb el sistema visual actual i les xifres del gold-1k — la versió anterior queda a l'historial de git (`git log -- docs/media/il-regalo.html`) |
 
 Cada document de referència, memòria i plans té també la seva versió HTML

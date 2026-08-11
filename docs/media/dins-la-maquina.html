@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPEgenerator — dins la màquina: el lector i el notari</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --blue-dark:#1F4E79;
+  --blue:#2E6CB5;
+  --blue-pale:#E8F0F8;
+  --blue-paler:#F6F9FC;
+  --ink:#16232E;
+  --grey:#5B6B77;
+  --grey-light:#8B99A3;
+  --line:#DCE6EF;
+  --green:#2E7D5B;
+  --green-pale:#EAF3EE;
+  --red:#A94442;
+  --red-pale:#F9EDED;
+  --amber:#B5762E;
+  --amber-pale:#FBF6EC;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --disp:'Space Grotesk',var(--sans);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);color:var(--ink);background:#fff;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 28px 90px}
+
+header{padding:56px 0 30px;border-bottom:2px solid var(--blue-dark)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:14px;font-weight:600}
+h1{font-family:var(--disp);font-weight:700;font-size:42px;line-height:1.08;color:var(--blue-dark);letter-spacing:-.02em}
+.tagline{margin-top:16px;font-size:17px;color:var(--grey);max-width:660px}
+.tagline a{color:var(--blue-dark);font-weight:600;text-decoration:none;border-bottom:1px solid var(--blue)}
+
+section{margin-top:56px}
+h2{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue-dark);margin-bottom:8px}
+h2::before{content:"";display:inline-block;width:24px;height:3px;background:var(--blue);margin-right:10px;vertical-align:middle;border-radius:2px}
+.lead{font-size:16px;color:var(--grey);max-width:680px;margin-bottom:22px}
+.lead b{color:var(--ink)}
+.lead code{font-family:var(--mono);font-size:13px;background:var(--blue-pale);color:var(--blue-dark);padding:1px 6px;border-radius:3px}
+
+/* CPE anatomy */
+.cpecard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px 26px}
+.cpestr{font-family:var(--mono);font-size:15px;font-weight:600;line-height:2.1;word-break:break-all}
+.seg{padding:3px 5px;border-radius:5px;margin:0 1px;white-space:nowrap}
+.seg.fix{color:var(--grey-light)}
+.seg.part{background:var(--amber-pale);color:var(--amber)}
+.seg.vendor{background:var(--blue-pale);color:var(--blue-dark)}
+.seg.product{background:var(--blue-dark);color:#fff}
+.seg.version{background:var(--green-pale);color:var(--green)}
+.seg.star{color:var(--grey-light)}
+.seg.tsw{background:var(--red-pale);color:var(--red)}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px 22px;margin-top:20px;padding-top:18px;border-top:1px dashed var(--line)}
+.leg{display:flex;gap:10px;font-size:13px;color:var(--grey);align-items:baseline}
+.dot{flex:0 0 auto;width:12px;height:12px;border-radius:4px;position:relative;top:1px}
+.leg b{color:var(--ink)}
+.leg .m{font-family:var(--mono);font-size:11.5px}
+.wildnote{margin-top:16px;font-size:13px;color:var(--grey);background:var(--blue-paler);border:1px dashed var(--blue);border-radius:8px;padding:10px 14px}
+.wildnote code{font-family:var(--mono);font-size:12px;color:var(--blue-dark)}
+
+/* journey strip */
+.journey{display:flex;align-items:stretch;flex-wrap:wrap;gap:0;row-gap:14px;margin-top:8px}
+.jstage{flex:1 1 130px;min-width:130px;display:flex;align-items:center}
+.jbox{flex:1;background:#fff;border:1px solid var(--line);border-radius:9px;padding:12px 12px 10px;height:100%}
+.jbox.reader{border-top:4px solid var(--amber)}
+.jbox.notary{border-top:4px solid var(--blue)}
+.jwho{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.jbox.reader .jwho{color:var(--amber)}
+.jbox.notary .jwho{color:var(--blue)}
+.jname{font-family:var(--disp);font-weight:700;font-size:14px;color:var(--blue-dark);margin:2px 0 3px}
+.jdesc{font-size:11.8px;color:var(--grey);line-height:1.45}
+.jarrow{align-self:center;padding:0 6px;color:var(--grey-light);font-size:15px;flex:0 0 auto}
+
+/* code blocks */
+.codecard{background:var(--blue-paler);border:1px solid var(--line);border-radius:10px;padding:16px 20px;font-family:var(--mono);font-size:13px;line-height:1.75;color:var(--ink);overflow-x:auto}
+.codecard .c{color:var(--grey-light)}
+.codecard .k{color:var(--blue-dark);font-weight:600}
+.codecard .s{color:var(--green)}
+.codecard .n{color:var(--amber)}
+.codelabel{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey-light);margin:18px 0 8px}
+.codelabel:first-child{margin-top:0}
+
+/* duet mini reminder */
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:3px 9px;margin-right:6px}
+.pill.reader{background:var(--amber-pale);color:var(--amber)}
+.pill.notary{background:var(--blue-pale);color:var(--blue-dark)}
+
+/* why cards */
+.whygrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+.why{border:1px solid var(--line);border-radius:10px;padding:16px 18px;background:#fff;font-size:13.5px;color:var(--grey)}
+.why b{color:var(--ink)}
+.why .whead{font-family:var(--disp);font-weight:700;font-size:14px;color:var(--blue-dark);margin-bottom:6px}
+@media(max-width:640px){.whygrid{grid-template-columns:1fr}}
+
+/* notary steps */
+.step{display:grid;grid-template-columns:56px 1fr;gap:18px;margin-top:22px}
+.stepnum{width:44px;height:44px;border-radius:10px;background:var(--blue-dark);color:#fff;font-family:var(--disp);font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center}
+.stepbody{min-width:0}
+.steptitle{font-family:var(--disp);font-weight:700;font-size:17px;color:var(--ink)}
+.stepsub{font-family:var(--mono);font-size:11px;color:var(--grey-light);margin:1px 0 10px}
+.stepbody p{font-size:14px;color:var(--grey);max-width:640px}
+.stepbody p b{color:var(--ink)}
+.stepbody .codecard{margin-top:12px}
+
+.stamps{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
+.stamp{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.1em;padding:8px 14px;border-radius:8px;border:2.5px solid;transform:rotate(-2deg)}
+.stamp.ok{color:var(--green);border-color:var(--green);background:var(--green-pale)}
+.stamp.ko{color:var(--red);border-color:var(--red);background:var(--red-pale);transform:rotate(1.5deg)}
+.stampnote{font-size:12.5px;color:var(--grey-light);align-self:center;max-width:420px}
+
+/* rules table */
+.rules{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px}
+.rules th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-light);text-align:left;padding:8px 10px;border-bottom:2px solid var(--line)}
+.rules td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--grey);vertical-align:top}
+.rules td:first-child{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.rules tr.g1 td:first-child{color:var(--green)}
+.rules tr.g2 td:first-child{color:var(--blue-dark)}
+.rules tr.g3 td:first-child{color:var(--amber)}
+.rules tr.g4 td:first-child{color:var(--grey-light)}
+.rules td b{color:var(--ink)}
+
+.principle{background:var(--blue-dark);color:#fff;border-radius:12px;padding:28px 32px;margin-top:26px}
+.principle .big{font-family:var(--disp);font-size:23px;font-weight:700;line-height:1.25}
+.principle .big .accent{color:#9CC3EE}
+.principle .sub{color:#C7DAEF;font-size:13.5px;margin-top:8px;max-width:620px}
+.principle .sub code{font-family:var(--mono);color:#E3EEFA;font-size:12.5px}
+
+/* agent tools */
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:16px}
+.tool{border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff}
+.tool .tname{font-family:var(--mono);font-weight:600;font-size:12.5px;color:var(--blue-dark)}
+.tool .tdesc{font-size:12px;color:var(--grey);margin-top:3px;line-height:1.45}
+
+footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);font-size:12.5px;color:var(--grey-light)}
+footer code{font-family:var(--mono);font-size:11.5px;color:var(--blue-dark);background:var(--blue-pale);padding:1px 6px;border-radius:3px}
+footer .row{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">MotherHacker · open source · nivell 2 — per dins</div>
+  <h1>Dins la màquina:<br>el lector i el notari</h1>
+  <p class="tagline">Si has vist <a href="explicat-per-a-tothom.html">l'explicació per a tothom</a>,
+  ja saps que la IA proposa i el codi valida. Aquí obrim la caixa: com és
+  exactament un CPE, què escriu el lector, i quins tres controls passa cada
+  proposta abans que el notari la segelli.</p>
+</header>
+
+<section>
+  <h2>Anatomia d'un CPE 2.3 — el carnet, camp a camp</h2>
+  <p class="lead">Un CPE és una cadena amb <b>13 posicions separades per dos punts</b>:
+  un prefix fix i 11 atributs. La majoria de vegades només n'omplim uns quants;
+  la resta queden com a comodins.</p>
+
+  <div class="cpecard">
+    <div class="cpestr">
+      <span class="seg fix">cpe:2.3</span>:<span class="seg part">a</span>:<span class="seg vendor">in2code</span>:<span class="seg product">femanager</span>:<span class="seg version">5.5.1</span>:<span class="seg star">*</span>:<span class="seg star">*</span>:<span class="seg star">*</span>:<span class="seg star">*</span>:<span class="seg tsw">typo3</span>:<span class="seg star">*</span>:<span class="seg star">*</span>
+    </div>
+    <div class="legend">
+      <div class="leg"><span class="dot" style="background:#DCE6EF"></span><div><b>cpe:2.3</b> — prefix fix: "això és un CPE, versió 2.3 de l'estàndard"</div></div>
+      <div class="leg"><span class="dot" style="background:var(--amber-pale);border:1px solid var(--amber)"></span><div><b>part</b> — <span class="m">a</span>plicació, <span class="m">o</span>peratiu (sistema) o <span class="m">h</span>ardware</div></div>
+      <div class="leg"><span class="dot" style="background:var(--blue-pale);border:1px solid var(--blue)"></span><div><b>vendor</b> — qui el fa: <span class="m">in2code</span></div></div>
+      <div class="leg"><span class="dot" style="background:var(--blue-dark)"></span><div><b>product</b> — com es diu: <span class="m">femanager</span></div></div>
+      <div class="leg"><span class="dot" style="background:var(--green-pale);border:1px solid var(--green)"></span><div><b>version</b> — quina versió: <span class="m">5.5.1</span></div></div>
+      <div class="leg"><span class="dot" style="background:var(--red-pale);border:1px solid var(--red)"></span><div><b>target_sw</b> — sobre quina plataforma corre: <span class="m">typo3</span> (deduït del "for typo3" del títol)</div></div>
+    </div>
+    <div class="wildnote">Els altres cinc atributs (<code>update</code>, <code>edition</code>,
+    <code>language</code>, <code>sw_edition</code>, <code>target_hw</code>, <code>other</code>)
+    segueixen les mateixes regles. Dos valors especials: <code>*</code> = "qualsevol"
+    (no ho sabem o no importa) i <code>-</code> = "no aplica". I una norma d'escriptura
+    estricta: tot en minúscules, espais → <code>_</code>, i els caràcters especials
+    escapats amb <code>\</code> — <b>Visual C++</b> s'escriu <code>visual_c\+\+</code>.</div>
+  </div>
+</section>
+
+<section>
+  <h2>El viatge complet, d'un cop d'ull</h2>
+  <div class="journey">
+    <div class="jstage"><div class="jbox reader">
+      <div class="jwho">Entrada</div>
+      <div class="jname">Títol brut</div>
+      <div class="jdesc">"in2code femanager 5.5.1 for typo3"</div>
+    </div></div>
+    <div class="jarrow">→</div>
+    <div class="jstage"><div class="jbox reader">
+      <div class="jwho">El lector</div>
+      <div class="jname">Extracció</div>
+      <div class="jdesc">L'LLM llegeix i retorna les peces en JSON. Mai la cadena CPE.</div>
+    </div></div>
+    <div class="jarrow">→</div>
+    <div class="jstage"><div class="jbox notary">
+      <div class="jwho">El notari · 1</div>
+      <div class="jname">Bind (WFN)</div>
+      <div class="jdesc">El codi normalitza, escapa i munta la cadena.</div>
+    </div></div>
+    <div class="jarrow">→</div>
+    <div class="jstage"><div class="jbox notary">
+      <div class="jwho">El notari · 2</div>
+      <div class="jname">Gramàtica</div>
+      <div class="jdesc">Validació ABNF: o compleix la norma, o fora.</div>
+    </div></div>
+    <div class="jarrow">→</div>
+    <div class="jstage"><div class="jbox notary">
+      <div class="jwho">El notari · 3</div>
+      <div class="jname">Diccionari</div>
+      <div class="jdesc">Es contrasta amb el registre oficial i es classifica M1–M4.</div>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="pill reader">El lector</span> una sola pregunta, resposta en JSON</h2>
+  <p class="lead">Al lector (un model de llenguatge, normalment un de petit que corre
+  en local) se li ensenyen <b>uns quants exemples resolts</b> i se li passa el títol.
+  Se li demana <b>una sola resposta en JSON</b> amb totes les peces alhora:</p>
+
+  <div class="codecard">
+    <div><span class="c">// entrada</span></div>
+    <div>"Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.30501"</div>
+    <div style="margin-top:10px"><span class="c">// sortida del lector — això és tot el que pot dir</span></div>
+    <div>{</div>
+    <div>&nbsp;&nbsp;<span class="k">"vendor"</span>: <span class="s">"microsoft"</span>,</div>
+    <div>&nbsp;&nbsp;<span class="k">"product"</span>: <span class="s">"visual c++"</span>,</div>
+    <div>&nbsp;&nbsp;<span class="k">"version"</span>: <span class="s">"2013"</span>,</div>
+    <div>&nbsp;&nbsp;<span class="k">"update"</span>: <span class="s">null</span>,</div>
+    <div>&nbsp;&nbsp;<span class="k">"target_sw"</span>: <span class="s">null</span>,</div>
+    <div>&nbsp;&nbsp;<span class="k">"confidence"</span>: <span class="n">0.93</span></div>
+    <div>}</div>
+  </div>
+
+  <div class="whygrid">
+    <div class="why">
+      <div class="whead">Per què tot alhora i no camp a camp?</div>
+      Ho vam mesurar (1.000 títols, 5 mides de model): preguntar camp a camp
+      <b>trenca el context</b> — sense veure el vendor, el model no sap on acaba
+      el nom del producte, i el millor resultat per camps queda per sota del
+      pitjor en crida única, costant fins a 6× més.
+    </div>
+    <div class="why">
+      <div class="whead">Per què mai la cadena CPE sencera?</div>
+      Perquè quan un model genera l'identificador final, <b>s'inventa vendors
+      plausibles</b> amb total convicció (ho vam patir el 2023 amb un LSTM, i
+      els LLMs generalistes d'avui encara ho fan). El JSON limita el lector a
+      dir només el que ha llegit.
+    </div>
+  </div>
+
+  <p class="lead" style="margin-top:18px">I la <code>confidence</code>? És
+  <b>només informativa</b>: es guarda a la fila de resultats, però no decideix
+  res. La classificació final és 100% determinista.</p>
+</section>
+
+<section>
+  <h2><span class="pill notary">El notari</span> tres controls, cap excepció</h2>
+
+  <div class="step">
+    <div class="stepnum">1</div>
+    <div class="stepbody">
+      <div class="steptitle">Bind — muntar la cadena amb normes, no amb gustos</div>
+      <div class="stepsub">src/cpegen/wfn.py · NISTIR 7695</div>
+      <p>El codi agafa el JSON i construeix primer un <b>WFN</b> (la forma
+      "lògica" del carnet) i després la cadena: minúscules, espais a
+      <b>_</b>, caràcters especials escapats. El <b>target_sw</b> es dedueix
+      determinísticament del sufix "for X" del títol. Cap decisió creativa:
+      dos runs amb el mateix JSON donen sempre la mateixa cadena.</p>
+      <div class="codecard">
+        <div><span class="c">// del JSON d'abans, el bind produeix:</span></div>
+        <div>cpe:2.3:a:<span class="k">microsoft</span>:<span class="k">visual_c\+\+</span>:<span class="k">2013</span>:*:*:*:*:*:*:*</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="stepnum">2</div>
+    <div class="stepbody">
+      <div class="steptitle">Validació ABNF — la gramàtica com a llei</div>
+      <div class="stepsub">src/cpegen/validator.py · la porta única de sortida</div>
+      <p>La cadena es contrasta caràcter a caràcter amb la <b>gramàtica oficial
+      ABNF</b> de l'estàndard CPE 2.3. No és una heurística ni un "sembla
+      correcte": és un parser de la norma. Si no valida, la fila surt
+      <b>sense CPE</b> — mai un CPE dubtós.</p>
+      <div class="stamps">
+        <div class="stamp ok">VÀLID ✓</div>
+        <div class="stamp ko">REBUTJAT ✕</div>
+        <div class="stampnote">Cas real del primer run: "Controlador de
+        <b>gráficos</b>" — la <b>á</b> no és un caràcter permès per la
+        gramàtica. 81 de 82 títols van passar; aquest, no. El validador fent
+        d'invariant.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="stepnum">3</div>
+    <div class="stepbody">
+      <div class="steptitle">Diccionari i classificació — existeix, aquest carnet?</div>
+      <div class="stepsub">src/cpegen/matcher.py · diccionari oficial CPE (snapshot local d'1,77M entrades)</div>
+      <p>Un CPE ben format encara pot descriure software que el registre
+      oficial no coneix. L'últim control compara el WFN amb el <b>diccionari
+      oficial</b> — igualtat de camps i similitud per distància d'edició — i
+      el classifica amb regles fixes:</p>
+      <table class="rules">
+        <tr><th>Regla</th><th>Què vol dir</th><th>Lectura</th></tr>
+        <tr class="g1"><td>M1 · M1A</td><td>El carnet (o el parell vendor+producte amb la mateixa versió) <b>existeix al diccionari</b></td><td>match confirmat — llest per creuar amb CVEs</td></tr>
+        <tr class="g2"><td>M1B · M1C</td><td>Vendor i producte coneguts, però <b>versió (o combinació) nova</b></td><td>candidat sòlid a CPE nou</td></tr>
+        <tr class="g3"><td>M2 · M2B · M3</td><td>Només quadra una part (vendor conegut i producte nou, o a l'inrevés)</td><td>candidat a revisar</td></tr>
+        <tr class="g4"><td>M4</td><td><b>Cap senyal</b>: ni el vendor ni el producte consten al diccionari</td><td>probablement soroll d'inventari o software molt minoritari</td></tr>
+      </table>
+      <p style="margin-top:12px">Mateix WFN + mateixos candidats ⇒ mateixa regla,
+      <b>sigui quin sigui el model</b> que ha llegit el títol. Per això podem
+      comparar models entre ells amb les mateixes vares de mesurar.</p>
+    </div>
+  </div>
+
+  <div class="principle">
+    <div class="big">El lector pot equivocar-se.<br>El sistema, <span class="accent">no pot mentir</span>.</div>
+    <div class="sub">Una lectura dolenta acaba, com a molt, en un candidat mal
+    classificat — mai en un CPE invàlid ni en un match inventat. I quan la cua
+    difícil s'escala a un model més potent (o a l'agent amb eines), tot el que
+    aquest proposa <b>torna a passar els tres controls</b>: el segell no es
+    delega mai.</div>
+  </div>
+</section>
+
+<section>
+  <h2>Bonus: quan el lector pot fer preguntes</h2>
+  <p class="lead">Per als títols més difícils hi ha un mode <b>agent</b>: el
+  lector pot consultar eines abans de respondre — però són <b>eines
+  deterministes</b>, i la seva resposta final segueix sent només una proposta:</p>
+  <div class="tools">
+    <div class="tool"><div class="tname">bind_and_validate</div><div class="tdesc">"Aquestes peces, formen un CPE vàlid?" — prova el bind + ABNF sense comprometre's</div></div>
+    <div class="tool"><div class="tname">search_dictionary</div><div class="tdesc">"Què hi ha al diccionari oficial que s'assembli a això?"</div></div>
+    <div class="tool"><div class="tname">classify_match</div><div class="tdesc">"Si ho presento així, quina regla M1–M4 em tocaria?"</div></div>
+    <div class="tool"><div class="tname">submit</div><div class="tdesc">Presentar la proposta final — que el pipeline revalida i reclassifica sencera, igualment</div></div>
+  </div>
+</section>
+
+<footer>
+  <div>Per aprofundir de debò: <code>docs/cpe-reference.md</code> (la norma),
+  <code>docs/match-rules.md</code> (les regles M1–M4 i la línia base 2023),
+  <code>docs/evaluation.md</code> (com es mesura) — i el codi:
+  <code>src/cpegen/validator.py</code>, <code>wfn.py</code>, <code>matcher.py</code>.</div>
+  <div class="row">
+    <div>CPEgenerator v2 · projecte open source de MotherHacker</div>
+    <div><code>github.com/motherhack3r/cpegenerator</code></div>
+  </div>
+</footer>
+
+</div>
+</body>
+</html>
