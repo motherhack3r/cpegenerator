@@ -12,6 +12,7 @@ material de referència, els plans i els deliverables visuals.
 | [`cpe-reference.md`](cpe-reference.md) | Nucli normatiu CPE 2.3: WFN, gramàtica ABNF, escapat, APIs NVD. La font del validador (`src/cpegen/validator.py`) |
 | [`match-rules.md`](match-rules.md) | Regles de classificació M1–M3 i línia base 2023 a batre (~4,9% M1x) |
 | [`evaluation.md`](evaluation.md) | Esquema d'avaluació: MUC/SemEval'13 per a l'extracció (strict/partial) vs M1–M3 per al matching — i per què no es barregen |
+| [`dataset-catalog.md`](dataset-catalog.md) | Catàleg de datasets: provenança i rol de cada gold/evidència/mostra (eixos origen·rol·git·publicable), gold per origen planificats i la línia experimental oficial/comunitat/custom |
 
 ## Memòria del TFM (2021–2023)
 
