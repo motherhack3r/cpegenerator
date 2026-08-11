@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Catàleg de models — LM Studio local</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F4F8FC;
+    --ink:#16232E; --grey:#5B6B77; --grey-light:#8B99A3; --line:#D8E3EC;
+    --green:#2E7D5B; --amber:#B5762E; --amber-pale:#FBF6EC;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1920px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); }
+  body{ display:flex; flex-direction:column; padding:44px 76px 34px 76px; }
+
+  .header{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid var(--blue-dark); padding-bottom:16px; margin-bottom:24px; }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:36px; color:var(--blue-dark); letter-spacing:-0.5px; }
+  .tag{ font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:8px 16px; border-radius:4px; letter-spacing:1.5px;
+    text-transform:uppercase; white-space:nowrap; }
+
+  .hero{ flex:1; background:var(--blue-paler); border:1px solid var(--line); border-radius:10px;
+    padding:26px 40px; margin-bottom:22px; display:flex; flex-direction:column; justify-content:center; }
+  .hero-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:20px; color:var(--blue-dark); margin-bottom:18px; }
+
+  .curve{ display:flex; align-items:flex-end; gap:26px; height:210px; padding:0 10px; }
+  .bar{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .bfill{ width:100%; border-radius:8px 8px 0 0; background:linear-gradient(180deg,var(--blue),var(--blue-dark));
+    display:flex; align-items:flex-start; justify-content:center; padding-top:8px;
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:18px; color:#fff; }
+  .bar.knee .bfill{ background:linear-gradient(180deg,#E2B267,var(--amber)); }
+  .bar .bname{ font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:var(--ink); margin-top:10px; }
+  .bar .blat{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--grey-light); margin-top:2px; }
+  .curve-note{ margin-top:18px; font-size:14.5px; color:var(--grey); border-top:1px dashed var(--line); padding-top:12px; line-height:1.55; }
+  .curve-note b{ color:var(--blue-dark); }
+  .curve-note .knee-w{ color:var(--amber); font-weight:600; }
+
+  .strip{ flex:.75; display:flex; flex-direction:column; justify-content:center; margin-bottom:22px; }
+  .strip-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px; color:var(--blue-dark); margin-bottom:14px; }
+  .facts{ display:flex; gap:20px; }
+  .fact-card{ flex:1; background:#FFFFFF; border:1px solid var(--line); border-left:5px solid var(--blue);
+    border-radius:8px; padding:16px 20px; display:flex; flex-direction:column; gap:5px; }
+  .fact-card.amber{ border-left-color:var(--amber); }
+  .fact-card .num{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:24px; color:var(--blue-dark); }
+  .fact-card.amber .num{ color:var(--amber); }
+  .fact-card .label{ font-size:13px; color:var(--grey); font-weight:500; line-height:1.4; }
+
+  .footer{ display:flex; justify-content:space-between; align-items:center; border-top:2px solid var(--blue-dark); padding-top:14px; font-size:13px; color:var(--grey-light); }
+  .footer code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:12px; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Catàleg de models — locals, oficials, mesurats</h1>
+    <div class="tag">LM Studio · gold-1k</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">La corba qualitat/cost al gold-1k (CPE exacte /1000 · p50 per títol · mode single)</div>
+    <div class="curve">
+      <div class="bar"><div class="bfill" style="height:63%">701</div><div class="bname">qwen3-0.6b</div><div class="blat">256 ms</div></div>
+      <div class="bar"><div class="bfill" style="height:64%">704</div><div class="bname">qwen3.5-0.8b</div><div class="blat">284 ms</div></div>
+      <div class="bar knee"><div class="bfill" style="height:72%">753</div><div class="bname">qwen3-1.7b ★</div><div class="blat">354 ms</div></div>
+      <div class="bar"><div class="bfill" style="height:81%">795</div><div class="bname">qwen3-4b-2507</div><div class="blat">1.145 ms</div></div>
+      <div class="bar"><div class="bfill" style="height:90%">837</div><div class="bname">qwen3-8b</div><div class="blat">1.874 ms</div></div>
+    </div>
+    <div class="curve-note">Corba <b>neta i monòtona</b> de 0.6B a 8B. El
+    <span class="knee-w">genoll operatiu és el qwen3-1.7b</span> (90% de la qualitat
+    del 8B a un 19% de la latència); el sostre local és el <b>qwen3-8b amb 91% M1x</b>.
+    D'aquí la cascada del run massiu: 1.7b per al gruix, 8b només per a la cua.</div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-title">Criteris del catàleg</div>
+    <div class="facts">
+      <div class="fact-card"><div class="num">63</div><div class="label">models descarregats i verificats contra l'API del servidor local (claus exactes de LM Studio)</div></div>
+      <div class="fact-card"><div class="num">oficials</div><div class="label">només checkpoints oficials — fora community merges: traçabilitat i reproduïbilitat</div></div>
+      <div class="fact-card amber"><div class="num">reasoning off</div><div class="label">provider natiu LM Studio: temperature 0, store false, reasoning off de debò — greedy i reproduïble</div></div>
+      <div class="fact-card"><div class="num">per rol</div><div class="label">shortlist per funció: crida única (qualitat/velocitat), subagents per camp, reserva per a la cua difícil</div></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>Foto datada del catàleg — la font viva és <code>out/model_catalog.md</code> + <code>.csv</code> (regenerables des dels arxius de benchmark).</div>
+    <div>Evidència: <code>data/benchmarks/20260805-final-gold1k-pc/</code></div>
+  </div>
+
+</body>
+</html>

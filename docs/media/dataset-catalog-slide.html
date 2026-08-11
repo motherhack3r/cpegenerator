@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Catàleg de datasets — provenança i rols</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F4F8FC;
+    --ink:#16232E; --grey:#5B6B77; --grey-light:#8B99A3; --line:#D8E3EC;
+    --green:#2E7D5B; --green-pale:#EAF3EE; --amber:#B5762E; --amber-pale:#FBF6EC;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:1920px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'IBM Plex Sans',sans-serif; color:var(--ink); }
+  body{ display:flex; flex-direction:column; padding:44px 76px 34px 76px; }
+
+  .header{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid var(--blue-dark); padding-bottom:16px; margin-bottom:24px; }
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:36px; color:var(--blue-dark); letter-spacing:-0.5px; }
+  .tag{ font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--blue);
+    background:var(--blue-pale); padding:8px 16px; border-radius:4px; letter-spacing:1.5px;
+    text-transform:uppercase; white-space:nowrap; }
+
+  .hero{ flex:1.05; display:flex; gap:24px; margin-bottom:22px; }
+  .herocol{ flex:1; background:var(--blue-paler); border:1px solid var(--line); border-radius:10px; padding:24px 30px; display:flex; flex-direction:column; justify-content:center; }
+  .hero-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:20px; color:var(--blue-dark); margin-bottom:16px; }
+
+  .row{ display:grid; grid-template-columns:250px 1fr 130px; gap:14px; align-items:center; padding:9px 0; border-top:1px dashed var(--line); }
+  .row:first-of-type{ border-top:none; }
+  .rname{ font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--ink); }
+  .rdesc{ font-size:13.5px; color:var(--grey); line-height:1.4; }
+  .pill{ font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; border-radius:4px; padding:4px 10px; text-align:center; }
+  .pill.nvd{ background:var(--blue-pale); color:var(--blue-dark); }
+  .pill.soon{ background:var(--amber-pale); color:var(--amber); border:1px dashed var(--amber); }
+  .pill.sint{ background:#EEF3F8; color:var(--grey); }
+
+  .gap-note{ margin-top:16px; font-size:14px; color:var(--grey); border-top:1px dashed var(--line); padding-top:12px; line-height:1.55; }
+  .gap-note b{ color:var(--amber); }
+
+  .strip{ flex:.8; display:flex; flex-direction:column; justify-content:center; margin-bottom:22px; }
+  .strip-title{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:18px; color:var(--blue-dark); margin-bottom:14px; }
+  .facts{ display:flex; gap:20px; }
+  .fact-card{ flex:1; background:#FFFFFF; border:1px solid var(--line); border-left:5px solid var(--blue);
+    border-radius:8px; padding:16px 20px; display:flex; flex-direction:column; gap:5px; }
+  .fact-card.amber{ border-left-color:var(--amber); }
+  .fact-card.green{ border-left-color:var(--green); }
+  .fact-card .num{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:24px; color:var(--blue-dark); }
+  .fact-card.amber .num{ color:var(--amber); }
+  .fact-card.green .num{ color:var(--green); }
+  .fact-card .label{ font-size:13px; color:var(--grey); font-weight:500; line-height:1.4; }
+
+  .footer{ display:flex; justify-content:space-between; align-items:center; border-top:2px solid var(--blue-dark); padding-top:14px; font-size:13px; color:var(--grey-light); }
+  .footer code{ font-family:'IBM Plex Mono',monospace; background:var(--blue-pale); color:var(--blue-dark); padding:1px 6px; border-radius:3px; font-size:12px; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Catàleg de datasets — cap gold sense origen documentat</h1>
+    <div class="tag">MotherHacker · R&amp;D</div>
+  </div>
+
+  <div class="hero">
+    <div class="herocol">
+      <div class="hero-title">El que hi ha (versionat, tot públic o sintètic)</div>
+      <div class="row"><div class="rname">gold NVD 100 + 1k</div><div class="rdesc">Jurat dels benchmarks — títols nets derivats de CVE/NVD, llinatge dels trainsets del TFM</div><div class="pill nvd">nvd</div></div>
+      <div class="row"><div class="rname">prediccions 2023</div><div class="rdesc">NER DistilBERT (2.000) + mostres LSTM — la línia base i l'evidència de les al·lucinacions</div><div class="pill nvd">nvd</div></div>
+      <div class="row"><div class="rname">benchmarks/</div><div class="rdesc">Arxius de tirades amb PROVENANCE.md per directori — l'evidència d'un eventual paper</div><div class="pill nvd">nvd</div></div>
+      <div class="row"><div class="rname">inventory sample</div><div class="rdesc">6 files sintètiques + extraccions replay — els exemples funcionen out-of-the-box</div><div class="pill sint">sintètic</div></div>
+      <div class="gap-note"><b>El forat visible:</b> tots els gold actuals són d'origen NVD
+      (títols nets). El domain shift del 2023 només es mesura amb gold d'origen real →</div>
+    </div>
+    <div class="herocol">
+      <div class="hero-title">El que ve (fora de git; a git només mètriques + provenance)</div>
+      <div class="row"><div class="rname">gold-rawTFM</div><div class="rdesc">~100 títols reals de l'export SCCM 2022, estratificats, congelats — jurat de l'origen</div><div class="pill soon">properament</div></div>
+      <div class="row"><div class="rname">gold-rawPC</div><div class="rdesc">~100 títols reals de l'inventari personal (cpegen inventory)</div><div class="pill soon">properament</div></div>
+      <div class="row"><div class="rname">train-rawTFM / rawPC</div><div class="rdesc">Conjunts d'entrenament que creixen amb el bucle de validació humana — ensenyen, mai mesuren</div><div class="pill soon">properament</div></div>
+      <div class="row"><div class="rname">E-oficial / comunitat / custom</div><div class="rdesc">El nivell de diccionari com a eix experimental: quant val cada capa per a un origen donat</div><div class="pill soon">properament</div></div>
+      <div class="gap-note">Regles ja decidides: mesura i entrenament <b style="color:var(--blue-dark)">mai es barregen</b>;
+      mètriques per origen; tota validació humana registra identitat.</div>
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="strip-title">Quatre eixos per a cada dataset</div>
+    <div class="facts">
+      <div class="fact-card"><div class="num">origen</div><div class="label">nvd · sccm-2022 · pc · sintètic — d'on surten les files, sense excepcions</div></div>
+      <div class="fact-card"><div class="num">rol</div><div class="label">gold-mesura · entrenament · evidència · mostra — què li pots demanar</div></div>
+      <div class="fact-card amber"><div class="num">a git?</div><div class="label">el que no hi és, o és regenerable (MANIFEST/sha256) o és privat — mai les dues coses alhora sense dir-ho</div></div>
+      <div class="fact-card green"><div class="num">publicable?</div><div class="label">els inventaris reals mai es versionen ni es publiquen — només mètriques i provenance</div></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>Un dataset neix al catàleg o no existeix — el registre civil de les dades del projecte.</div>
+    <div>Font viva: <code>docs/dataset-catalog.md</code> · 2026-08-11</div>
+  </div>
+
+</body>
+</html>
