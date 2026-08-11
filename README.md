@@ -1,5 +1,7 @@
 # CPEgenerator v2
 
+> Versió en català: [README_ca.md](README_ca.md)
+
 Generate and validate **CPE 2.3** names from free-text software titles.
 
 Corporate software inventories (SCCM exports, registry dumps, package lists)
