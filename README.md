@@ -1,108 +1,161 @@
 # CPEgenerator v2
 
-Generació i validació automàtica de **CPE 2.3 / WFN** a partir de títols de software en text lliure, combinant models NER clàssics amb **LLMs i agents amb eines**.
+Generate and validate **CPE 2.3** names from free-text software titles.
 
-Continuació del TFM *VulnDigger* (POLIMI, 2021–2023): el pipeline original amb DistilBERT NER resolia amb alta confiança ~5% d'un inventari real de ~526k títols. L'objectiu de la v2 és atacar el 95% restant.
-
-## Enfocament
+Corporate software inventories (SCCM exports, registry dumps, package lists)
+describe software as free text: `Microsoft Visual C++ 2013 Redistributable
+(x64) - 12.0.30501`. Vulnerability databases (NVD/CVE) describe software as
+CPE names: `cpe:2.3:a:microsoft:visual_c++:2013:...`. Crossing the two —
+"which of my 500k installed titles have known CVEs?" — requires turning the
+first into the second, at scale, without inventing matches.
 
 ```
-títol brut ──► extracció vendor/product/version (NER ràpid o LLM)
-           ──► construcció WFN
-           ──► validació sintàctica determinista (gramàtica ABNF)
-           ──► matching contra diccionari oficial CPE (NVD API + distància d'edició)
-           ──► classificació M1–M3 (match / candidat nou / descartat)
+Input:  in2code femanager 5.5.1 for typo3
+Output: cpe:2.3:a:in2code:femanager:5.5.1:*:*:*:*:typo3:*:*
 ```
 
-Principi de disseny: **l'LLM proposa i raona; el codi valida i decideix.**
+## The core principle: the LLM proposes, the code validates
 
-## Estructura
+No CPE string in this pipeline is ever model-generated. Language models only
+return **entities as JSON** (`vendor`, `product`, `version`, `update`,
+`target_sw`); deterministic code binds them into a WFN, validates it against
+the CPE 2.3 ABNF grammar (NISTIR 7695), and classifies the result against the
+official CPE dictionary. The validator is the single exit gate: no row ships
+a CPE that does not parse.
 
-| Ruta | Contingut |
-|---|---|
-| `CLAUDE.md` | Instruccions per al col·laborador (Claude) |
-| `ROADMAP.md` | Fases del projecte i registre de decisions |
-| `docs/cpe-reference.md` | Nucli normatiu CPE 2.3: WFN, ABNF, escapat, APIs |
-| `docs/match-rules.md` | Regles M1–M3 i línia base 2023 a batre |
-| `docs/evaluation.md` | Esquema d'avaluació: MUC/SemEval'13 (extracció) vs M1–M3 (matching) |
-| `docs/lessons-learned.md` | Retrospectiva del TFM 2023 |
-| `docs/data-curation-plan.md` | Pla de curació dels datasets SCCM (branca devel) |
-| `docs/tfm-2023-summary.md` | Resum complet del projecte original |
-| `data/gold/` | Gold sets anotats (100 i 1k exemples) |
-| `data/predictions/` | Prediccions dels models 2023 (NER i LSTM) per comparar |
-| `data/mlflow_runs/` | Mètriques dels experiments 2023 |
-| `src/cpegen/` | Pipeline: validador ABNF, WFN, extractor LLM, client NVD, matcher M1–M3, agent tool-use, inventari local, aplicabilitat CVE |
-| `tests/` | Suite pytest (validador, binding, matcher, mètriques, pipeline, agent, inventari, vulns) |
-| `data/inventory/` | Inventari local generat per `cpegen inventory` + extraccions replay |
-| `data/cache/` | Caches JSON de l'NVD (CPE i CVE); no es versiona |
+This is a lesson paid for in 2023: an LSTM seq2seq trained to "translate"
+titles directly into CPE strings hallucinated plausible-looking vendors and
+products with full confidence (`InkThemes Colorway` → `cpe:...:inedel:forms:...`).
+A generative model producing the final identifier is an attack on your own
+data quality — so here it never does. See `docs/lessons-learned.md`.
 
-## Ús
+## Lineage
+
+CPEgenerator v2 continues **VulnDigger**, a POLIMI master's thesis
+(2021–2023). The original project compared a heuristic baseline, an LSTM
+seq2seq and a fine-tuned DistilBERT NER; the NER won (eval_loss ~0.002)
+but on a real inventory of ~526k titles it auto-resolved only **~5%** with
+high confidence — 91% of titles stalled as unresolved candidates (M2/M3),
+with no mechanism to make progress: no dictionary lookup at inference time,
+no normalization knowledge ("Zoho Corp" is `zohocorp`), no second opinion.
+The git history of this repo deliberately starts at the 2024 notebooks of
+that project.
+
+v2 attacks the stalled 91% with an **inverted hybrid** hypothesis: instead
+of a big model for everything, small local models handle the bulk cheaply,
+and a larger model is escalated only to the tail the small one could not
+resolve. Everything around the models — validation, matching, classification,
+evaluation — stays deterministic and measurable.
+
+## Evidence: the gold-1k benchmark
+
+Decisions here are made against numbers, not opinions. The deciding run
+(2026-08-05, 5 model sizes × 2 extraction modes × 1,000 annotated titles,
+archived with full provenance in `data/benchmarks/20260805-final-gold1k-pc/`):
+
+| Model | Mode | CPE exact /1000 | M1x /1000 | p50 ms |
+|---|---|---:|---:|---:|
+| qwen3-8b | single | **837** | **910** | 1,874 |
+| qwen3-4b-instruct-2507 | single | 795 | 882 | 1,145 |
+| qwen3-1.7b | single | 753 | 857 | 354 |
+| qwen_qwen3.5-0.8b | single | 704 | 788 | 284 |
+| qwen3-0.6b | single | 701 | 839 | 256 |
+
+Findings, in order of consequence:
+
+- **Single-call JSON extraction beats per-field decomposition outright**:
+  the best per-field result (qwen3-8b, 558 exact) is worse than the worst
+  single-call result (qwen3-0.6b, 701 exact) at 1.4–6× the cost. Without
+  cross-field context the vendor/product boundary collapses.
+- **The quality curve is clean and monotonic**: 701 → 753 → 795 → 837 exact
+  from 0.6B to 8B parameters. The operational knee is **qwen3-1.7b** (90% of
+  the 8B's quality at 19% of its latency); the local ceiling is **qwen3-8b**
+  at **91% M1x** on the gold set — against the 2023 baseline of ~4.9%.
+- **Mass-run decision — cascade**: `qwen3-1.7b` over everything, then
+  `qwen3-8b` re-runs only the non-M1x tail (~14% of volume). The inverted
+  hybrid hypothesis, executed literally.
+
+Extraction quality is evaluated at entity level (MUC / SemEval'13,
+strict + partial F1 — `docs/evaluation.md`); match outcomes use the
+deterministic M1–M3 taxonomy inherited from the thesis
+(`docs/match-rules.md`). Model confidence never enters classification.
+
+## Quickstart
+
+Pure-Python CLI: stdlib + `requests`, no frameworks, no SDKs.
+Python >= 3.10.
 
 ```bash
-pip install -e ".[dev]"          # o: pip install requests pytest
-pytest                            # suite completa
+pip install -e ".[dev]"    # or just: pip install requests pytest
+pytest                     # full suite, runs offline (mock/replay providers)
 
-# Validar cadenes CPE 2.3
+# Validate a CPE 2.3 string
 python -m cpegen validate "cpe:2.3:a:in2code:femanager:5.5.1:*:*:*:*:typo3:*:*"
 
-# Pipeline complet sobre el gold set (LLM + NVD en viu)
-export ANTHROPIC_API_KEY=...      # i opcionalment NVD_API_KEY
+# Extract -> validate -> match over the gold set
+export ANTHROPIC_API_KEY=...   # optionally NVD_API_KEY (raises NVD rate limits)
 python -m cpegen run --input data/gold/cpes_rasa_vpv_100.csv --output out/run1
 
-# Fase 4 — agent amb eines (bucle tool-use):
-python -m cpegen run --input ... --agent      # escalat: agent només a la cua no-M1x
-python -m cpegen agent --input ...            # agent a tots els títols (braç C)
-
-# Cicle complet inventari ⇄ vulnerabilitats (Fase 6, hereu dels scripts R):
+# Full local cycle: inventory -> CPEs -> vulnerabilities
 python -m cpegen inventory --output data/inventory/inventory.csv
 python -m cpegen run --input data/inventory/inventory.csv --output out/inv
 python -m cpegen vulns --input out/inv/results.csv --output out/inv/vulns.csv
-
-# Curació dels exports SCCM (passos 1-5 del pla; vegeu docs/data-curation-plan.md):
-python -m cpegen curate --input data/inventory/sccm/csv2cpe/oneshot/products.csv
-python -m cpegen tier                        # tiers A/B + quarantena + contrast local
-python -m cpegen split                       # splits disjunts per producte + MANIFEST
-
-# Diccionari CPE local (primera passada sense throttling NVD):
-python -m cpegen dict --build --from-neo4j   # des del KGCS local (o sense flag: NVD API)
-python -m cpegen run --input ... --dict data/cache/cpe_dictionary.jsonl.gz
-
-# Benchmark Fase 7 (matriu models x modes, reprendible; provider lmstudio natiu):
-python -m cpegen bench --offline --limit 100 --output out/bench_pilot --modes single \
-  --models qwen3-4b-instruct-2507,qwen_qwen3.5-0.8b
-# Resultats consolidats a data/benchmarks/ (un directori per tirada + PROVENANCE)
-
-# Proveïdors alternatius: --provider openai (amb OPENAI_BASE_URL per a
-# Ollama/LM Studio), --provider mock --offline (dry run sense xarxa), o
-# --provider replay --model extractions.json (extraccions pre-computades,
-# per a reruns reproduïbles o validació sense credencials)
 ```
 
-Sortida: `results.csv` (una fila per títol: entitats, CPE validat, regla M1–M3)
-i `report.md` (avaluació NER a nivell d'entitat estil MUC/SemEval'13 —
-COR/INC/PAR/MIS/SPU amb F1 strict i partial —, exactitud del CPE i
-distribució M1–M3 vs base 2023).
-El primer run sense `NVD_API_KEY` és lent (5 peticions/30 s); la cache local
-(`data/cache/`) fa els següents runs quasi instantanis.
+Each run writes `results.csv` (one row per title: entities, validated CPE,
+M1–M3 rule) and `report.md` (entity-level F1, CPE exactness, M1–M3
+distribution vs the 2023 baseline). The NVD cache under `data/cache/` makes
+repeat runs near-instant.
 
-## Estat
+### LLM providers
 
-- [x] Fase 0 — Estructura, documentació i dades de mostra
-- [ ] Fase 1 — Benchmark a tres bandes (NER 2023 vs LLM directe vs LLM+eines)
-- [x] Fase 2 — Validador WFN determinista (ABNF + binding)
-- [x] Fase 3 — Eines: lookup NVD (cache + throttling), matching, classificador M1–M3 *(MVP; similitud millorada pendent)*
-- [x] Fase 4 — Agent generador/validador de CPEs (bucle tool-use amb 4 eines deterministes; escalat `--agent` + ordre `agent`)
-- [ ] Fase 5 — Escalat a inventari complet *(input llest: `data/curated/`)*
-- [x] Fase 6 — Cicle inventari ⇄ vulnerabilitats: `cpegen inventory` (registre Windows / dpkg / rpm, amb curació) i `cpegen vulns` (NVD CVE API 2.0) — ports dels scripts R de la branch cpe del package `mitre`
-- [~] Fase 7 — 'Nduja: extracció amb models locals petits (LM Studio) sobre el RAW SCCM. Fets: curació completa dels 487k (passos 1–5: 480k files, tiers, quarantena, splits sense leakage), diccionari local d'1,77M CPEs des del KGCS, harness `cpegen bench` amb provider LM Studio natiu, i pilots al PC (millors marques al gold-100: `qwen3-4b-instruct-2507` 87/100 CPE exacte; `qwen_qwen3.5-0.8b` p50 306 ms). Pendent: matriu 1k, rèplica al laptop, run del RAW
+Providers are interchangeable and speak HTTP directly:
 
-**Validat end-to-end amb dades reals (2026-07-14)**: inventari Windows real
-(82 títols del registre) → extraccions LLM (proveïdor `replay`) → 81/82 CPEs
-sintàcticament vàlids → matching NVD en viu: 15/75 M1x (~20% d'alta confiança,
-vs 4,9% de la base 2023; el gruix del M3 són jocs absents del diccionari) →
-`vulns`: 7-Zip 26.01 amb CVE-2026-58052 (4.8), Notepad++ 8.9.6.4 net.
-Sobre el gold set (`out/mock_run/report.md`): avaluació MUC/SemEval amb F1
-strict/partial per entitat. Suite de 116 tests. Pendent per a la Fase 1:
-braç A (NER 2023), braç C amb LLM real, i calibrar empíricament la confiança
-del model com a porta (el gate `> 0.8` es va retirar el 2026-07-24 de la
-classificació M1–M3, ara purament determinista — `docs/evaluation.md`).
+| Provider | Use |
+|---|---|
+| `anthropic` | Default; needs `ANTHROPIC_API_KEY` |
+| `openai` | Any OpenAI-compatible endpoint (Ollama, LM Studio, vLLM) via `OPENAI_BASE_URL` |
+| `lmstudio` | LM Studio native REST API — real reasoning-off, `temperature 0`, used for benchmarks |
+| `mock` | Offline dry runs, no network |
+| `replay` | Pre-computed extractions from JSON — reproducible reruns, no credentials |
+
+```bash
+python -m cpegen run --input ... --provider lmstudio --model qwen3-1.7b --offline
+python -m cpegen run --input ... --provider replay --model extractions.json
+```
+
+Other entry points: `run --agent` escalates the unresolved tail to a
+tool-use agent loop (deterministic tools; everything the agent submits is
+re-validated and re-classified by code), `cpegen bench` runs the model ×
+mode benchmark matrix, and `cpegen titles` / `run --resume` /
+`cpegen escalate` implement the cascade for mass runs
+(`docs/raw-run-playbook.md`).
+
+## What's in the repo — and what isn't
+
+**In**: the pipeline (`src/cpegen/`), the offline test suite (`tests/`),
+gold sets of 100 and 1,000 annotated titles (`data/gold/`, derived from
+public NVD/CVE data), 2023 model predictions for comparison
+(`data/predictions/`), and versioned benchmark archives with per-row
+results and `PROVENANCE.md` for every run (`data/benchmarks/`).
+
+**Not in**: corporate inventories and SCCM exports (never tracked), curated
+large datasets and caches (`data/curated/`, `data/cache/`, `out/` —
+regenerable, gitignored), and binary models. `data/inventory/` ships a small
+**synthetic** sample so the examples and the replay flow work out of the box.
+
+## Where to go next
+
+- `ROADMAP.md` — phases and the full, dated decision log (every
+  architecture decision with its rationale).
+- `docs/` — reference material: CPE 2.3 normative core
+  (`cpe-reference.md`), match rules and 2023 baseline, evaluation schema,
+  thesis retrospective, mass-run playbook.
+
+Project documentation under `docs/` is written in Catalan; code, comments
+and file names are in English.
+
+## License
+
+Not yet decided — pending before publication. The 2024 thesis notebooks at
+the root of this repo's history were released under the Unlicense.
