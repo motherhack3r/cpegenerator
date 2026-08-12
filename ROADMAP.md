@@ -54,7 +54,8 @@ Ordre d'execució:
 1. ✅ Curació passos 1–2 (`docs/data-curation-plan.md`): parse + validació ABNF a granel dels 487k (2026-08-04)
 2. ✅ Diccionari local de primera passada (catàleg curat + snapshot del diccionari CPE oficial); NVD API només per a misses — elimina el coll d'ampolla de throttling a escala. Codi fet (`dictionary.py`, `cpegen dict --build`, `run --dict`, 2026-08-04) i snapshot construït el mateix dia amb la via preferida (`cpegen dict --build --from-neo4j` contra el KGCS local: 1,77M Platform, frescor 2026-07-02 → `data/cache/cpe_dictionary.jsonl.gz` + meta)
 3. ✅ Benchmark sobre el gold 1k (2026-08-05, PC): sentència a `data/benchmarks/20260805-final-gold1k-pc/`. **Mode single guanya sense pal·liatius** (el millor per-field queda per sota del pitjor single a 1,4-6× el cost); corba single monòtona 701→753→795→837 exactes (0.6B→8B), genoll al `qwen3-1.7b` (753 a 354 ms), sostre al `qwen3-8b` (837, 91% M1x). Pilots previs (gold-100): `20260804-pilot1`, `20260805-duel`, `20260805-pilot2`
-4. Run complet del RAW amb cascada (decisió 2026-08-05): `cpegen titles` (dedup + filtre de soroll dels exports SCCM) → `cpegen run --resume` amb `qwen3-1.7b` (passada ràpida, escriptura incremental per fila) → `cpegen escalate --model qwen3-8b` (re-run de la cua no-M1x + merge amb traça `escalated_by`/`fast_rule`). Tooling fet i testejat (2026-08-05); prep executada el 2026-08-05 (`cpegen titles` sobre el summary: 280.901 files → 90.066 títols únics; cascada estimada ≈ 1 dia de GPU); pendents els passos 2–3 (run 1.7b + escalate 8b) al PC — ordres exactes a `docs/raw-run-playbook.md`
+4. Run complet del RAW amb cascada (decisió 2026-08-05): `cpegen titles` (dedup + filtre de soroll dels exports SCCM) → `cpegen run --resume` amb `qwen3-1.7b` (passada ràpida, escriptura incremental per fila) → `cpegen escalate --model qwen3-8b` (re-run de la cua no-M1x + merge amb traça `escalated_by`/`fast_rule`). Tooling fet i testejat (2026-08-05); prep executada el 2026-08-05 (`cpegen titles` sobre el summary: 280.901 files → 90.066 títols únics; cascada estimada ≈ 1 dia de GPU); pendents els passos 2–3 (run 1.7b + escalate 8b) al PC — ordres exactes a `docs/raw-run-playbook.md`.
+   **Reordenat (decisió 2026-08-12)**: el run s'executa **després** de la Fase 9.1 (port clean+Dice al matcher). Motiu: un matcher que canonicalitza encongeix la cua no-M1x — menys hores de GPU al tram 8b — i el run fa **doble servei**: primera collita de traces (resultats per fila + `escalated_by`/`fast_rule` alimenten la mineria de l'estadi 1, Fase 9.7) i font del mostreig estratificat de `gold-rawTFM` (Fase 9.3). Les extraccions són reutilitzables via `cpegen reclassify` en tot cas: el que es protegeix reordenant és la GPU, no les dades
 
 Shortlist de models — verificada 2026-08-04 contra `/api/v1/models` del
 servidor local (63 models descarregats; claus exactes de LM Studio):
@@ -84,13 +85,142 @@ puntual.
 
 **No es prioritza**: primer el run del RAW amb la cascada (Fase 7 pas
 4), la rèplica al laptop i el regal del calabrès. Es revisarà quan la
-Fase 7 estigui tancada.
+Fase 7 estigui tancada. Nota 2026-08-12: el conjunt d'entrenament per
+origen de la Fase 9 (bucle de validació humana) serà, quan creixi, un
+segon actiu de fine-tune a més del train split curat.
+
+### Fase 9 — La lliga de lectors (branca `feature/reader-league`)
+
+Objectiu: implementar tot el necessari per publicar la proposta de
+`docs/media/poster-reader-league.html` — canonicalització al matcher, diccionaris
+en capes, golds per origen, equip amb coordinador determinista i bucle de
+validació humana. Espec completa (glossari, diagrama, pla d'execució #0–#11 i
+"què NO fem"): `.ideas/reader-league-active-learning-v2.md` (v2, 2026-08-11;
+fora de git). Lookup clean+Dice+marge validat empíricament al playbook KGCS
+(capa HDATA, fora de git); la implementació que en surt és MotherHacker.
+
+Motivació: amb títols reals (no-NVD) els resultats d'extracció+matching són tan
+dolents com el TFM 2023. Dos modes de fallada que el pipeline barreja:
+**segmentació** (el lector no sap on tallar — domain shift, lliçó #2) i
+**canonicalització** (el lector llegeix bé però el matcher Levenshtein sobre
+valors crus no arriba al diccionari: `Rockwell Automation` vs
+`rockwellautomation`). La peça 1 ataca el segon mode i es mesura gratis.
+
+Principis preservats: benchmark abans de construir (cada etapa té mesura); el
+notari (bind determinista + ABNF + M1–M4) continua sent l'única porta de
+sortida; prioritat lexicogràfica **CPE correcte primer, cost com a desempat**.
+
+Etapes (mapatge del pla d'execució de l'espec):
+
+**9.1 — Canonicalització al matcher (espec #0–#3; fer primer, zero GPU)**
+1. Inventari de neteja (#0): taula comparativa pipeline actual (`titles.py`,
+   `normalize_raw`/`bind_component`) vs heurístiques del TFM (consulta a les
+   carpetes antigues) vs `clean()` del playbook → una única funció de neteja
+   testejada, amb el motiu de cada heurística recuperada o descartada.
+2. Port clean+Dice+marge (#1) a `matcher.py`/`dictionary.py`: `clean()`
+   simètric + Dice de bigrames en stdlib; pre-filtre de recall amb índex
+   invertit de bigrames; regla de decisió amb marge sobre el 2n candidat;
+   regla dura de famílies versionades (validació determinista del token de
+   versió contra el títol — cas `sql_server_2019` vs `2017`, marge 0.048);
+   taula d'àlies de vendor materialitzada (variants coexistents:
+   `schneider-electric` i `schneider_electric`). Política `deprecated`:
+   flag + desempat (decisió 2026-08-12). `part`: identitat del candidat +
+   heurística (decisió 2026-08-12).
+3. Rangs de versió (#2): estendre `cpegen dict --build --from-neo4j` perquè el
+   snapshot inclogui els rangs de PlatformConfiguration per parell; validació
+   de versió per rangs quan el diccionari extensional no té la versió.
+4. Upgrade de `search_dictionary` de l'agent al lookup nou (#3).
+
+**Mesura 9.1**: `cpegen reclassify` sobre el pilot 10k RAW — transicions
+M2/M4→M1x, arxivat a `data/benchmarks/`. **Gate**: aquest resultat dona llum
+verda al run RAW de la Fase 7 pas 4 (reordenat: el run va després d'aquesta
+etapa i fa de primera collita de traces).
+
+**9.2 — Capes de diccionari (espec #4)**
+Tres capes: NVD oficial / custom MotherHacker (comunitat) / custom per origen;
+ordre de consulta NVD → MotherHacker → origen; columna `dictionary_source`
+(`nvd` | `motherhacker` | `<origen>`) — mai regles M noves; esquema del
+diccionari custom per origen (NIE: CPE, origen, identitat humana, timestamp,
+evidència, títols motivadors).
+**Mesura**: mètriques M inalterades + desglossament per `dictionary_source`
+(línia experimental E-oficial/E-comunitat/E-custom del
+`docs/dataset-catalog.md` §4).
+
+**9.3 — Golds per origen (espec #5–#6)**
+Mostres estratificades del RAW de cada origen d'arrencada (`rawTFM`, `rawPC`):
+~70 aleatoris + ~30 durs (famílies versionades, drivers/OEM, no-ASCII,
+arch/locale, no-software) + pre-anotació (Claude); anotació i congelació
+(~100 c/u, Humbert, 2–4 h). Fora de git (deriven d'inventaris reals);
+mètriques + PROVENANCE versionades; mètriques sempre per origen, mai agregades
+per defecte.
+**Mesura**: dos golds congelats donats d'alta a `docs/dataset-catalog.md` (§5).
+
+**9.4 — Benchmark de tres braços per origen (espec #7)**
+single / per-field / single+hints sobre `gold-rawTFM` i `gold-rawPC`: decideix
+l'expert amb evidència i re-jutja el per-field amb títols reals (predicció
+falsable de l'espec: tornarà a perdre per fronteres al product).
+
+**9.5 — Equip únic (espec #8)**
+Coordinador **de codi** (pre-validació bind/ABNF/M en mode assaig dins del
+bucle; accions 1–5 de barata a cara: neteja, kgcs, reordre, canvi de model per
+lector, escalat a l'expert; màx 3 iteracions) + expert (una crida LLM que
+arbitra propostes) + especialistes per defecte deterministes (lookup invers,
+àlies, versió per regex+rangs, lector single LLM) + **traça completa** com a
+dataset de primera classe (esquema espec §8.1, versionat com els benchmarks).
+La passada ràpida 1.7b no es toca: l'equip viu al tram d'escalat.
+**Mesura**: benchmark contra el braç guanyador de 9.4, amb comptabilitat per
+títol (crides, tokens, iteracions, latència, models per lector).
+
+**9.6 — Bucle de validació humana (espec #9)**
+`cpegen review`: cua `needs_review` prioritzada per freqüència × incertesa
+(CSV pla, offline), disparadors mesurables (marge Dice, desacord
+especialistes↔expert, M4/M2 estret, família versionada sense versió validable);
+l'humà —amb identitat registrada— confirma/corregeix/NIE/excepció; cada
+resposta escriu **quatre actius** (train de l'origen, caché de resolucions,
+àlies de vendor, diccionari custom). Cerimònia NIE humà+notari; `exception` com
+a estat de procés fora de l'escala M.
+**Mesura**: freqüència de preguntes decreixent com a mètrica de salut.
+
+**9.7 — Política apresa (espec #10–#11; post-run RAW)**
+Estadi 1: mineria manual de les traces del primer run massiu → regles fixes a
+la taula de polítiques. Estadi 2 (quan l'1 es quedi curt): router après
+(classificador petit sobre traces, determinista en execució) que prediu
+estratègia i model per títol. Promoció d'estadi per volum; jurat = golds de
+mesura per origen.
+
+**9.8 — La lliga (futur, quan hi hagi jurat i volum)**
+Competició de configuracions d'equip (braços A–E de l'espec §9), mateixos
+títols, criteri lexicogràfic (CPE exacte → menys recursos → més ràpid),
+comptabilitat completa i traça obligatòria. Doble servei MotherHacker: taller
+de divulgació per a institut/comunitat (tercera peça de la sèrie).
+
+**Publicació (bloquejants administratius)**: afegir LICENSE **Apache-2.0** +
+actualitzar la secció de llicència del README (decisió 2026-08-12; el README
+diu "not yet decided"). El repo es manté privat fins que 9.1–9.3 i el run RAW
+estiguin nets; el canvi de visibilitat és una decisió separada de l'Humbert.
+
+**Què NO fem** (espec §11): no substituïm la passada ràpida per l'equip; cap
+especialista LLM per camp d'entrada (llevat que el braç E el rehabiliti amb
+evidència); cap coordinador LLM mentre les taules de polítiques no es demostrin
+curtes; mai barrejar gold de mesura i entrenament, ni mètriques entre origens;
+l'humà mai dins del bucle d'iteració; cap NIE sense acord humà+notari registrat;
+cap dependència nova al runtime (Neo4j/KGCS només curació; stdlib + requests).
 
 ## Decisions
 
 
 | Data | Decisió | Motiu |
 |---|---|---|
+| 2026-08-12 | S'adopta l'arquitectura de **la lliga de lectors** (espec v2 a `.ideas/reader-league-active-learning-v2.md`) com a Fase 9, amb el pla d'execució #0–#11 mapat a les etapes 9.1–9.8 | El benchmark gold-1k mesurava títols nets de NVD; amb títols reals el pilot 10k va mostrar dos modes de fallada (segmentació vs canonicalització) que el pipeline barrejava. L'espec les separa: clean+Dice al matcher (validat empíricament al playbook KGCS: 0.853 vs 0.750 de Levenshtein al cas de referència, errata `energrymetrix` resolta), golds per origen com a vara real, equip amb coordinador determinista i humà com a ajudant del notari. El notari i el principi "l'LLM proposa, el codi valida" queden intactes |
+| 2026-08-12 | Ordre entre Fase 7 pas 4 i Fase 9: el **port clean+Dice va abans del run RAW**, i el run fa doble servei de **primera collita de traces** i font del mostreig de `gold-rawTFM` | Un matcher que canonicalitza encongeix la cua no-M1x i estalvia GPU al tram 8b de la cascada; `cpegen reclassify` sobre el pilot 10k mesura el port sense cap cost d'inferència abans de gastar ~1 dia de GPU. Les extraccions del run són reutilitzables via reclassify en tot cas: reordenar protegeix la GPU, no les dades. Resol la tensió entre el regal del calabrès i el pla nou sense sacrificar-ne cap |
+| 2026-08-12 | Política `deprecated` al lookup: **flag + desempat** — els CPE deprecats resten candidats, perden el desempat contra un no-deprecat amb score igual, i el resultat porta columna `deprecated` | Playbook §9.4: un deprecat pot resoldre amb Dice alt i ser el candidat equivocat; però filtrar-los perdria matches on el deprecat és l'única entrada del parell (pèrdua silenciosa de cobertura). El flag manté la cobertura i deixa la decisió visible; impacte mesurable al reclassify del 10k (triat amb l'Humbert) |
+| 2026-08-12 | `part` múltiple: el candidat del lookup és **(vendor, product, part)** — les variants de part són candidats distints, una heurística determinista amb evidència del títol (tokens firmware/OS, font de l'inventari) tria, i el parell multi-part sense evidència es flaggeja per a revisió | Playbook §9.5 i cas FortiOS→`o`: assumir `part=a` perd inventari d'infraestructura. Mai es tria part en silenci; l'espec ho fixava com a pendent heretat ("mai assumir `a`") (triat amb l'Humbert) |
+| 2026-08-12 | LICENSE del repo: **Apache-2.0** (bloquejant de publicació; el HEAD no en tenia cap — l'Unlicense del TFM 2024 es va perdre a l'Initial commit v2) | Permissiva amb clàusula de patents i avís d'atribució: adopció corporativa en sectors regulats sense fricció i compatible amb serveis sobre el mateix codi. L'Unlicense hauria mantingut la continuïtat amb el TFM però genera inseguretat jurídica en entorns corporatius UE; AGPL frenaria l'adopció que la capa comunitat busca (triat amb l'Humbert) |
+| 2026-08-11 | Origens d'arrencada de la Fase 9: **rawTFM** (export SCCM 2022) i **rawPC** (inventari local); **origen** com a dimensió de primera classe — cada origen té gold de mesura (congelat, ~100, estratificat) i conjunt d'entrenament (creixent, del bucle humà), **mai barrejats**, amb mètriques sempre per origen | Espec §4: el gold-1k (títols nets NVD) no mesura cap dels dos modes de fallada reals; el train s'esbiaixa cap als difícils per construcció — ensenya política, mai mesura. Agregar mètriques entre origens amagaria que un sistema fort a rawPC pot ser fluix a rawTFM. Tots dos fora de git (inventaris reals); mètriques + PROVENANCE versionades |
+| 2026-08-11 | Tres capes de diccionari (NVD oficial / custom MotherHacker / custom per origen) amb la procedència del match reportada a la columna **`dictionary_source`**, mai amb regles M noves | Espec §3: tothom veu les mateixes mètriques M1–M4 usi els diccionaris que usi — la vara no canvia entre experiments; la governança (matches traçables contra NVD vs identificadors locals a reconciliar) es llegeix de la columna. Habilita la línia experimental E-oficial/E-comunitat/E-custom del catàleg de datasets |
+| 2026-08-11 | Els **rangs de versió de PlatformConfiguration** entren al snapshot local (`dict --build --from-neo4j` estès); el KGCS/Neo4j continua sent només font de curació, mai dependència de runtime | Espec §2.2 (N10): el diccionari extensional és incomplet per construcció (el parell és una entitat intensional: rangs, versions potencialment infinites); els rangs són la font més rica per validar versions que el diccionari no llista. El runtime resta offline: stdlib + snapshot |
+| 2026-08-11 | El **coordinador (codi, no LLM) assumeix la pre-validació barata** dins del bucle (bind+ABNF+pre-classificació M en mode assaig, codi compartit amb el notari); **l'humà és ajudant del notari, mai part del bucle d'iteració**; nou estat terminal **`exception`** com a estat de procés fora de l'escala M | Espec §5.2 (N7): el bucle coordinador↔especialistes↔expert itera sol i ràpid; el veredicte amb efectes només el signa el notari. L'escala M mesura matching, no procés — barrejar-hi estats de procés contaminaria la comparabilitat amb la línia base. Si ni l'humà valida: exception, marcat per a estudi |
+| 2026-08-11 | **NIE** = alta d'un CPE ben format però absent de tot diccionari al **diccionari custom de l'origen**, només per **acord humà+notari**, registrant identitat humana, timestamp, evidència i títols motivadors | Espec §6.3 (N3, N5, N11): l'estàndard CPE contempla el naming custom/extended; cap alta silenciosa. La identitat registrada fa auditables els diccionaris custom i habilita mesurar acord inter-anotador. Si la NVD el registra oficialment més endavant, `dictionary_source` el fa reconciliable |
 | 2026-08-11 | Matcher i diccionari revisats arran del pilot 10k RAW: M2 amb semàntica operativa de la línia base (vendor exacte + parell absent ⇒ "New product candidate", similitud com a senyal), nou cubell **M4 "No dictionary match"** separat del M3 (comparació amb 2023: M3+M4 v2 ≈ M3 2023), índex per producte a `LocalDictionary` amb candidats = unió de representants vendor+producte (un per parell distint), i ordre nou **`cpegen reclassify`** (reclassificar `results.csv` sense re-extreure) | El pilot va destapar que el 91,6% de "M3" eren catch-all sense candidats i que M1C/M2B/M3 eren inabastables amb `--dict --offline` (0 ocurrències en 10k): el diccionari local no tenia el camí per-producte que l'API cobria via keyword. Cas paradigmàtic: "HP DropBoxPlugin 28.11" (vendor amb 22k entrades, producte absent) etiquetat "Other candidates". Un fix de classificació no pot costar hores de GPU: reclassify reusa les extraccions. Detall a `docs/match-rules.md` (revisió 2026-08-11) |
 | 2026-08-11 | Es documenta l'anècdota Gemini (`docs/llm-official-cpe-anecdote.md`): un LLM generalista presenta com a "official, standardized CPE" una cadena que no existeix ni al snapshot ni a l'NVD en viu (`totalResults: 0`) | Demostració en viu, el 2026, de la lliçó LSTM 2023: els models generatius produeixen CPEs plausibles amb confiança total. És l'argument d'obertura del principi innegociable ("l'LLM proposa, el codi valida") per al README open-source i un eventual paper |
 | 2026-08-05 | Nova carpeta `docs/deliveries/`: paquets d'entrega (`.zip`) datats amb el contingut de `docs/media/` compartit fora del repo, no versionats (`docs/deliveries/*.zip` al `.gitignore`); registre de qui/quan/perquè/contingut a `docs/deliveries/LOG.md` (taula, sí versionada) | Distingeix el "viu" (`docs/media/`, sempre reflecteix l'estat actual) de l'"enviat" (instantànies datades del que ja ha sortit del repo). Mateix patró que `out/`/`data/curated/`: el zip és regenerable des del commit anotat a cada fila del log, no cal versionar-lo; només el registre de provenance queda a git |
