@@ -12,7 +12,13 @@ material de referència, els plans i els deliverables visuals.
 | [`cpe-reference.md`](cpe-reference.md) | Nucli normatiu CPE 2.3: WFN, gramàtica ABNF, escapat, APIs NVD. La font del validador (`src/cpegen/validator.py`) |
 | [`match-rules.md`](match-rules.md) | Regles de classificació M1–M3 i línia base 2023 a batre (~4,9% M1x) |
 | [`evaluation.md`](evaluation.md) | Esquema d'avaluació: MUC/SemEval'13 per a l'extracció (strict/partial) vs M1–M3 per al matching — i per què no es barregen |
+
+## Catàlegs
+
+| Registre | Contingut |
+|---|---|
 | [`dataset-catalog.md`](dataset-catalog.md) | Catàleg de datasets: provenança i rol de cada gold/evidència/mostra (eixos origen·rol·git·publicable), gold per origen planificats i la línia experimental oficial/comunitat/custom |
+| [`media/model_catalog.html`](media/model_catalog.html) | Catàleg de models (foto datada — la font viva és `out/model_catalog.md` + `.csv`, regenerables des dels arxius de benchmark) |
 
 ## Memòria del TFM (2021–2023)
 
@@ -31,17 +37,28 @@ material de referència, els plans i els deliverables visuals.
 
 ## media/ — deliverables visuals
 
+### Portada
+
 | Fitxer | Contingut |
 |---|---|
 | [`media/index.html`](media/index.html) | Índex de tots els documents i slides HTML de `docs/` (agrupat igual que aquest README) |
 | [`media/tour.html`](media/tour.html) | Tour guiat: ordre de lectura recomanat de les 9 slides (~15 min) — punt de partida suggerit abans de l'índex |
+
+### Estat
+
+| Fitxer | Contingut |
+|---|---|
 | [`media/slide.html`](media/slide.html) | Slide d'estat dels pilots (1920×1080, autocontinguda): 4,9% TFM vs 91% M1x gold-1k, corba qualitat/cost. Xifres verificades contra `../data/benchmarks/` |
 | [`media/CPEgenerator v2 + KGCS — pilot status.pdf`](media/) | La mateixa slide, impresa a PDF |
-| [`media/model_catalog.html`](media/model_catalog.html) | Vista web del catàleg de models (foto datada — la font viva és `out/model_catalog.md` + `.csv`, regenerables) |
-| [`media/explicat-per-a-tothom.html`](media/explicat-per-a-tothom.html) | Infografia de divulgació per a públic general (agost 2026): què fa el projecte sense argot — el carnet d'identitat del software, "la IA proposa, el codi valida" (el lector i el notari), la cascada (l'aprenent i el mestre) i el 5→91 de cada 100 |
-| [`media/dins-la-maquina.html`](media/dins-la-maquina.html) | Infografia de divulgació, nivell 2 (agost 2026): la lògica interna del lector i el notari — anatomia del CPE 2.3 camp a camp, títol → JSON → bind WFN → validació ABNF → diccionari i M1–M4, i el mode agent amb eines |
-| [`media/poster-reader-league.html`](media/poster-reader-league.html) | Pòster de divulgació en anglès (agost 2026): la lliga de lectors en 6 escenes — **proposta de disseny, no estat actual** (banner al peu; espec a `.ideas/reader-league-active-learning-v2.md`). Candidat a post per a motherhacker.me |
 | [`media/il-regalo.html`](media/il-regalo.html) | Infografia de la Fase 7 'Nduja (juliol 2026), actualitzada 2026-08-05 amb el sistema visual actual i les xifres del gold-1k — la versió anterior queda a l'historial de git (`git log -- docs/media/il-regalo.html`) |
+
+### Divulgació i visió
+
+| Fitxer | Contingut |
+|---|---|
+| [`media/explicat-per-a-tothom.html`](media/explicat-per-a-tothom.html) | Nivell 1 — per a públic general (agost 2026): què fa el projecte sense argot — el carnet d'identitat del software, "la IA proposa, el codi valida" (el lector i el notari), la cascada (l'aprenent i el mestre) i el 5→91 de cada 100 |
+| [`media/dins-la-maquina.html`](media/dins-la-maquina.html) | Nivell 2 — la lògica interna (agost 2026): anatomia del CPE 2.3 camp a camp, títol → JSON → bind WFN → validació ABNF → diccionari i M1–M4, i el mode agent amb eines |
+| [`media/poster-reader-league.html`](media/poster-reader-league.html) | Visió (EN, agost 2026): la lliga de lectors en 6 escenes — **proposta de disseny, no estat actual** (banner al peu; espec a `.ideas/reader-league-active-learning-v2.md`). Candidat a post per a motherhacker.me |
 
 Cada document de referència, memòria i plans té també la seva versió HTML
 a `media/` (document complet + slide 1920×1080), llistada a `media/index.html`.

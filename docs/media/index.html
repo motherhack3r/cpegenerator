@@ -108,8 +108,10 @@
     <ul>
       <li><a href="#tfm">1 · Memòria del TFM</a></li>
       <li><a href="#normativa">2 · Referència normativa</a></li>
-      <li><a href="#plans">3 · Plans i playbooks</a></li>
-      <li><a href="#estat">4 · Estat — deliverables visuals</a></li>
+      <li><a href="#catalegs">3 · Catàlegs</a></li>
+      <li><a href="#plans">4 · Plans i playbooks</a></li>
+      <li><a href="#estat">5 · Estat</a></li>
+      <li><a href="#divulgacio">6 · Divulgació i visió</a></li>
     </ul>
   </nav>
 
@@ -185,16 +187,6 @@
         </div>
         <div class="doc-row">
           <div class="doc-info">
-            <div class="doc-title">Catàleg de datasets</div>
-            <div class="doc-desc">Provenança i rol de cada dataset (origen · rol · git · publicable), gold per origen amb estat "properament" i la línia experimental oficial/comunitat/custom — <code>docs/dataset-catalog.md</code></div>
-          </div>
-          <div class="doc-links">
-            <a class="doc-link" href="dataset-catalog.html">Document</a>
-            <a class="slide-link" href="dataset-catalog-slide.html">Slide</a>
-          </div>
-        </div>
-        <div class="doc-row">
-          <div class="doc-info">
             <div class="doc-title">Avaluació — extracció vs matching</div>
             <div class="doc-desc">Per què MUC/SemEval'13 (extracció) i M1–M3 (matching) es mantenen estrictament separats — <code>docs/evaluation.md</code></div>
           </div>
@@ -206,8 +198,35 @@
       </div>
     </section>
 
+    <section id="catalegs">
+      <h2><span class="idx">3</span>Catàlegs</h2>
+      <div class="section-note">Els registres del projecte: d'on surten les dades i amb quins models es treballa.</div>
+      <div class="doc-grid">
+        <div class="doc-row">
+          <div class="doc-info">
+            <div class="doc-title">Catàleg de datasets</div>
+            <div class="doc-desc">Provenança i rol de cada dataset (origen · rol · git · publicable), gold per origen amb estat "properament" i la línia experimental oficial/comunitat/custom — <code>docs/dataset-catalog.md</code></div>
+          </div>
+          <div class="doc-links">
+            <a class="doc-link" href="dataset-catalog.html">Document</a>
+            <a class="slide-link" href="dataset-catalog-slide.html">Slide</a>
+          </div>
+        </div>
+        <div class="doc-row">
+          <div class="doc-info">
+            <div class="doc-title">Catàleg de models — LM Studio local</div>
+            <div class="doc-desc">Vista web del catàleg (foto datada; font viva a <code>out/model_catalog.md</code> / <code>.csv</code>) — <code>media/model_catalog.html</code></div>
+          </div>
+          <div class="doc-links">
+            <a class="doc-link" href="model_catalog.html">Document</a>
+            <a class="slide-link" href="model_catalog-slide.html">Slide</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="plans">
-      <h2><span class="idx">3</span>Plans i playbooks</h2>
+      <h2><span class="idx">4</span>Plans i playbooks</h2>
       <div class="section-note">Els procediments operatius: com es curen les dades i com s'executa el run massiu.</div>
       <div class="doc-grid">
         <div class="doc-row">
@@ -234,8 +253,8 @@
     </section>
 
     <section id="estat">
-      <h2><span class="idx">4</span>Estat — deliverables visuals</h2>
-      <div class="section-note">L'estat dels pilots i el catàleg de models, ja publicats a <code>media/</code>.</div>
+      <h2><span class="idx">5</span>Estat</h2>
+      <div class="section-note">On és el projecte ara mateix: la foto dels pilots i la infografia de la Fase 7.</div>
       <div class="estat-grid">
         <div class="doc-row estat-row">
           <div class="doc-info">
@@ -249,48 +268,45 @@
         </div>
         <div class="doc-row estat-row">
           <div class="doc-info">
-            <div class="doc-title">Catàleg de models — LM Studio local</div>
-            <div class="doc-desc">Vista web del catàleg (foto datada; font viva a <code>out/model_catalog.md</code> / <code>.csv</code>) — <code>media/model_catalog.html</code></div>
+            <div class="doc-title">Il regalo — Fase 7 'Nduja</div>
+            <div class="doc-desc">Infografia (juliol 2026), actualitzada 2026-08-05 amb el sistema visual actual i les xifres del gold-1k (91,0% / 83,7%) — <code>media/il-regalo.html</code></div>
           </div>
           <div class="doc-links">
-            <a class="doc-link" href="model_catalog.html">Document</a>
-            <a class="slide-link" href="model_catalog-slide.html">Slide</a>
+            <a class="doc-link" href="il-regalo.html">Infografia</a>
           </div>
         </div>
-        <div class="doc-row estat-row">
+      </div>
+    </section>
+
+    <section id="divulgacio">
+      <h2><span class="idx">6</span>Divulgació i visió</h2>
+      <div class="section-note">Per a públic extern, en tres nivells de profunditat — i la visió de cap a on va la v2, sempre etiquetada com a proposta.</div>
+      <div class="doc-grid">
+        <div class="doc-row">
           <div class="doc-info">
-            <div class="doc-title">Explicat per a tothom — divulgació</div>
-            <div class="doc-desc">Infografia per a públic general (sense argot): el carnet d'identitat del software, el lector i el notari, l'aprenent i el mestre, 5→91 de cada 100 — <code>media/explicat-per-a-tothom.html</code></div>
+            <div class="doc-title">Nivell 1 — Explicat per a tothom</div>
+            <div class="doc-desc">Per a públic general, sense argot: el carnet d'identitat del software, el lector i el notari, l'aprenent i el mestre, 5→91 de cada 100 — <code>media/explicat-per-a-tothom.html</code></div>
           </div>
           <div class="doc-links">
             <a class="doc-link" href="explicat-per-a-tothom.html">Infografia</a>
           </div>
         </div>
-        <div class="doc-row estat-row">
+        <div class="doc-row">
           <div class="doc-info">
-            <div class="doc-title">Dins la màquina — divulgació, nivell 2</div>
+            <div class="doc-title">Nivell 2 — Dins la màquina</div>
             <div class="doc-desc">La lògica interna del lector i el notari: anatomia del CPE 2.3, títol → JSON → bind → ABNF → diccionari i M1–M4, agent amb eines — <code>media/dins-la-maquina.html</code></div>
           </div>
           <div class="doc-links">
             <a class="doc-link" href="dins-la-maquina.html">Infografia</a>
           </div>
         </div>
-        <div class="doc-row estat-row">
+        <div class="doc-row">
           <div class="doc-info">
-            <div class="doc-title">The reader league — pòster (EN, proposta de disseny)</div>
-            <div class="doc-desc">La visió de la v2 en 6 escenes: equip, jugades, tres registres, NIE i corba d'intuïció — futur, no estat actual — <code>media/poster-reader-league.html</code></div>
+            <div class="doc-title">Visió — The reader league (EN, proposta de disseny)</div>
+            <div class="doc-desc">Cap a on va la v2, en 6 escenes: equip, jugades, tres registres, NIE i corba d'intuïció — <b>futur, no estat actual</b> — <code>media/poster-reader-league.html</code></div>
           </div>
           <div class="doc-links">
             <a class="doc-link" href="poster-reader-league.html">Pòster</a>
-          </div>
-        </div>
-        <div class="doc-row estat-row">
-          <div class="doc-info">
-            <div class="doc-title">Il regalo — Fase 7 'Nduja</div>
-            <div class="doc-desc">Infografia (juliol 2026), actualitzada 2026-08-05 amb el sistema visual actual i les xifres del gold-1k (91,0% / 83,7%) — <code>media/il-regalo.html</code></div>
-          </div>
-          <div class="doc-links">
-            <a class="doc-link" href="il-regalo.html">Infografia</a>
           </div>
         </div>
       </div>
