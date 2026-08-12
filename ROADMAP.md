@@ -5,7 +5,12 @@
 ### Fase 0 — Fonament ✅ (juliol 2026)
 Estructura del projecte, documentació destil·lada del TFM 2023, dades de mostra amb ground truth.
 
-### Fase 1 — Benchmark a tres bandes
+### Fase 1 — Benchmark a tres bandes ⏸ (ajornada 2026-08-12)
+**Ajornada a eventual paper** (decisió 2026-08-12): els braços B i C van quedar
+decidits per la sentència gold-1k i l'agent de la Fase 4; el braç A (NER 2023)
+no fa certa cap escena del pòster i la comparativa amb 2023 ja existeix via
+distribució M (línia base 4,9%). Vegeu `docs/reader-league-implementation-plan.md` §4.
+
 Sobre `data/gold/cpes_rasa_vpv_1k.csv` (i una mostra de títols bruts):
 
 | Braç | Descripció |
@@ -28,9 +33,10 @@ Parser i validador de la gramàtica ABNF CPE 2.3 (`docs/cpe-reference.md`), amb 
 ### Fase 4 — Agent generador/validador ✅ (juliol 2026)
 Agent implementat com a bucle tool-use propi (`src/cpegen/agent.py` + `tools.py`): l'LLM raona amb 4 eines deterministes (`bind_and_validate`, `search_dictionary`, `classify_match`, `submit`) i el codi revalida i reclassifica tot el que l'agent sotmet. Dos modes: `run --agent` (escalat de la cua no-M1x després de la passada ràpida) i `cpegen agent` (agent a tots els títols — braç C del benchmark de la Fase 1). Pendent: run amb LLM real i mesura de cost/encert.
 
-### Fase 5 — Escalat
+### Fase 5 — Escalat ✅ (tancada per subsumpció, 2026-08-12)
 Córrer sobre inventari complet; comparar la distribució M1–M3 amb la línia base 2023 (~4,9% resolució automàtica).
 Input previst: datasets SCCM reals de la branca devel, un cop curats segons `docs/data-curation-plan.md`.
+**Tancada per subsumpció** (decisió 2026-08-12): el pilot 10k ja ha fet la comparació amb la línia base sobre dades reals, i l'escalat complet és exactament la Fase 7 pas 4 (ajornat) + Fase 9. Cap contingut propi restant.
 
 ### Fase 6 — Cicle complet inventari ⇄ vulnerabilitats ✅ (juliol 2026)
 Recuperació de les idees dels prototips en R (net.security `inventary.R` i `mitre` branch cpe, `inst/scripts/`):
@@ -55,7 +61,8 @@ Ordre d'execució:
 2. ✅ Diccionari local de primera passada (catàleg curat + snapshot del diccionari CPE oficial); NVD API només per a misses — elimina el coll d'ampolla de throttling a escala. Codi fet (`dictionary.py`, `cpegen dict --build`, `run --dict`, 2026-08-04) i snapshot construït el mateix dia amb la via preferida (`cpegen dict --build --from-neo4j` contra el KGCS local: 1,77M Platform, frescor 2026-07-02 → `data/cache/cpe_dictionary.jsonl.gz` + meta)
 3. ✅ Benchmark sobre el gold 1k (2026-08-05, PC): sentència a `data/benchmarks/20260805-final-gold1k-pc/`. **Mode single guanya sense pal·liatius** (el millor per-field queda per sota del pitjor single a 1,4-6× el cost); corba single monòtona 701→753→795→837 exactes (0.6B→8B), genoll al `qwen3-1.7b` (753 a 354 ms), sostre al `qwen3-8b` (837, 91% M1x). Pilots previs (gold-100): `20260804-pilot1`, `20260805-duel`, `20260805-pilot2`
 4. Run complet del RAW amb cascada (decisió 2026-08-05): `cpegen titles` (dedup + filtre de soroll dels exports SCCM) → `cpegen run --resume` amb `qwen3-1.7b` (passada ràpida, escriptura incremental per fila) → `cpegen escalate --model qwen3-8b` (re-run de la cua no-M1x + merge amb traça `escalated_by`/`fast_rule`). Tooling fet i testejat (2026-08-05); prep executada el 2026-08-05 (`cpegen titles` sobre el summary: 280.901 files → 90.066 títols únics; cascada estimada ≈ 1 dia de GPU); pendents els passos 2–3 (run 1.7b + escalate 8b) al PC — ordres exactes a `docs/raw-run-playbook.md`.
-   **Reordenat (decisió 2026-08-12)**: el run s'executa **després** de la Fase 9.1 (port clean+Dice al matcher). Motiu: un matcher que canonicalitza encongeix la cua no-M1x — menys hores de GPU al tram 8b — i el run fa **doble servei**: primera collita de traces (resultats per fila + `escalated_by`/`fast_rule` alimenten la mineria de l'estadi 1, Fase 9.7) i font del mostreig estratificat de `gold-rawTFM` (Fase 9.3). Les extraccions són reutilitzables via `cpegen reclassify` en tot cas: el que es protegeix reordenant és la GPU, no les dades
+   **Reordenat (decisió 2026-08-12)**: el run s'executa **després** de la Fase 9.1 (port clean+Dice al matcher). Motiu: un matcher que canonicalitza encongeix la cua no-M1x — menys hores de GPU al tram 8b — i el run fa **doble servei**: primera collita de traces (resultats per fila + `escalated_by`/`fast_rule` alimenten la mineria de l'estadi 1, Fase 9.7) i font del mostreig estratificat de `gold-rawTFM` (Fase 9.3). Les extraccions són reutilitzables via `cpegen reclassify` en tot cas: el que es protegeix reordenant és la GPU, no les dades.
+   **Ajornat post-publicació (decisió 2026-08-12, mateix dia)**: el run (i amb ell `vulns` sobre els M1x, la segona tanda `v_SoftwareProduct` i la rèplica al laptop) queda **fora del camí de publicació** — tota la GPU i l'atenció van al pla de `docs/reader-league-implementation-plan.md`. El mostreig de `gold-rawTFM` ja no en depèn (es fa sobre els 90.066 títols preparats); l'ordre relatiu es manté: quan es reprengui, serà després de la Fase 9.1 i farà de primera collita de traces
 
 Shortlist de models — verificada 2026-08-04 contra `/api/v1/models` del
 servidor local (63 models descarregats; claus exactes de LM Studio):
@@ -109,6 +116,13 @@ valors crus no arriba al diccionari: `Rockwell Automation` vs
 Principis preservats: benchmark abans de construir (cada etapa té mesura); el
 notari (bind determinista + ABNF + M1–M4) continua sent l'única porta de
 sortida; prioritat lexicogràfica **CPE correcte primer, cost com a desempat**.
+
+**Pla operatiu de publicació (2026-08-12)**: l'ordre d'execució, els gates
+(G1–G4), el checklist de "publicable" i la llista de tasques descartades o
+ajornades són a `docs/reader-league-implementation-plan.md`. Gate de
+publicació: **pòster complet** — es publica quan les sis escenes del pòster
+són certes al codi (etapes 9.1–9.6 + LICENSE); 9.7 i 9.8 queden explícitament
+post-publicació.
 
 Etapes (mapatge del pla d'execució de l'espec):
 
@@ -211,6 +225,9 @@ cap dependència nova al runtime (Neo4j/KGCS només curació; stdlib + requests)
 
 | Data | Decisió | Motiu |
 |---|---|---|
+| 2026-08-12 | **Gate de publicació = pòster complet**: el repo es fa públic quan les sis escenes de `docs/media/poster-reader-league.html` són certes al codi (Fase 9.1–9.6 + LICENSE), no abans; pla operatiu, gates G1–G4 i checklist a `docs/reader-league-implementation-plan.md` | Triat amb l'Humbert sobre l'alternativa "nucli + roadmap públic": publicar amb la promesa a mig fer ensenyaria un pòster que menteix; publicar amb el pòster complet fa que la promesa i el codi coincideixin el dia 1. El criteri de tall del pla: una tasca entra només si fa certa una escena o és bloquejant legal/qualitat |
+| 2026-08-12 | El **regal del calabrès s'ajorna post-publicació**: run RAW en cascada, `vulns` sobre els M1x, segona tanda `v_SoftwareProduct` (570k) i rèplica al laptop queden fora del camí de publicació; el mostreig de `gold-rawTFM` passa a fer-se sobre els 90.066 títols preparats (no cal el run) | Triat amb l'Humbert: focus total de GPU i atenció al pla de publicació. Cap pèrdua: les extraccions es reclassifiquen a posteriori, i el run conserva el doble servei (primera collita de traces per a 9.7) quan es reprengui — l'ordre relatiu post-9.1 es manté. Matisa la decisió del mateix dia sobre l'ordre Fase 7↔9 |
+| 2026-08-12 | Es pleguen les fases velles fora del camí de publicació: **Fase 1 ajornada a eventual paper** (braç A, NER 2023 sobre gold-1k) i **Fase 5 tancada per subsumpció** (coberta pel pilot 10k + Fase 7 pas 4 + Fase 9) | Triat amb l'Humbert: els braços B/C de la Fase 1 ja van quedar decidits per la sentència gold-1k i l'agent; muntar l'entorn del NER 2023 no fa certa cap escena del pòster i la línia base 2023 ja es compara via distribució M (4,9%). La Fase 5 no tenia contingut propi restant |
 | 2026-08-12 | S'adopta l'arquitectura de **la lliga de lectors** (espec v2 a `.ideas/reader-league-active-learning-v2.md`) com a Fase 9, amb el pla d'execució #0–#11 mapat a les etapes 9.1–9.8 | El benchmark gold-1k mesurava títols nets de NVD; amb títols reals el pilot 10k va mostrar dos modes de fallada (segmentació vs canonicalització) que el pipeline barrejava. L'espec les separa: clean+Dice al matcher (validat empíricament al playbook KGCS: 0.853 vs 0.750 de Levenshtein al cas de referència, errata `energrymetrix` resolta), golds per origen com a vara real, equip amb coordinador determinista i humà com a ajudant del notari. El notari i el principi "l'LLM proposa, el codi valida" queden intactes |
 | 2026-08-12 | Ordre entre Fase 7 pas 4 i Fase 9: el **port clean+Dice va abans del run RAW**, i el run fa doble servei de **primera collita de traces** i font del mostreig de `gold-rawTFM` | Un matcher que canonicalitza encongeix la cua no-M1x i estalvia GPU al tram 8b de la cascada; `cpegen reclassify` sobre el pilot 10k mesura el port sense cap cost d'inferència abans de gastar ~1 dia de GPU. Les extraccions del run són reutilitzables via reclassify en tot cas: reordenar protegeix la GPU, no les dades. Resol la tensió entre el regal del calabrès i el pla nou sense sacrificar-ne cap |
 | 2026-08-12 | Política `deprecated` al lookup: **flag + desempat** — els CPE deprecats resten candidats, perden el desempat contra un no-deprecat amb score igual, i el resultat porta columna `deprecated` | Playbook §9.4: un deprecat pot resoldre amb Dice alt i ser el candidat equivocat; però filtrar-los perdria matches on el deprecat és l'única entrada del parell (pèrdua silenciosa de cobertura). El flag manté la cobertura i deixa la decisió visible; impacte mesurable al reclassify del 10k (triat amb l'Humbert) |
