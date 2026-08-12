@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pla d'implementació — la lliga de lectors · CPEgenerator v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --blue-dark:#1F4E79; --blue:#2E6CB5; --blue-pale:#E8F0F8; --blue-paler:#F6F9FC;
+  --ink:#16232E; --grey:#5B6B77; --grey-light:#8B99A3; --line:#DCE6EF;
+  --green:#2E7D5B; --green-pale:#EAF3EE; --amber:#B5762E; --amber-pale:#FBF6EC;
+  --red:#A94442; --red-pale:#F9EDED;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --disp:'Space Grotesk',var(--sans);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);color:var(--ink);background:#EDF2F7;line-height:1.55;font-size:14.5px;-webkit-font-smoothing:antialiased;padding:24px 12px 60px}
+.wrap{max-width:1120px;margin:0 auto}
+
+/* ─── header ─── */
+.head{background:var(--blue-dark);color:#fff;border-radius:16px;padding:34px 38px;margin-bottom:22px}
+.head .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9CC3EE;font-weight:600;margin-bottom:10px}
+.head h1{font-family:var(--disp);font-weight:700;font-size:30px;letter-spacing:-.02em;line-height:1.15}
+.head .sub{margin-top:10px;font-size:14px;color:#C7DAEF;max-width:760px}
+.head .sub b{color:#fff}
+.head .metarow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.badge{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;border-radius:20px;padding:4px 12px;background:rgba(255,255,255,.12);color:#C7DAEF;border:1px solid rgba(156,195,238,.35)}
+.badge.gate{background:#fff;color:var(--blue-dark);border-color:#fff}
+
+/* ─── cards / sections ─── */
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px 32px;margin-bottom:22px;box-shadow:0 6px 24px rgba(31,78,121,.07)}
+.card h2{font-family:var(--disp);font-weight:700;font-size:19px;color:var(--blue-dark);margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.card h2 .idx{font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;background:var(--blue);width:24px;height:24px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.card .note{font-size:13px;color:var(--grey);margin-bottom:18px;max-width:880px}
+.card .note code, td code, .tip code{font-family:var(--mono);font-size:.92em;background:var(--blue-pale);color:var(--blue-dark);padding:1px 5px;border-radius:3px}
+
+/* ─── scene→WP contract strip ─── */
+.scenes{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.sc{border:1px solid var(--line);border-radius:10px;padding:12px 10px;background:var(--blue-paler);text-align:center}
+.sc .n{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--blue)}
+.sc .t{font-family:var(--disp);font-weight:700;font-size:12.5px;color:var(--ink);margin:4px 0 2px;line-height:1.2}
+.sc .d{font-size:10.5px;color:var(--grey);line-height:1.3;min-height:41px}
+.sc .wp{display:inline-block;margin-top:7px;font-family:var(--mono);font-size:10.5px;font-weight:600;border-radius:14px;padding:2px 10px}
+.sc .wp.done{background:var(--green-pale);color:var(--green)}
+.sc .wp.todo{background:var(--blue-pale);color:var(--blue-dark)}
+@media(max-width:860px){.scenes{grid-template-columns:repeat(3,1fr)}}
+
+/* ─── gantt ─── */
+.gwrap{position:relative;overflow-x:auto}
+.gantt{min-width:860px}
+.grow{display:grid;grid-template-columns:170px 1fr;align-items:center;min-height:34px}
+.grow .lbl{font-family:var(--disp);font-weight:600;font-size:12.5px;color:var(--ink);padding-right:12px;line-height:1.2}
+.grow .lbl small{display:block;font-family:var(--sans);font-weight:400;font-size:10.5px;color:var(--grey-light)}
+.track{position:relative;height:26px;border-left:1px solid var(--line);margin-right:22px}
+.gaxis .track{height:22px;border-left:none}
+.gridlines{position:absolute;inset:0;pointer-events:none}
+.gridlines i{position:absolute;top:0;bottom:0;border-left:1px dashed var(--line)}
+.bar{position:absolute;top:4px;height:18px;border-radius:5px;cursor:pointer;transition:filter .15s, transform .15s}
+.bar:hover{filter:brightness(1.12);transform:scaleY(1.15)}
+.bar.core{background:var(--blue)}
+.bar.legal{background:var(--green)}
+.bar.human{background:var(--amber)}
+.bar.gpu{background:var(--blue-dark)}
+.bar .blabel{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:9.5px;font-weight:600;color:#fff;white-space:nowrap;pointer-events:none}
+.gate-d{position:absolute;top:13px;width:12px;height:12px;background:#fff;border:2.5px solid var(--red);transform:translate(-50%,-50%) rotate(45deg);cursor:pointer;z-index:2}
+.gate-d:hover{background:var(--red-pale)}
+.gate-lbl{position:absolute;top:-9px;transform:translateX(-50%);font-family:var(--mono);font-size:9px;font-weight:700;color:var(--red);pointer-events:none}
+.axis-lbl{position:absolute;top:2px;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;color:var(--grey-light)}
+.glegend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:11px;color:var(--grey)}
+.glegend span{display:inline-flex;align-items:center;gap:6px}
+.glegend i{width:14px;height:10px;border-radius:3px;display:inline-block}
+.glegend .dm{width:9px;height:9px;background:#fff;border:2px solid var(--red);transform:rotate(45deg);border-radius:0}
+.gdisclaimer{margin-top:10px;font-size:11px;color:var(--grey-light);font-style:italic}
+
+/* tooltip */
+#tip{position:fixed;z-index:50;max-width:320px;background:var(--ink);color:#fff;font-size:11.5px;line-height:1.45;border-radius:8px;padding:10px 12px;pointer-events:none;opacity:0;transition:opacity .12s;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#tip b{color:#9CC3EE}
+#tip.on{opacity:1}
+
+/* ─── summary table ─── */
+.tblwrap{overflow-x:auto}
+table.plan{border-collapse:collapse;width:100%;min-width:980px;font-size:12.5px}
+table.plan th{font-family:var(--disp);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue-dark);background:var(--blue-pale);padding:9px 10px;text-align:left;border:1px solid var(--line);white-space:nowrap}
+table.plan td{padding:9px 10px;border:1px solid var(--line);vertical-align:top}
+table.plan tr:nth-child(even) td{background:var(--blue-paler)}
+table.plan tr.gate-row td{background:var(--red-pale);border-top:2px solid var(--red);font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red)}
+td.num{font-family:var(--mono);font-weight:600;color:var(--blue-dark);white-space:nowrap}
+td.resp,td.quan{white-space:nowrap;color:var(--grey)}
+td.model{font-family:var(--mono);font-size:11px;white-space:nowrap}
+.mm{display:inline-block;border-radius:12px;padding:2px 9px;font-weight:600}
+.mm.opus{background:var(--blue-dark);color:#fff}
+.mm.sonnet{background:var(--blue-pale);color:var(--blue-dark)}
+.mm.haiku{background:var(--green-pale);color:var(--green)}
+.mm.huma{background:var(--amber-pale);color:var(--amber)}
+td.prompt{min-width:260px}
+details.pr summary{cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--blue);list-style:none;display:flex;align-items:center;gap:6px}
+details.pr summary::before{content:'▸';transition:transform .15s}
+details.pr[open] summary::before{transform:rotate(90deg)}
+details.pr .ptext{margin-top:8px;font-family:var(--mono);font-size:10.8px;line-height:1.5;background:#16232E;color:#DCE6EF;border-radius:8px;padding:10px 12px;white-space:pre-wrap;position:relative}
+button.copy{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:9.5px;font-weight:600;background:var(--blue);color:#fff;border:none;border-radius:5px;padding:3px 9px;cursor:pointer}
+button.copy:hover{background:#3d7cc9}
+button.copy.ok{background:var(--green)}
+
+/* ─── deferred strip ─── */
+.defer{display:flex;gap:8px;flex-wrap:wrap}
+.defer span{font-size:11px;color:var(--grey);background:var(--amber-pale);border:1px dashed var(--amber);border-radius:16px;padding:4px 12px}
+.defer span b{color:var(--amber)}
+
+/* ─── footer ─── */
+.pfoot{background:var(--blue-paler);border:1px solid var(--line);border-radius:14px;padding:18px 28px;text-align:center;font-size:11.5px;color:var(--grey-light)}
+.pfoot a{color:var(--blue-dark);font-weight:600;text-decoration:none}
+.pfoot .mono{font-family:var(--mono);font-size:10.5px;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="eyebrow">MotherHacker · CPEgenerator v2 · pla operatiu</div>
+    <h1>Publicar la lliga de lectors</h1>
+    <div class="sub">Complement visual de <b>docs/reader-league-implementation-plan.md</b> — el
+    pòster és el contracte: una tasca entra al pla només si fa certa una de les sis escenes o és
+    bloquejant legal/qualitat. <b>Gate de publicació: pòster complet.</b></div>
+    <div class="metarow">
+      <span class="badge">branca feature/reader-league</span>
+      <span class="badge">decisions d'abast 2026-08-12</span>
+      <span class="badge gate">G4 = publicable · flip = Humbert</span>
+    </div>
+  </div>
+
+  <!-- ══ 1 · contracte del pòster ══ -->
+  <div class="card">
+    <h2><span class="idx">1</span>El contracte: sis escenes → paquets de treball</h2>
+    <div class="note">Cada escena del pòster (<code>docs/media/poster-reader-league.html</code>) ha de ser
+    certa al codi abans de publicar. L'escena 1 ja ho és; la resta són el pla.</div>
+    <div class="scenes">
+      <div class="sc"><div class="n">1 · mission</div><div class="t">Del gargot al carnet</div><div class="d">títol brut → entitats → CPE validat</div><span class="wp done">✅ fet</span></div>
+      <div class="sc"><div class="n">2 · team</div><div class="t">Cinc rols, una firma</div><div class="d">coordinador · especialistes · expert · notari · humà</div><span class="wp todo">WP4</span></div>
+      <div class="sc"><div class="n">3 · game</div><div class="t">Canvia la jugada</div><div class="d">5 accions, màx 3 intents, tot a la traça</div><span class="wp todo">WP4</span></div>
+      <div class="sc"><div class="n">4 · verdict</div><div class="t">Tres registres, tres segells</div><div class="d">NVD · MotherHacker · teu — VALID / NIE / EXCEPTION</div><span class="wp todo">WP2 + WP5</span></div>
+      <div class="sc"><div class="n">5 · learning</div><div class="t">1 resposta, 4 actius</div><div class="d">memòria · exemples · àlies · registre</div><span class="wp todo">WP5</span></div>
+      <div class="sc"><div class="n">6 · payoff</div><div class="t">Cada dia pregunta menys</div><div class="d">mètrica de freqüència de preguntes</div><span class="wp todo">WP5</span></div>
+    </div>
+  </div>
+
+  <!-- ══ 2 · gantt ══ -->
+  <div class="card">
+    <h2><span class="idx">2</span>Seqüència — GANTT relatiu amb gates</h2>
+    <div class="note">Eix en <b>setmanes d'esforç relatiu</b> (S&lt;M&lt;L del pla), no calendari.
+    Passa el ratolí per sobre de barres i gates; clica una barra per anar a la seva fila de la taula.
+    WP2 ∥ WP3 corren en paral·lel després de G1; WP0 no depèn de res: <b>fer-lo primer</b>.</div>
+    <div class="gwrap">
+      <div class="gantt" id="gantt">
+        <div class="grow gaxis"><div class="lbl"></div><div class="track" id="axis"></div></div>
+        <!-- rows are rendered by JS from GDATA -->
+      </div>
+    </div>
+    <div class="glegend">
+      <span><i style="background:var(--green)"></i> legal / repo</span>
+      <span><i style="background:var(--blue)"></i> nucli (codi + docs)</span>
+      <span><i style="background:var(--blue-dark)"></i> benchmark (GPU local)</span>
+      <span><i style="background:var(--amber)"></i> humà (Humbert)</span>
+      <span><i class="dm"></i> gate G1–G4</span>
+    </div>
+    <div class="gdisclaimer">Coll d'ampolla extern únic: les 2–4 h d'anotació de l'Humbert (WP3) — demanar-les
+    només amb la pre-anotació llesta. El run RAW (regal del calabrès) és fora del pla: ajornat post-publicació.</div>
+  </div>
+
+  <!-- ══ 3 · taula resum ══ -->
+  <div class="card">
+    <h2><span class="idx">3</span>Taula resum — pla d'execució</h2>
+    <div class="note">Mateixa estructura que el §10 de l'espec, més dues columnes: <b>model / effort</b>
+    recomanats per a la sessió de treball, i el <b>prompt per arrencar una sessió nova</b> (en anglès,
+    llest per copiar — cada sessió llegeix primer <code>CLAUDE.md</code> i el pla).</div>
+    <div class="tblwrap">
+    <table class="plan">
+      <thead><tr>
+        <th>#</th><th>Acció</th><th>WP</th><th>Resp.</th><th>Quan</th><th>Com es mesura</th><th>Model / effort</th><th>Prompt nova sessió</th>
+      </tr></thead>
+      <tbody>
+        <tr id="row-0">
+          <td class="num">0</td>
+          <td>LICENSE <b>Apache-2.0</b> al root + secció de llicència a README / README_ca</td>
+          <td class="num">WP0</td><td class="resp">Claude</td><td class="quan">immediat, ∥ a tot</td>
+          <td>fitxer al repo; cap «not yet decided»</td>
+          <td class="model"><span class="mm haiku">haiku · low</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP0). Add an Apache-2.0 LICENSE file at the repo root (standard text, copyright 2026 MotherHacker) and update the license sections of README.md and README_ca.md ("not yet decided" → Apache-2.0). Nothing else. Commit on feature/reader-league with the project's author convention (Laia Cabot &lt;laia@motherhacker.me&gt;).<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr id="row-1">
+          <td class="num">1</td>
+          <td>Inventari de neteja: pipeline actual vs heurístiques TFM vs <code>clean()</code> → una funció única</td>
+          <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">primer</td>
+          <td>la taula decideix; secció nova a <code>docs/match-rules.md</code></td>
+          <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 1) and .ideas/reader-league-active-learning-v2.md §2.1. Build the cleaning-heuristics comparison table: current pipeline (titles.py noise filter, normalize_raw/bind_component) vs the 2023 TFM regex/replace heuristics (F:\DEVEL\NEURONA\TFM — read-only) vs clean() from the KGCS playbook. Deliverable: a new section in docs/match-rules.md deciding one single tested cleaning function, with keep / already-covered / discard rationale per heuristic. No matcher code yet.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr id="row-2">
+          <td class="num">2</td>
+          <td>Port <b>clean+Dice+marge</b> al matcher: índex de bigrames, regla de marge, famílies versionades, àlies de vendor; <code>deprecated</code> flag+desempat; <code>part</code> = identitat</td>
+          <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">post #1</td>
+          <td><code>cpegen reclassify</code> al pilot 10k: M2/M4→M1x, arxivat</td>
+          <td class="model"><span class="mm opus">opus · high</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 2) and .ideas/reader-league-active-learning-v2.md §2.2. Implement the clean+Dice+margin lookup in src/cpegen/matcher.py + dictionary.py: symmetric clean(), stdlib bigram Dice, inverted bigram index pre-filter for recall, margin rule over the 2nd candidate, versioned-family hard rule (deterministic version-token check against the title), materialized vendor alias table (coexisting variants). deprecated = flag + tiebreak; part = (vendor, product, part) candidate identity with title-evidence heuristic. Measure with cpegen reclassify on the 10k RAW pilot and archive to data/benchmarks/ with PROVENANCE. Full pytest suite green and offline.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr id="row-3">
+          <td class="num">3</td>
+          <td>Rangs de <b>PlatformConfiguration</b> al snapshot + validació de versió per rangs</td>
+          <td class="num">WP1</td><td class="resp">Claude <small>(build al PC)</small></td><td class="quan">amb #2</td>
+          <td>casos de versió no-extensional resolts al 10k</td>
+          <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 3) and .ideas/reader-league-active-learning-v2.md §2.2 (N10). Extend cpegen dict --build --from-neo4j so the snapshot includes PlatformConfiguration version ranges per vendor:product pair, and add deterministic range-based version validation to the matcher for versions missing from the extensional dictionary. The build runs on the PC against the local KGCS; runtime stays offline (stdlib + snapshot). Tests use a synthetic snapshot fixture — no network, no credentials.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr id="row-4">
+          <td class="num">4</td>
+          <td>Upgrade de <code>search_dictionary</code> de l'agent al lookup nou</td>
+          <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">amb #2</td>
+          <td>pytest verd; contracte de l'eina intacte</td>
+          <td class="model"><span class="mm sonnet">sonnet · low</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP1 step 4). Upgrade the agent tool search_dictionary (src/cpegen/tools.py) to use the new clean+Dice lookup, keeping the tool contract unchanged so agent and pipeline behavior stay compatible. Offline tests with the mock/replay providers.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr class="gate-row"><td colspan="8">◆ G1 — el reclassify del 10k queda arxivat a data/benchmarks/ i dona llum verda a WP2 ∥ WP3</td></tr>
+        <tr id="row-5">
+          <td class="num">5</td>
+          <td>Tres <b>capes de diccionari</b> (NVD / MotherHacker / origen) + columna <code>dictionary_source</code> + esquema NIE</td>
+          <td class="num">WP2</td><td class="resp">Claude</td><td class="quan">post G1, ∥ #6</td>
+          <td>M idèntiques amb només-NVD; desglossament per <code>dictionary_source</code></td>
+          <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP2) and .ideas/reader-league-active-learning-v2.md §3. Implement the three dictionary layers (NVD / MotherHacker community / per-origin custom) with lookup order NVD → MotherHacker → origin and a dictionary_source column (nvd | motherhacker | &lt;origin&gt;) in results and reporting — never new M rules. Define the origin custom-dictionary schema (NIE record: cpe, origin, human identity, timestamp, evidence, motivating titles). No-regression proof: with empty custom layers, existing results and M metrics are identical.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr id="row-6">
+          <td class="num">6</td>
+          <td>Mòdul compartit <code>title_features</code> + mostres estratificades (~70+~30) de rawTFM i rawPC + <b>pre-anotació</b></td>
+          <td class="num">WP3</td><td class="resp">Claude</td><td class="quan">post G1, ∥ #5</td>
+          <td>dues cues pre-anotades llestes per a l'humà</td>
+          <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP3) and .ideas/reader-league-active-learning-v2.md §4 + §8.1. Implement the shared title_features module (parentheses, arch/locale tokens, alias-table vendor, versioned family, length, numeric tokens, direct Dice &gt; 0.85) — it will be reused by the trace schema and the future router. Then build stratified samples (~70 random + ~30 hard) for rawTFM (the 90,066 prepared titles) and rawPC (cpegen inventory) and pre-annotate both. Everything derived from real inventories stays out of git; register both golds as pending-freeze in docs/dataset-catalog.md. Output: annotation-ready CSV queues for Humbert.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr id="row-7">
+          <td class="num">7</td>
+          <td><b>Anotar i congelar</b> els dos golds de mesura (~100 c/u) + alta al catàleg amb PROVENANCE</td>
+          <td class="num">WP3</td><td class="resp">Humbert</td><td class="quan">2–4 h</td>
+          <td>golds congelats = jurat per origen</td>
+          <td class="model"><span class="mm huma">humà</span> <span class="mm sonnet">sonnet · low</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Assist my annotation session. Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP3). Serve me the pre-annotated gold-rawTFM and gold-rawPC queues case by case, record my verdicts with my identity, freeze both golds (~100 each), and register them in docs/dataset-catalog.md with PROVENANCE (sampling method, seed, annotator, date). The golds stay out of git; only metrics + PROVENANCE are versioned.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr class="gate-row"><td colspan="8">◆ G2 — existeix jurat congelat amb títols reals per a cada origen</td></tr>
+        <tr id="row-8">
+          <td class="num">8</td>
+          <td><b>Benchmark 3 braços</b> per origen: single / per-field / single+hints → decideix l'expert</td>
+          <td class="num">WP4</td><td class="resp">Claude + GPU</td><td class="quan">post G2</td>
+          <td>arxivat amb PROVENANCE; decisió d'expert amb evidència</td>
+          <td class="model"><span class="mm sonnet">sonnet · low</span> <small>+ LM Studio local</small></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP4 step 1). Run the per-origin 3-arm benchmark — single / per-field / single+hints — on the frozen gold-rawTFM and gold-rawPC with cpegen bench and the native lmstudio provider (reasoning off, temperature 0). Archive each run to data/benchmarks/ with PROVENANCE and write a summary: which expert configuration the evidence picks per origin under the lexicographic criterion (exact CPE first, cost as tiebreak). This also re-tries per-field on real titles (falsifiable prediction: it loses on product boundaries).<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr id="row-9">
+          <td class="num">9</td>
+          <td><b>Equip únic</b>: coordinador de codi (pre-validació compartida amb el notari, accions 1–5, màx 3 it.) + expert + especialistes amb abast declarat + traça completa</td>
+          <td class="num">WP4</td><td class="resp">Claude</td><td class="quan">post #8</td>
+          <td>iguala o guanya el braç guanyador (criteri lexicogràfic)</td>
+          <td class="model"><span class="mm opus">opus · high</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP4 step 2) and .ideas/reader-league-active-learning-v2.md §5–§6 + §8.1. Implement the single-team architecture: code coordinator with try-mode pre-validation that IMPORTS the notary's functions (bind_and_validate, classify_match — shared code, never a copy; add a test that pins this), actions 1–5 (clean, kgcs, reorder, switch reader model, escalate to expert), max 3 iterations; expert = one LLM call arbitrating all proposals; deterministic specialists with declared scope over CPE components; full per-attempt trace (spec §8.1 schema, reusing the shared title_features module). The 1.7b fast pass is untouched — the team lives on the escalation queue. Benchmark against the winning arm from the 3-arm benchmark; DoD: match or beat it lexicographically, with per-title accounting.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr class="gate-row"><td colspan="8">◆ G3 — l'equip venç el seu braç de referència amb comptabilitat per títol</td></tr>
+        <tr id="row-10">
+          <td class="num">10</td>
+          <td><code>cpegen review</code>: cua prioritzada, veredictes amb identitat, <b>cerimònia NIE</b>, 4 actius, <code>exception</code>, mètrica de salut</td>
+          <td class="num">WP5</td><td class="resp">Claude</td><td class="quan">post G3</td>
+          <td>cicle end-to-end al pilot 10k; corba de preguntes reportada</td>
+          <td class="model"><span class="mm opus">opus · medium</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP5) and .ideas/reader-league-active-learning-v2.md §6.3–§7. Implement cpegen review: needs_review queue prioritized by frequency × uncertainty (flat CSV, offline), measurable triggers (Dice margin, specialist↔expert disagreement, M4 or narrow M2, versioned family without validatable version), identified human verdicts (confirm / correct / NIE / exception), the human+notary NIE ceremony writing to the origin custom dictionary, the four-asset fan-out (origin train set, confirmed-resolutions cache, vendor aliases, custom dictionary), and the questions-per-volume health metric in reporting. Demonstrate the full cycle end-to-end on the 10k pilot queue with dictionary_source = rawTFM.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr id="row-11">
+          <td class="num">11</td>
+          <td><b>Tancament</b>: docs⇄codi, pytest complet offline, out-of-the-box, privacitat, decisió del gold publicable, ROADMAP al dia</td>
+          <td class="num">WP6</td><td class="resp">Claude + Humbert</td><td class="quan">final</td>
+          <td>checklist G4 complet (§6 del pla)</td>
+          <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP6 + §6 checklist). Publication closure: sync all docs with the code (the README stops presenting the architecture as "vision"), run the full offline pytest suite, verify out-of-the-box (clone → pytest → replay demo on the synthetic sample), privacy re-check (tree diff vs the 2026-08-10 audit; no real-inventory data in git), surface the publishable-distilled-gold decision to Humbert (yes with PROVENANCE, or a documented no in the README), and update ROADMAP + Decisions. Output: the G4 checklist all green. The visibility flip stays with Humbert.<button class="copy">copy</button></div></details></td>
+        </tr>
+        <tr class="gate-row"><td colspan="8">◆ G4 — publicable: el pòster descriu codi, no intencions · flip de visibilitat = Humbert</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ══ 4 · fora del pla ══ -->
+  <div class="card">
+    <h2><span class="idx">4</span>Fora del pla (ajornat amb motiu — §4 del pla md)</h2>
+    <div class="defer">
+      <span><b>Run RAW + vulns + rèplica laptop</b> — el regal del calabrès, post-publicació</span>
+      <span><b>Fase 1</b> — braç A (NER 2023) a eventual paper</span>
+      <span><b>Fase 5</b> — tancada per subsumpció</span>
+      <span><b>Fase 8</b> — fine-tune de domini</span>
+      <span><b>9.7</b> — política apresa (l'esquema de traça SÍ entra)</span>
+      <span><b>9.8</b> — la lliga competitiva</span>
+      <span><b>Matriu E-oficial/comunitat/custom</b> — en queda el desglossament</span>
+      <span><b>Tanda v_SoftwareProduct 570k</b> — va amb el run RAW</span>
+    </div>
+  </div>
+
+  <div class="pfoot">
+    <div>Complement visual del pla — la font de veritat operativa és
+    <a href="../reader-league-implementation-plan.md">docs/reader-league-implementation-plan.md</a>;
+    si divergeixen, mana <a href="../../ROADMAP.md">ROADMAP.md</a>.
+    Contracte: <a href="poster-reader-league.html">el pòster</a>.</div>
+    <div class="mono">CPEgenerator v2 · MotherHacker · github.com/motherhack3r/cpegenerator</div>
+    <div style="margin-top:6px"><a href="index.html">↩ media index</a></div>
+  </div>
+
+</div>
+
+<div id="tip"></div>
+
+<script>
+// ── Gantt data: weeks are relative effort, 0..9 ──
+const GDATA = [
+  {lbl:'WP0 · LICENSE', sub:'legal', cls:'legal', s:0, e:0.5, row:'row-0',
+   tip:'<b>WP0 — Desbloqueig legal (S)</b><br>LICENSE Apache-2.0 + README. No depèn de res: fer-ho primer. Desbloqueja G4.'},
+  {lbl:'WP1 · matcher', sub:'clean+Dice', cls:'core', s:0, e:3, row:'row-2',
+   tip:'<b>WP1 — Canonicalització (L)</b><br>#0 inventari de neteja · #1 port clean+Dice+marge · #2 rangs al snapshot · #3 upgrade agent.<br>Mesura: reclassify 10k (M2/M4→M1x), zero GPU.'},
+  {lbl:'WP2 · diccionaris', sub:'3 capes', cls:'core', s:3, e:4.5, row:'row-5',
+   tip:'<b>WP2 — Capes de diccionari (M)</b><br>NVD / MotherHacker / origen + dictionary_source + esquema NIE.<br>Mesura: no-regressió amb només-NVD.'},
+  {lbl:'WP3 · golds', sub:'∥ WP2 · +Humbert 2–4h', cls:'core', s:3, e:4.5, row:'row-6',
+   tip:'<b>WP3 — Golds per origen (M)</b><br>title_features compartit + mostres estratificades + pre-anotació.<br>★ Humbert: 2–4 h d\u2019anotació al final.', star:4.2},
+  {lbl:'WP4a · benchmark', sub:'GPU local', cls:'gpu', s:4.5, e:5.5, row:'row-8',
+   tip:'<b>WP4.1 — Benchmark 3 braços (GPU hores)</b><br>single / per-field / single+hints per origen → decideix l\u2019expert amb evidència.'},
+  {lbl:'WP4b · equip únic', sub:'coordinador+expert', cls:'core', s:5.5, e:7, row:'row-9',
+   tip:'<b>WP4.2 — Equip únic (L)</b><br>Coordinador de codi (pre-validació compartida, accions 1–5, màx 3 it.) + expert + traça completa.<br>DoD: venç el braç guanyador.'},
+  {lbl:'WP5 · bucle humà', sub:'review+NIE', cls:'core', s:7, e:8, row:'row-10',
+   tip:'<b>WP5 — Review + NIE + 4 actius (M)</b><br>Cua prioritzada, identitat, cerimònia NIE, exception, mètrica de salut.<br>Les escenes 4–6 es tanquen aquí.'},
+  {lbl:'WP6 · tancament', sub:'checklist G4', cls:'legal', s:8, e:9, row:'row-11',
+   tip:'<b>WP6 — Tancament (M)</b><br>Docs⇄codi, pytest, out-of-the-box, privacitat, decisió del gold publicable, ROADMAP.<br>G4 = publicable; flip = Humbert.'}
+];
+const GATES = [
+  {x:3,   n:'G1', tip:'<b>G1</b> — reclassify del 10k arxivat: llum verda a WP2 ∥ WP3 (i, quan es reprengui, al run RAW).'},
+  {x:4.5, n:'G2', tip:'<b>G2</b> — jurat congelat per origen (gold-rawTFM + gold-rawPC).'},
+  {x:7,   n:'G3', tip:'<b>G3</b> — l\u2019equip iguala o venç el seu braç de referència.'},
+  {x:9,   n:'G4', tip:'<b>G4</b> — publicable: checklist §6 complet. El flip de visibilitat és de l\u2019Humbert.'}
+];
+const WEEKS = 9;
+const pct = w => (w/WEEKS*100).toFixed(3)+'%';
+
+const gantt = document.getElementById('gantt');
+const axis  = document.getElementById('axis');
+for(let w=0; w<=WEEKS; w++){
+  const l=document.createElement('span');l.className='axis-lbl';l.style.left=pct(w);l.textContent='s'+w;axis.appendChild(l);
+}
+GDATA.forEach(d=>{
+  const row=document.createElement('div');row.className='grow';
+  const lbl=document.createElement('div');lbl.className='lbl';lbl.innerHTML=d.lbl+'<small>'+d.sub+'</small>';
+  const tr=document.createElement('div');tr.className='track';
+  const gl=document.createElement('div');gl.className='gridlines';
+  for(let w=1;w<=WEEKS;w++){const i=document.createElement('i');i.style.left=pct(w);gl.appendChild(i);}
+  tr.appendChild(gl);
+  const bar=document.createElement('div');bar.className='bar '+d.cls;
+  bar.style.left=pct(d.s);bar.style.width=pct(d.e-d.s);
+  bar.dataset.tip=d.tip;
+  bar.addEventListener('click',()=>{const t=document.getElementById(d.row);if(t){t.scrollIntoView({behavior:'smooth',block:'center'});t.style.outline='2px solid var(--blue)';setTimeout(()=>t.style.outline='',1800);}});
+  const bl=document.createElement('span');bl.className='blabel';bl.textContent=d.lbl.split('·')[0].trim();bar.appendChild(bl);
+  tr.appendChild(bar);
+  if(d.star){const st=document.createElement('span');st.textContent='★';st.style.cssText='position:absolute;top:2px;left:'+pct(d.star)+';color:var(--amber);font-size:13px;z-index:2;cursor:default';st.dataset.tip='<b>Humbert</b> — 2–4 h d\u2019anotació (única dependència de calendari externa).';tr.appendChild(st);}
+  row.appendChild(lbl);row.appendChild(tr);gantt.appendChild(row);
+});
+// gates row
+const grow=document.createElement('div');grow.className='grow';
+const glbl=document.createElement('div');glbl.className='lbl';glbl.innerHTML='Gates<small>fites de decisió</small>';
+const gtr=document.createElement('div');gtr.className='track';
+const ggl=document.createElement('div');ggl.className='gridlines';
+for(let w=1;w<=WEEKS;w++){const i=document.createElement('i');i.style.left=pct(w);ggl.appendChild(i);}
+gtr.appendChild(ggl);
+GATES.forEach(g=>{
+  const d=document.createElement('div');d.className='gate-d';d.style.left=pct(g.x);d.dataset.tip=g.tip;gtr.appendChild(d);
+  const l=document.createElement('span');l.className='gate-lbl';l.style.left=pct(g.x);l.textContent=g.n;gtr.appendChild(l);
+});
+grow.appendChild(glbl);grow.appendChild(gtr);gantt.appendChild(grow);
+
+// ── tooltip ──
+const tip=document.getElementById('tip');
+document.addEventListener('mouseover',e=>{
+  const t=e.target.closest('[data-tip]');
+  if(t){tip.innerHTML=t.dataset.tip;tip.classList.add('on');}
+  else tip.classList.remove('on');
+});
+document.addEventListener('mousemove',e=>{
+  if(!tip.classList.contains('on'))return;
+  const pad=14;let x=e.clientX+pad,y=e.clientY+pad;
+  const r=tip.getBoundingClientRect();
+  if(x+r.width>window.innerWidth-8)x=e.clientX-r.width-pad;
+  if(y+r.height>window.innerHeight-8)y=e.clientY-r.height-pad;
+  tip.style.left=x+'px';tip.style.top=y+'px';
+});
+
+// ── copy buttons ──
+document.querySelectorAll('button.copy').forEach(btn=>{
+  btn.addEventListener('click',ev=>{
+    ev.preventDefault();
+    const box=btn.parentElement;
+    const txt=box.textContent.replace(/copy$|copiat ✓$/,'').trim();
+    const done=()=>{btn.textContent='copiat ✓';btn.classList.add('ok');setTimeout(()=>{btn.textContent='copy';btn.classList.remove('ok');},1600);};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done).catch(()=>{fallback(txt);done();});}
+    else{fallback(txt);done();}
+    function fallback(t){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
+  });
+});
+</script>
+</body>
+</html>
