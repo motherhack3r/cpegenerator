@@ -102,6 +102,11 @@ desglossament per `dictionary_source` al reporting.
   90.066 títols únics de la prep del 2026-08-05; `rawPC`: `cpegen inventory`.
   **No cal el run RAW**: l'estratificació (~70 aleatoris + ~30 durs) surt de
   features deterministes del títol, i el pilot 10k dona el senyal de duresa.
+- Les features d'estratificació s'implementen com a **mòdul compartit
+  `title_features`** (parèntesis, tokens arch/locale, vendor a la taula
+  d'àlies, família versionada, longitud, tokens numèrics, Dice directe >
+  0.85 — espec §8.1): són exactament les mateixes de la traça (WP4) i del
+  futur router (9.7). S'escriuen i es testegen **un cop**, aquí.
 - Pre-anotació (Claude) → anotació i congelació (~100 c/u, **Humbert, 2–4 h**)
   → alta a `docs/dataset-catalog.md` (§5). Fora de git; mètriques + PROVENANCE
   versionades.
@@ -118,8 +123,20 @@ desglossament per `dictionary_source` al reporting.
    mode assaig; accions 1–5: neteja, kgcs, reordre, canvi de model, escalat a
    l'expert; màx 3 iteracions) + expert (una crida LLM que arbitra) +
    especialistes per defecte deterministes + **traça completa per intent**
-   (esquema espec §8.1) — el "tot queda registrat" de l'escena 3.
+   (esquema espec §8.1, amb les `title_features` del mòdul compartit de WP3) —
+   el "tot queda registrat" de l'escena 3.
    La passada ràpida 1.7b no es toca: l'equip viu al tram d'escalat.
+
+Dues restriccions de disseny de l'espec que són DoD, no suggeriment:
+
+- **Codi compartit, no còpia** (espec §6.2): la pre-validació del coordinador
+  importa les mateixes funcions que el notari (`bind_and_validate`,
+  `classify_match`) — mai una reimplementació. Test que ho fixi: si divergeixen,
+  el "mode assaig" mentiria sobre el veredicte final.
+- **Abast declarat de l'especialista** (espec §5.1, N6): la interfície declara
+  sobre quins components CPE proposa (`vendor`/`product`/`version`, ampliable a
+  `part`/`update`/`target_sw`) i el flag `kgcs`. Afegir un especialista nou més
+  endavant és donar-lo d'alta, no refactoritzar el coordinador.
 
 **Mesura**: benchmark de l'equip contra el braç guanyador de #7, amb
 comptabilitat per títol (crides, tokens, iteracions, latència, models).
@@ -152,6 +169,13 @@ NIE/confirmació → reclassify amb `dictionary_source = rawTFM`).
   clone → pytest → demo `replay` amb la mostra sintètica.
 - Re-check de privacitat: diff de l'arbre des de l'auditoria del 2026-08-10;
   confirmar que cap gold/train per origen és a git.
+- **Decisió pendent a prendre aquí (espec §4, "decisió separada"): el gold
+  publicable** — un subset destil·lat de software genèric dels golds per
+  origen, perquè tercers puguin reproduir alguna mesura amb títols reals.
+  Sense ell, cap benchmark amb títols reals del repo públic és reproduïble
+  per la comunitat (els golds per origen són privats per construcció). No
+  bloqueja el build; sí que toca la credibilitat del "publicable". Si es
+  descarta, el README ho ha de dir i explicar el perquè.
 - ROADMAP i Decisions al dia.
 
 **DoD**: checklist del §6 completa. → **GATE G4: publicable**.
@@ -217,6 +241,8 @@ WP3 — la pre-anotació ha d'estar llesta abans de demanar-les.
 - [ ] Out-of-the-box: clone → pytest → demo replay amb mostra sintètica
 - [ ] Re-check de privacitat (diff des de l'auditoria 2026-08-10); cap dada
       d'inventari real a git
+- [ ] Decisió presa sobre el gold publicable destil·lat (sí amb PROVENANCE,
+      o no amb el motiu al README)
 - [ ] ROADMAP, Decisions i docs sincronitzats amb el codi
 
 El flip de visibilitat (Settings → public) és de l'Humbert, quan vulgui,
