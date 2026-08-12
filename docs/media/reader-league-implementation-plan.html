@@ -82,7 +82,7 @@ body{font-family:var(--sans);color:var(--ink);background:#EDF2F7;line-height:1.5
 
 /* ─── summary table ─── */
 .tblwrap{overflow-x:auto}
-table.plan{border-collapse:collapse;width:100%;min-width:980px;font-size:12.5px}
+table.plan{border-collapse:collapse;width:100%;min-width:1150px;font-size:12.5px}
 table.plan th{font-family:var(--disp);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue-dark);background:var(--blue-pale);padding:9px 10px;text-align:left;border:1px solid var(--line);white-space:nowrap}
 table.plan td{padding:9px 10px;border:1px solid var(--line);vertical-align:top}
 table.plan tr:nth-child(even) td{background:var(--blue-paler)}
@@ -95,6 +95,8 @@ td.model{font-family:var(--mono);font-size:11px;white-space:nowrap}
 .mm.sonnet{background:var(--blue-pale);color:var(--blue-dark)}
 .mm.haiku{background:var(--green-pale);color:var(--green)}
 .mm.huma{background:var(--amber-pale);color:var(--amber)}
+.mm.loc{background:#16232E;color:#9CC3EE}
+td.model .sub{display:block;white-space:normal;max-width:170px;font-family:var(--sans);font-size:10px;color:var(--grey-light);margin-top:4px;line-height:1.35}
 td.prompt{min-width:260px}
 details.pr summary{cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--blue);list-style:none;display:flex;align-items:center;gap:6px}
 details.pr summary::before{content:'▸';transition:transform .15s}
@@ -172,13 +174,22 @@ button.copy.ok{background:var(--green)}
   <!-- ══ 3 · taula resum ══ -->
   <div class="card">
     <h2><span class="idx">3</span>Taula resum — pla d'execució</h2>
-    <div class="note">Mateixa estructura que el §10 de l'espec, més dues columnes: <b>model / effort</b>
-    recomanats per a la sessió de treball, i el <b>prompt per arrencar una sessió nova</b> (en anglès,
-    llest per copiar — cada sessió llegeix primer <code>CLAUDE.md</code> i el pla).</div>
+    <div class="note">Mateixa estructura que el §10 de l'espec, més tres columnes: <b>model / effort</b>
+    recomanats per a la sessió Claude, <b>model local</b> i el(s) <b>prompt(s) per arrencar una sessió
+    nova</b> (en anglès, llests per copiar — cada sessió llegeix primer <code>CLAUDE.md</code> i el pla).<br><br>
+    <b>Model local</b> — recomanació fonamentada al catàleg real (<code>out/model_catalog.md</code>, dump
+    2026-08-05, 88 entrades): <code>google/gemma-4-12b-qat</code> (12B QAT, 7,2 GB, ctx 262k, tool ✓)
+    com a agent de qualitat i amb bon català per a docs; <code>qwen3-4b-instruct-2507</code> (2,5 GB,
+    ctx 262k, tool ✓) per a feina mecànica ràpida. El <code>qwen3-8b</code> és el millor <i>extractor</i>
+    del benchmark (837/1000) però el seu ctx de 32k el descarta com a agent de codi — el seu lloc és el
+    pipeline. On el prompt de Claude no serveix tal qual per a un model local, hi ha un <b>segon prompt
+    local</b>: sempre un subconjunt acotat i segur del pas (funcions pures, mecànica, un sol fitxer);
+    el nucli delicat (port del matcher, coordinador) queda per a Claude — o per a local només amb revisió
+    humana per diff.</div>
     <div class="tblwrap">
     <table class="plan">
       <thead><tr>
-        <th>#</th><th>Acció</th><th>WP</th><th>Resp.</th><th>Quan</th><th>Com es mesura</th><th>Model / effort</th><th>Prompt nova sessió</th>
+        <th>#</th><th>Acció</th><th>WP</th><th>Resp.</th><th>Quan</th><th>Com es mesura</th><th>Model / effort</th><th>Model local</th><th>Prompt nova sessió</th>
       </tr></thead>
       <tbody>
         <tr id="row-0">
@@ -187,7 +198,8 @@ button.copy.ok{background:var(--green)}
           <td class="num">WP0</td><td class="resp">Claude</td><td class="quan">immediat, ∥ a tot</td>
           <td>fitxer al repo; cap «not yet decided»</td>
           <td class="model"><span class="mm haiku">haiku · low</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP0). Add an Apache-2.0 LICENSE file at the repo root (standard text, copyright 2026 MotherHacker) and update the license sections of README.md and README_ca.md ("not yet decided" → Apache-2.0). Nothing else. Commit on feature/reader-league with the project's author convention (Laia Cabot &lt;laia@motherhacker.me&gt;).<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">qwen3-4b-instruct-2507</span><span class="sub">mateix prompt</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP0). Add an Apache-2.0 LICENSE file at the repo root (standard text, copyright 2026 MotherHacker) and update the license sections of README.md and README_ca.md ("not yet decided" → Apache-2.0). Nothing else. Commit on feature/reader-league with the project's author convention (Laia Cabot &lt;laia@motherhacker.me&gt;).<button class="copy">copy</button></div></details></td>
         </tr>
         <tr id="row-1">
           <td class="num">1</td>
@@ -195,7 +207,8 @@ button.copy.ok{background:var(--green)}
           <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">primer</td>
           <td>la taula decideix; secció nova a <code>docs/match-rules.md</code></td>
           <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 1) and .ideas/reader-league-active-learning-v2.md §2.1. Build the cleaning-heuristics comparison table: current pipeline (titles.py noise filter, normalize_raw/bind_component) vs the 2023 TFM regex/replace heuristics (F:\DEVEL\NEURONA\TFM — read-only) vs clean() from the KGCS playbook. Deliverable: a new section in docs/match-rules.md deciding one single tested cleaning function, with keep / already-covered / discard rationale per heuristic. No matcher code yet.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">ctx 262k per llegir el TFM vell; el doc surt en CA — prompt local propi</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 1) and .ideas/reader-league-active-learning-v2.md §2.1. Build the cleaning-heuristics comparison table: current pipeline (titles.py noise filter, normalize_raw/bind_component) vs the 2023 TFM regex/replace heuristics (F:\DEVEL\NEURONA\TFM — read-only) vs clean() from the KGCS playbook. Deliverable: a new section in docs/match-rules.md deciding one single tested cleaning function, with keep / already-covered / discard rationale per heuristic. No matcher code yet.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local</summary><div class="ptext">Task scope: ONE file — docs/match-rules.md. Add a new section "Inventari de neteja" (write it in Catalan). Compare three cleaning approaches: (1) current pipeline — read src/cpegen/titles.py (noise filter) and the normalize_raw/bind_component functions; (2) the 2023 TFM regex/replace title-cleaning heuristics in F:\DEVEL\NEURONA\TFM (READ-ONLY, never modify anything there); (3) clean() = lowercase + strip all non-alphanumeric characters. Output: one markdown table, one row per heuristic, columns: heuristic | source | covered by clean()? | keep/discard | reason. End the section with the exact signature of the single cleaning function to implement. Do not touch any other file. Do not write code.<button class="copy">copy</button></div></details></td>
         </tr>
         <tr id="row-2">
           <td class="num">2</td>
@@ -203,7 +216,8 @@ button.copy.ok{background:var(--green)}
           <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">post #1</td>
           <td><code>cpegen reclassify</code> al pilot 10k: M2/M4→M1x, arxivat</td>
           <td class="model"><span class="mm opus">opus · high</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 2) and .ideas/reader-league-active-learning-v2.md §2.2. Implement the clean+Dice+margin lookup in src/cpegen/matcher.py + dictionary.py: symmetric clean(), stdlib bigram Dice, inverted bigram index pre-filter for recall, margin rule over the 2nd candidate, versioned-family hard rule (deterministic version-token check against the title), materialized vendor alias table (coexisting variants). deprecated = flag + tiebreak; part = (vendor, product, part) candidate identity with title-evidence heuristic. Measure with cpegen reclassify on the 10k RAW pilot and archive to data/benchmarks/ with PROVENANCE. Full pytest suite green and offline.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">gemma-4-12b-qat ⚠</span><span class="sub">només el subset pur (textnorm + tests) amb revisió per diff; la integració al matcher és de Claude</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 2) and .ideas/reader-league-active-learning-v2.md §2.2. Implement the clean+Dice+margin lookup in src/cpegen/matcher.py + dictionary.py: symmetric clean(), stdlib bigram Dice, inverted bigram index pre-filter for recall, margin rule over the 2nd candidate, versioned-family hard rule (deterministic version-token check against the title), materialized vendor alias table (coexisting variants). deprecated = flag + tiebreak; part = (vendor, product, part) candidate identity with title-evidence heuristic. Measure with cpegen reclassify on the 10k RAW pilot and archive to data/benchmarks/ with PROVENANCE. Full pytest suite green and offline.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task — pure functions + tests ONLY, no integration. Create src/cpegen/textnorm.py with: clean(s) (lowercase, strip all non-alphanumeric), dice(a, b) (Sorensen-Dice over character bigrams, 0..1), and a BigramIndex class (inverted index bigram → candidate ids, method candidates(query, min_shared=2)). Python 3.10 stdlib only, type hints, English docstrings. Create tests/test_textnorm.py with pytest cases: clean('Schneider-Electric') == clean('schneider_electric'); dice is symmetric; dice('sqlserver2019','sqlserver2017') &gt; 0.9 (the family trap must stay visible); escaped CPE values equal their raw form after clean; empty and 1-char inputs. Run pytest tests/test_textnorm.py until green. Touch NOTHING else — integrating this into matcher.py is a separate task for another session.<button class="copy">copy</button></div></details></td>
         </tr>
         <tr id="row-3">
           <td class="num">3</td>
@@ -211,7 +225,8 @@ button.copy.ok{background:var(--green)}
           <td class="num">WP1</td><td class="resp">Claude <small>(build al PC)</small></td><td class="quan">amb #2</td>
           <td>casos de versió no-extensional resolts al 10k</td>
           <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 3) and .ideas/reader-league-active-learning-v2.md §2.2 (N10). Extend cpegen dict --build --from-neo4j so the snapshot includes PlatformConfiguration version ranges per vendor:product pair, and add deterministic range-based version validation to the matcher for versions missing from the extensional dictionary. The build runs on the PC against the local KGCS; runtime stays offline (stdlib + snapshot). Tests use a synthetic snapshot fixture — no network, no credentials.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">subset acotat (builder + funció de rangs); prompt local propi</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 3) and .ideas/reader-league-active-learning-v2.md §2.2 (N10). Extend cpegen dict --build --from-neo4j so the snapshot includes PlatformConfiguration version ranges per vendor:product pair, and add deterministic range-based version validation to the matcher for versions missing from the extensional dictionary. The build runs on the PC against the local KGCS; runtime stays offline (stdlib + snapshot). Tests use a synthetic snapshot fixture — no network, no credentials.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task: extend the snapshot builder. In src/cpegen/dictionary.py, the build path (cpegen dict --build --from-neo4j) reads Platform nodes. Add per-pair version ranges: for each vendor:product pair, collect PlatformConfiguration ranges (versionStartIncluding/Excluding, versionEndIncluding/Excluding) into the snapshot JSONL record under a 'ranges' key. Add a pure function version_in_ranges(version, ranges) -&gt; bool with deterministic, numeric-aware comparison (handle padding: '6.00' vs '6.0'). Tests with a synthetic snapshot fixture — no network, no credentials. Do NOT change any matcher decision logic in this task.<button class="copy">copy</button></div></details></td>
         </tr>
         <tr id="row-4">
           <td class="num">4</td>
@@ -219,16 +234,18 @@ button.copy.ok{background:var(--green)}
           <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">amb #2</td>
           <td>pytest verd; contracte de l'eina intacte</td>
           <td class="model"><span class="mm sonnet">sonnet · low</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP1 step 4). Upgrade the agent tool search_dictionary (src/cpegen/tools.py) to use the new clean+Dice lookup, keeping the tool contract unchanged so agent and pipeline behavior stay compatible. Offline tests with the mock/replay providers.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">qwen3-4b-instruct-2507</span><span class="sub">mateix prompt (canvi petit i acotat)</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP1 step 4). Upgrade the agent tool search_dictionary (src/cpegen/tools.py) to use the new clean+Dice lookup, keeping the tool contract unchanged so agent and pipeline behavior stay compatible. Offline tests with the mock/replay providers.<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr class="gate-row"><td colspan="8">◆ G1 — el reclassify del 10k queda arxivat a data/benchmarks/ i dona llum verda a WP2 ∥ WP3</td></tr>
+        <tr class="gate-row"><td colspan="9">◆ G1 — el reclassify del 10k queda arxivat a data/benchmarks/ i dona llum verda a WP2 ∥ WP3</td></tr>
         <tr id="row-5">
           <td class="num">5</td>
           <td>Tres <b>capes de diccionari</b> (NVD / MotherHacker / origen) + columna <code>dictionary_source</code> + esquema NIE</td>
           <td class="num">WP2</td><td class="resp">Claude</td><td class="quan">post G1, ∥ #6</td>
           <td>M idèntiques amb només-NVD; desglossament per <code>dictionary_source</code></td>
           <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP2) and .ideas/reader-league-active-learning-v2.md §3. Implement the three dictionary layers (NVD / MotherHacker community / per-origin custom) with lookup order NVD → MotherHacker → origin and a dictionary_source column (nvd | motherhacker | &lt;origin&gt;) in results and reporting — never new M rules. Define the origin custom-dictionary schema (NIE record: cpe, origin, human identity, timestamp, evidence, motivating titles). No-regression proof: with empty custom layers, existing results and M metrics are identical.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">subset acotat (capes + regressió); prompt local propi</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP2) and .ideas/reader-league-active-learning-v2.md §3. Implement the three dictionary layers (NVD / MotherHacker community / per-origin custom) with lookup order NVD → MotherHacker → origin and a dictionary_source column (nvd | motherhacker | &lt;origin&gt;) in results and reporting — never new M rules. Define the origin custom-dictionary schema (NIE record: cpe, origin, human identity, timestamp, evidence, motivating titles). No-regression proof: with empty custom layers, existing results and M metrics are identical.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task: dictionary layering. In src/cpegen/dictionary.py add a LayeredDictionary that consults, in order: the NVD snapshot, a MotherHacker custom JSONL, and a per-origin custom JSONL, returning candidates tagged with dictionary_source ('nvd' | 'motherhacker' | origin name). Custom record schema: {cpe, origin, human_id, timestamp, evidence, titles}. Add a dictionary_source column to the results CSV. Hard constraint: with no custom files present, output must be byte-identical to today — add a regression test that asserts exactly this. Do NOT touch the M1-M4 rules.<button class="copy">copy</button></div></details></td>
         </tr>
         <tr id="row-6">
           <td class="num">6</td>
@@ -236,7 +253,8 @@ button.copy.ok{background:var(--green)}
           <td class="num">WP3</td><td class="resp">Claude</td><td class="quan">post G1, ∥ #5</td>
           <td>dues cues pre-anotades llestes per a l'humà</td>
           <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP3) and .ideas/reader-league-active-learning-v2.md §4 + §8.1. Implement the shared title_features module (parentheses, arch/locale tokens, alias-table vendor, versioned family, length, numeric tokens, direct Dice &gt; 0.85) — it will be reused by the trace schema and the future router. Then build stratified samples (~70 random + ~30 hard) for rawTFM (the 90,066 prepared titles) and rawPC (cpegen inventory) and pre-annotate both. Everything derived from real inventories stays out of git; register both golds as pending-freeze in docs/dataset-catalog.md. Output: annotation-ready CSV queues for Humbert.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">features+mostreig; la pre-anotació la fa el pipeline amb <b>qwen3-8b</b> (837/1000)</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP3) and .ideas/reader-league-active-learning-v2.md §4 + §8.1. Implement the shared title_features module (parentheses, arch/locale tokens, alias-table vendor, versioned family, length, numeric tokens, direct Dice &gt; 0.85) — it will be reused by the trace schema and the future router. Then build stratified samples (~70 random + ~30 hard) for rawTFM (the 90,066 prepared titles) and rawPC (cpegen inventory) and pre-annotate both. Everything derived from real inventories stays out of git; register both golds as pending-freeze in docs/dataset-catalog.md. Output: annotation-ready CSV queues for Humbert.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task: title features + stratified sampling only. Create src/cpegen/title_features.py: features(title) -&gt; dict with has_parens, has_arch_locale_tokens, vendor_in_alias_table, versioned_family, length, n_numeric_tokens, direct_dice_ge_085. Then a sampling routine: from a titles CSV, draw ~70 random + ~30 hard rows (hard = versioned_family, driver/OEM tokens, non-ASCII, or arch/locale tokens), fixed seed, writing an annotation CSV with the feature columns. Everything offline; pytest cases for features() with synthetic titles. Pre-annotation is NOT this task — it runs separately via cpegen with the local dictionary and qwen3-8b.<button class="copy">copy</button></div></details></td>
         </tr>
         <tr id="row-7">
           <td class="num">7</td>
@@ -244,16 +262,18 @@ button.copy.ok{background:var(--green)}
           <td class="num">WP3</td><td class="resp">Humbert</td><td class="quan">2–4 h</td>
           <td>golds congelats = jurat per origen</td>
           <td class="model"><span class="mm huma">humà</span> <span class="mm sonnet">sonnet · low</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Assist my annotation session. Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP3). Serve me the pre-annotated gold-rawTFM and gold-rawPC queues case by case, record my verdicts with my identity, freeze both golds (~100 each), and register them in docs/dataset-catalog.md with PROVENANCE (sampling method, seed, annotator, date). The golds stay out of git; only metrics + PROVENANCE are versioned.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">qwen3-8b</span><span class="sub">assistent de xat de la sessió d'anotació; mateix prompt</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Assist my annotation session. Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP3). Serve me the pre-annotated gold-rawTFM and gold-rawPC queues case by case, record my verdicts with my identity, freeze both golds (~100 each), and register them in docs/dataset-catalog.md with PROVENANCE (sampling method, seed, annotator, date). The golds stay out of git; only metrics + PROVENANCE are versioned.<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr class="gate-row"><td colspan="8">◆ G2 — existeix jurat congelat amb títols reals per a cada origen</td></tr>
+        <tr class="gate-row"><td colspan="9">◆ G2 — existeix jurat congelat amb títols reals per a cada origen</td></tr>
         <tr id="row-8">
           <td class="num">8</td>
           <td><b>Benchmark 3 braços</b> per origen: single / per-field / single+hints → decideix l'expert</td>
           <td class="num">WP4</td><td class="resp">Claude + GPU</td><td class="quan">post G2</td>
           <td>arxivat amb PROVENANCE; decisió d'expert amb evidència</td>
           <td class="model"><span class="mm sonnet">sonnet · low</span> <small>+ LM Studio local</small></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP4 step 1). Run the per-origin 3-arm benchmark — single / per-field / single+hints — on the frozen gold-rawTFM and gold-rawPC with cpegen bench and the native lmstudio provider (reasoning off, temperature 0). Archive each run to data/benchmarks/ with PROVENANCE and write a summary: which expert configuration the evidence picks per origin under the lexicographic criterion (exact CPE first, cost as tiebreak). This also re-tries per-field on real titles (falsifiable prediction: it loses on product boundaries).<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">qwen3-4b-instruct-2507</span><span class="sub">agent del harness; braços amb <b>qwen3-1.7b · 4b-2507 · 8b</b> (corba oficial); mateix prompt</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP4 step 1). Run the per-origin 3-arm benchmark — single / per-field / single+hints — on the frozen gold-rawTFM and gold-rawPC with cpegen bench and the native lmstudio provider (reasoning off, temperature 0). Archive each run to data/benchmarks/ with PROVENANCE and write a summary: which expert configuration the evidence picks per origin under the lexicographic criterion (exact CPE first, cost as tiebreak). This also re-tries per-field on real titles (falsifiable prediction: it loses on product boundaries).<button class="copy">copy</button></div></details></td>
         </tr>
         <tr id="row-9">
           <td class="num">9</td>
@@ -261,16 +281,18 @@ button.copy.ok{background:var(--green)}
           <td class="num">WP4</td><td class="resp">Claude</td><td class="quan">post #8</td>
           <td>iguala o guanya el braç guanyador (criteri lexicogràfic)</td>
           <td class="model"><span class="mm opus">opus · high</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP4 step 2) and .ideas/reader-league-active-learning-v2.md §5–§6 + §8.1. Implement the single-team architecture: code coordinator with try-mode pre-validation that IMPORTS the notary's functions (bind_and_validate, classify_match — shared code, never a copy; add a test that pins this), actions 1–5 (clean, kgcs, reorder, switch reader model, escalate to expert), max 3 iterations; expert = one LLM call arbitrating all proposals; deterministic specialists with declared scope over CPE components; full per-attempt trace (spec §8.1 schema, reusing the shared title_features module). The 1.7b fast pass is untouched — the team lives on the escalation queue. Benchmark against the winning arm from the 3-arm benchmark; DoD: match or beat it lexicographically, with per-title accounting.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">gemma-4-12b-qat ⚠</span><span class="sub">només la traça (subset); el coordinador és de Claude. En runtime, l'equip usa: lectors <b>qwen3-1.7b⇄4b-2507</b>, expert <b>qwen3-8b</b>, reserva <b>deepseek-r1-0528-8b</b></span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP4 step 2) and .ideas/reader-league-active-learning-v2.md §5–§6 + §8.1. Implement the single-team architecture: code coordinator with try-mode pre-validation that IMPORTS the notary's functions (bind_and_validate, classify_match — shared code, never a copy; add a test that pins this), actions 1–5 (clean, kgcs, reorder, switch reader model, escalate to expert), max 3 iterations; expert = one LLM call arbitrating all proposals; deterministic specialists with declared scope over CPE components; full per-attempt trace (spec §8.1 schema, reusing the shared title_features module). The 1.7b fast pass is untouched — the team lives on the escalation queue. Benchmark against the winning arm from the 3-arm benchmark; DoD: match or beat it lexicographically, with per-title accounting.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task — the trace writer ONLY, not the coordinator. Create src/cpegen/trace.py: a TraceWriter that appends one JSONL record per attempt with the spec §8.1 schema — origin, title_features (import from title_features.py), strategy (actions in order), active specialists, model per reader, proposals, coordinator pre-validation result, expert verdict, notary verdict + dictionary_source, correct? (when gold/human available), cost fields (calls, tokens, lookups, latency), retry/review trigger, human identity when present. Deterministic, append-only, no network. Pytest: schema completeness, one record per attempt, stable field order. The coordinator/expert loop is a separate task for another session.<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr class="gate-row"><td colspan="8">◆ G3 — l'equip venç el seu braç de referència amb comptabilitat per títol</td></tr>
+        <tr class="gate-row"><td colspan="9">◆ G3 — l'equip venç el seu braç de referència amb comptabilitat per títol</td></tr>
         <tr id="row-10">
           <td class="num">10</td>
           <td><code>cpegen review</code>: cua prioritzada, veredictes amb identitat, <b>cerimònia NIE</b>, 4 actius, <code>exception</code>, mètrica de salut</td>
           <td class="num">WP5</td><td class="resp">Claude</td><td class="quan">post G3</td>
           <td>cicle end-to-end al pilot 10k; corba de preguntes reportada</td>
           <td class="model"><span class="mm opus">opus · medium</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP5) and .ideas/reader-league-active-learning-v2.md §6.3–§7. Implement cpegen review: needs_review queue prioritized by frequency × uncertainty (flat CSV, offline), measurable triggers (Dice margin, specialist↔expert disagreement, M4 or narrow M2, versioned family without validatable version), identified human verdicts (confirm / correct / NIE / exception), the human+notary NIE ceremony writing to the origin custom dictionary, the four-asset fan-out (origin train set, confirmed-resolutions cache, vendor aliases, custom dictionary), and the questions-per-volume health metric in reporting. Demonstrate the full cycle end-to-end on the 10k pilot queue with dictionary_source = rawTFM.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">només mecànica de cua (subset); cerimònia NIE i 4 actius, Claude</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP5) and .ideas/reader-league-active-learning-v2.md §6.3–§7. Implement cpegen review: needs_review queue prioritized by frequency × uncertainty (flat CSV, offline), measurable triggers (Dice margin, specialist↔expert disagreement, M4 or narrow M2, versioned family without validatable version), identified human verdicts (confirm / correct / NIE / exception), the human+notary NIE ceremony writing to the origin custom dictionary, the four-asset fan-out (origin train set, confirmed-resolutions cache, vendor aliases, custom dictionary), and the questions-per-volume health metric in reporting. Demonstrate the full cycle end-to-end on the 10k pilot queue with dictionary_source = rawTFM.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task: review-queue mechanics only. Implement the needs_review queue as a flat CSV with columns title, origin, reason, occurrences, uncertainty, priority = occurrences × uncertainty, sorted descending; and cpegen review --list / --next that reads and updates it fully offline. Verdict recording: confirm / correct / NIE / exception, each appended to a verdicts CSV with human_id and timestamp. The four-asset fan-out and the NIE ceremony wiring are a separate task for another session.<button class="copy">copy</button></div></details></td>
         </tr>
         <tr id="row-11">
           <td class="num">11</td>
@@ -278,9 +300,10 @@ button.copy.ok{background:var(--green)}
           <td class="num">WP6</td><td class="resp">Claude + Humbert</td><td class="quan">final</td>
           <td>checklist G4 complet (§6 del pla)</td>
           <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
-          <td class="prompt"><details class="pr"><summary>prompt</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP6 + §6 checklist). Publication closure: sync all docs with the code (the README stops presenting the architecture as "vision"), run the full offline pytest suite, verify out-of-the-box (clone → pytest → replay demo on the synthetic sample), privacy re-check (tree diff vs the 2026-08-10 audit; no real-inventory data in git), surface the publishable-distilled-gold decision to Humbert (yes with PROVENANCE, or a documented no in the README), and update ROADMAP + Decisions. Output: the G4 checklist all green. The visibility flip stays with Humbert.<button class="copy">copy</button></div></details></td>
+          <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">docs en CA i revisió mecànica; mateix prompt (les decisions són de l'Humbert)</span></td>
+          <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP6 + §6 checklist). Publication closure: sync all docs with the code (the README stops presenting the architecture as "vision"), run the full offline pytest suite, verify out-of-the-box (clone → pytest → replay demo on the synthetic sample), privacy re-check (tree diff vs the 2026-08-10 audit; no real-inventory data in git), surface the publishable-distilled-gold decision to Humbert (yes with PROVENANCE, or a documented no in the README), and update ROADMAP + Decisions. Output: the G4 checklist all green. The visibility flip stays with Humbert.<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr class="gate-row"><td colspan="8">◆ G4 — publicable: el pòster descriu codi, no intencions · flip de visibilitat = Humbert</td></tr>
+        <tr class="gate-row"><td colspan="9">◆ G4 — publicable: el pòster descriu codi, no intencions · flip de visibilitat = Humbert</td></tr>
       </tbody>
     </table>
     </div>
