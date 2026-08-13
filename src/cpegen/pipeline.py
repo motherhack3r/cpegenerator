@@ -14,8 +14,9 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 
 from .agent import AgentResult, get_agent_provider, run_agent
+from .dictionary import Lookup, lookup_for
 from .extractor import Extraction, extract, extract_per_field, get_provider
-from .matcher import HIGH_CONFIDENCE, classify
+from .matcher import HIGH_CONFIDENCE, canonicalize, classify
 from .goldset import GoldRecord, load_gold
 from .metrics import Report
 from .nvd import NVDClient
@@ -48,6 +49,20 @@ class RowResult:
     latency_ms: int = 0      # wall time of the extraction call(s)
     tokens_in: int = 0       # usage reported by the provider, when any
     tokens_out: int = 0
+    # --- canonicalization layer (WP1 step 2, 2026-08-13) ---
+    # vendor/product above stay exactly as the reader extracted them (the
+    # NER evaluation reads them); the canonical columns say what the
+    # dictionary calls the same thing, and cpe carries the canonical form.
+    canonical_vendor: str = ""
+    canonical_product: str = ""
+    part: str = ""
+    dice: float = 0.0
+    margin: float = 0.0
+    decision: str = ""       # auto | flagged | review | weak | none
+    deprecated: bool = False
+    lookup_source: str = ""  # pair | alias | dice | union | api | miss
+    needs_review: bool = False
+    review_reason: str = ""
 
 
 def build_wfn(ext: Extraction) -> WFN | None:
@@ -103,19 +118,50 @@ def process_title(title: str, provider, nvd: NVDClient,
         return row  # invalid CPE never leaves the pipeline
     row.cpe = candidate
 
-    # Dictionary lookup + M1-M3 classification.
+    # Dictionary lookup (exact pair -> vendor alias -> clean+Dice) and
+    # M1-M4 classification on the canonicalized WFN.
     vendor = wfn.vendor if isinstance(wfn.vendor, str) else None
     product = wfn.product if isinstance(wfn.product, str) else None
     try:
-        candidates = nvd.candidates_for(vendor, product)
+        lk = lookup_for(nvd, vendor, product, title=title)
     except Exception as exc:  # degrade to no candidates, keep the run alive
-        candidates = []
+        lk = Lookup([], None, "error")
         row.note = f"nvd lookup failed: {exc}"
-    match = classify(wfn, candidates)
+    match = classify(wfn, lk.candidates, title=title, resolution=lk.resolution)
+    apply_match(row, match, wfn, lk)
+    return row
+
+
+def apply_match(row: RowResult, match, wfn: WFN, lk: Lookup) -> RowResult:
+    """Copy a MatchResult onto a row, re-binding the canonical CPE.
+
+    The invariant is unchanged: the canonical string goes through the
+    ABNF validator again, and a row that fails it keeps the CPE it had.
+    """
     row.rule = match.rule
     row.rule_name = match.rule_name
     row.match_similarity = round(match.similarity, 4)
     row.matched_cpe = match.matched_cpe or ""
+    row.canonical_vendor = match.canonical_vendor
+    row.canonical_product = match.canonical_product
+    row.part = match.part
+    row.dice = match.dice
+    row.margin = match.margin
+    row.decision = match.decision
+    row.deprecated = match.deprecated
+    row.lookup_source = lk.source
+    row.review_reason = match.review_reason
+    row.needs_review = match.needs_review
+
+    effective = canonicalize(wfn, lk.resolution)
+    canonical = effective.bind()
+    if canonical != row.cpe:
+        result = validate_formatted_string(canonical)
+        if result.ok:
+            row.cpe = canonical
+        else:  # never emit an unvalidated CPE; keep the previous one
+            row.note = (row.note + "; " if row.note else "") + \
+                "canonical CPE failed validation"
     return row
 
 
@@ -291,12 +337,22 @@ def reclassify_results(results_path: Path, output_dir: Path, nvd,
     output_dir.mkdir(parents=True, exist_ok=True)
     with open(results_path, newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
-        fieldnames = reader.fieldnames or []
+        fieldnames = list(reader.fieldnames or [])
         rows = list(reader)
 
+    # A results.csv written before WP1 has none of the canonicalization
+    # columns; add them rather than crash the writer.
+    for name in asdict(RowResult(title="")):
+        if name not in fieldnames:
+            fieldnames.append(name)
+
     transitions: dict[str, int] = {}
+    sources: dict[str, int] = {}
+    decisions: dict[str, int] = {}
     stats = {"rows": len(rows), "reclassified": 0, "unchanged_invalid": 0,
-             "cpe_mismatch": 0, "transitions": transitions}
+             "cpe_mismatch": 0, "canonicalized": 0, "needs_review": 0,
+             "transitions": transitions, "lookup_sources": sources,
+             "decisions": decisions}
     out_path = output_dir / "results.csv"
     with open(out_path, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
@@ -316,9 +372,12 @@ def reclassify_results(results_path: Path, output_dir: Path, nvd,
                 update=row.get("update") or None,
                 target_sw=row.get("target_sw") or None)
             wfn = build_wfn(ext)
-            if wfn is None or wfn.bind() != row["cpe"]:
-                # The stored CPE is the source of truth; a rebuild
-                # mismatch is counted and the row passes through as-is.
+            # A previous reclassify may have written a *canonical* CPE,
+            # which no longer rebuilds from the stored entities. That is
+            # expected and keeps the pass idempotent; only an unexplained
+            # mismatch is counted and passed through untouched.
+            explained = bool(row.get("canonical_vendor"))
+            if wfn is None or (wfn.bind() != row["cpe"] and not explained):
                 stats["cpe_mismatch"] += 1
                 writer.writerow(row)
                 if progress:
@@ -327,19 +386,39 @@ def reclassify_results(results_path: Path, output_dir: Path, nvd,
             vendor = wfn.vendor if isinstance(wfn.vendor, str) else None
             product = wfn.product if isinstance(wfn.product, str) else None
             try:
-                candidates = nvd.candidates_for(vendor, product)
+                lk = lookup_for(nvd, vendor, product, title=row["title"])
             except Exception as exc:
-                candidates = []
+                lk = Lookup([], None, "error")
                 row["note"] = f"nvd lookup failed: {exc}"
-            match = classify(wfn, candidates)
+            match = classify(wfn, lk.candidates, title=row["title"],
+                             resolution=lk.resolution)
             old_rule = row.get("rule", "")
             if old_rule != match.rule:
                 key = f"{old_rule or '(none)'} -> {match.rule}"
                 transitions[key] = transitions.get(key, 0) + 1
-            row["rule"] = match.rule
-            row["rule_name"] = match.rule_name
-            row["match_similarity"] = str(round(match.similarity, 4))
-            row["matched_cpe"] = match.matched_cpe or ""
+
+            out = RowResult(title=row["title"], cpe=row["cpe"])
+            apply_match(out, match, wfn, lk)
+            if out.cpe != row["cpe"]:
+                stats["canonicalized"] += 1
+            if out.needs_review:
+                stats["needs_review"] += 1
+            sources[lk.source] = sources.get(lk.source, 0) + 1
+            decisions[out.decision or "(none)"] = \
+                decisions.get(out.decision or "(none)", 0) + 1
+            row.update({
+                "cpe": out.cpe, "rule": out.rule, "rule_name": out.rule_name,
+                "match_similarity": str(out.match_similarity),
+                "matched_cpe": out.matched_cpe,
+                "canonical_vendor": out.canonical_vendor,
+                "canonical_product": out.canonical_product,
+                "part": out.part, "dice": str(out.dice),
+                "margin": str(out.margin), "decision": out.decision,
+                "deprecated": str(out.deprecated),
+                "lookup_source": out.lookup_source,
+                "needs_review": str(out.needs_review),
+                "review_reason": out.review_reason,
+            })
             stats["reclassified"] += 1
             writer.writerow(row)
             if progress:

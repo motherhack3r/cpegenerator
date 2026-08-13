@@ -118,11 +118,26 @@ def test_confidence_does_not_gate_classification():
     assert res.similarity == 1.0
 
 
-def test_deprecated_entries_ignored():
+def test_deprecated_entries_are_flagged_not_filtered():
+    # Decision 2026-08-12 (playbook §9.4): deprecated CPEs stay
+    # candidates and are reported with a flag; filtering them silently
+    # lost every pair whose ONLY dictionary entry is deprecated.
     w = wfn(target_sw="typo3")
     dict_entries = [entry(w.bind(), deprecated=True)]
     res = classify(w, dict_entries)
-    assert res.rule != "M1"
+    assert res.rule == "M1"
+    assert res.deprecated is True
+
+
+def test_deprecated_loses_the_tiebreak():
+    # Same rule reachable through two entries: the live one is cited.
+    w = wfn(version="9.9.9")
+    live = "cpe:2.3:a:in2code:femanager:5.5.1:*:*:*:*:*:*:*"
+    dead = "cpe:2.3:a:in2code:femanager:5.5.0:*:*:*:*:*:*:*"
+    res = classify(w, [entry(dead, deprecated=True), entry(live)])
+    assert res.rule == "M1B"
+    assert res.matched_cpe == live
+    assert res.deprecated is False
 
 
 def test_m2_above_threshold_cites_match():

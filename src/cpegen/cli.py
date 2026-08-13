@@ -126,6 +126,19 @@ def cmd_dict(args: argparse.Namespace) -> int:
     print(f"Snapshot {path}: {d.size} entries, "
           f"{len(d.by_pair)} vendor:product pairs, "
           f"{len(d.vendor_reps)} vendors, {len(d.product_reps)} products")
+    print(f"Bigram index: {len(d.index)} pairs, "
+          f"{len(d.index.postings)} distinct bigrams")
+    multi = sum(1 for v in d.aliases.variants.values() if len(v) > 1)
+    print(f"Vendor aliases: {len(d.aliases.variants)} clean keys "
+          f"({multi} with coexisting variants), "
+          f"{len(d.aliases.seed)} seed renames validated"
+          + (f", dropped {d.aliases.dropped_seed}"
+             if d.aliases.dropped_seed else ""))
+    if args.aliases_out:
+        from .dictionary import write_alias_table
+
+        n = write_alias_table(d, Path(args.aliases_out))
+        print(f"Alias table: {n} rows -> {args.aliases_out}")
     return 0
 
 
@@ -266,6 +279,16 @@ def cmd_reclassify(args: argparse.Namespace) -> int:
     print(f"Reclassified {stats['reclassified']}/{stats['rows']} rows "
           f"({stats['unchanged_invalid']} without valid CPE, "
           f"{stats['cpe_mismatch']} rebuild mismatches)")
+    print(f"Canonicalized CPEs: {stats.get('canonicalized', 0)}  "
+          f"flagged for review: {stats.get('needs_review', 0)}")
+    if stats.get("lookup_sources"):
+        print("  lookup: " + "  ".join(
+            f"{k}={v}" for k, v in sorted(stats["lookup_sources"].items(),
+                                          key=lambda x: -x[1])))
+    if stats.get("decisions"):
+        print("  bands: " + "  ".join(
+            f"{k}={v}" for k, v in sorted(stats["decisions"].items(),
+                                          key=lambda x: -x[1])))
     for t, n in sorted(stats["transitions"].items(), key=lambda x: -x[1])[:12]:
         print(f"  {n:6d}  {t}")
     print(f"-> {Path(args.output) / 'results.csv'}")
@@ -381,6 +404,10 @@ def main(argv: list[str] | None = None) -> int:
     p_dic.add_argument("--snapshot", default=None,
                        help="snapshot path (default "
                             "data/cache/cpe_dictionary.jsonl.gz)")
+    p_dic.add_argument("--aliases-out", default=None, dest="aliases_out",
+                       help="materialize the vendor alias table to CSV "
+                            "(coexisting canonical variants + validated "
+                            "seed renames)")
     p_dic.set_defaults(func=cmd_dict)
 
     p_tier = sub.add_parser(

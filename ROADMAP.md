@@ -140,6 +140,11 @@ Etapes (mapatge del pla d'execució de l'espec):
    `schneider-electric` i `schneider_electric`). Política `deprecated`:
    flag + desempat (decisió 2026-08-12). `part`: identitat del candidat +
    heurística (decisió 2026-08-12).
+   **✅ Fet 2026-08-13.** `clean()`/`dice()`/`decide()` a `matcher.py`,
+   `PairIndex` (índex invertit admissible) + `VendorAliases` +
+   `LocalDictionary.lookup` a `dictionary.py`, columnes noves a
+   `results.csv` i `cpegen dict --aliases-out`. Comportament documentat a
+   `docs/match-rules.md` ("Capa de canonicalització clean+Dice").
 3. Rangs de versió (#2): estendre `cpegen dict --build --from-neo4j` perquè el
    snapshot inclogui els rangs de PlatformConfiguration per parell; validació
    de versió per rangs quan el diccionari extensional no té la versió.
@@ -149,6 +154,18 @@ Etapes (mapatge del pla d'execució de l'espec):
 M2/M4→M1x, arxivat a `data/benchmarks/`. **Gate**: aquest resultat dona llum
 verda al run RAW de la Fase 7 pas 4 (reordenat: el run va després d'aquesta
 etapa i fa de primera collita de traces).
+
+**Resultat del pas 2 (2026-08-13)**: **M1x 671 → 1.061 (+390, ×1,58)** sobre
+els 10.000 títols del pilot; taxa d'alta confiança 6,71% → 10,61% contra el
+4,9% de la línia base 2023. Zero GPU (reclassificació d'extraccions ja fetes).
+Sense regressions: 0 files baixen d'M1x, 0 CPEs invàlids, i les 391 cadenes
+reescrites per canonicalització acaben totes a M1x; `reclassify` és idempotent.
+Arxiu: `data/benchmarks/20260813-wp1-canonicalization-raw10k-cloud/`.
+Lectura oberta: 53,9% de les files segueixen a M4 i 2.581 més a la banda
+`weak` — WP1 arregla el mode de fallada de **canonicalització**, no el de
+**segmentació**, que continua sent del lector (WP3/WP4). Queden 2.874 files
+amb `needs_review` i motiu mesurable: la cua d'arrencada de WP5.
+**Gate G1 obert** un cop tancats els passos 3 i 4 de 9.1.
 
 **9.2 — Capes de diccionari (espec #4)**
 Tres capes: NVD oficial / custom MotherHacker (comunitat) / custom per origen;
@@ -225,6 +242,12 @@ cap dependència nova al runtime (Neo4j/KGCS només curació; stdlib + requests)
 
 | Data | Decisió | Motiu |
 |---|---|---|
+| 2026-08-13 | **Dice de bigrames en multiconjunt, no en conjunt**, com a mètrica del port | És l'única variant que reprodueix `apoc.text.sorensenDiceSimilarity` als set casos validats del playbook (1,000/0,964/0,947/0,947/0,940/0,903/0,853 a tres decimals); la variant de conjunts desvia fins a 0,033 (FortiOS 0,870 vs 0,903). El criteri d'acceptació del port és reproduir l'evidència que el va justificar, no "una implementació raonable de Dice" |
+| 2026-08-13 | **La canonicalització reescriu el CPE, no l'extracció**: quan el lookup accepta un parell, el WFN que es vincula i es classifica porta l'ortografia del diccionari (`vendor`/`product`/`part`), però les columnes `vendor`/`product` conserven les paraules del lector i apareixen `canonical_vendor`/`canonical_product` | El mode de fallada 2 de l'espec és exactament aquest: el lector llegeix bé i el matcher perd el match per convenció de noms. Reescriure el CPE és el que converteix M2/M4 en M1x (391 files al pilot 10k, totes a M1x, cap CPE invàlid); conservar les paraules del lector és el que manté honesta l'avaluació NER. L'invariant no es toca: la cadena canònica torna a passar l'ABNF i, si fallés, es conserva l'anterior |
+| 2026-08-13 | **El marge s'avalua contra el millor candidat d'un parell diferent**, i els germans d'una família versionada amb el token confirmat al títol tampoc hi compten | Les variants de `part` del mateix parell no són alternatives (les resol l'heurística de `part`), i un `sql_server_2019` amb "2019" literal al títol aniria a revisió humana per sempre per un marge de 0,048 contra `sql_server_2017`. La comprovació determinista del token **substitueix** el marge en aquest cas concret; no s'hi suma. Sense evidència de versió al títol la regla dura mana i no hi ha automatització |
+| 2026-08-13 | **`part` ambigu marca, no bloqueja**: un parell multi-`part` sense evidència al títol es queda amb el `part` de més volum i la fila surt `flagged` + `part_ambiguous`; només la família versionada sense evidència és regla dura de bloqueig | Bloquejar-lo perdria justament l'inventari d'infraestructura que la decisió del 2026-08-12 volia rescatar (cas FortiOS→`o`). "Mai en silenci" es compleix amb la marca; "mai automàtic" només cal on el risc és assignar l'any equivocat amb alta confiança |
+| 2026-08-13 | **La taula d'àlies de vendor es materialitza des del snapshot i valida cada regla contra ell**: variants coexistents per clau `clean()` (135 al snapshot del 2026-07-02), renoms llavor del TFM i retallat de sufixos jurídics només s'accepten si el vendor destí existeix; els que no, es descarten i es reporten | Playbook §10.3 + accionables 1–2 de l'inventari de neteja. Va aparèixer sol el primer contraexemple: el TFM mapava ASUSTek→`ASUSTEK`, que no existeix a l'NVD (la seva grafia és `asus`), i `Internet Testing Systems`→`its` no existeix en absolut. Una taula d'àlies cega hauria introduït dos renoms que no resolen a res |
+| 2026-08-13 | El pre-filtre de l'índex invertit ha de ser **admissible** (fita superior demostrable, no heurística), i qualsevol tall de cobertura es compta i es reporta (`SCORE_CAP`, `PairIndex.capped`) | El playbook (§10.1) avisava que caldria validar el recall del pre-filtre, amb el cas `energrymetrix` com a prova. Una fita demostrable ho converteix en propietat testejable (test contra força bruta) en comptes d'una comprovació puntual; i un tall reportat no es pot confondre mai amb cobertura completa |
 | 2026-08-12 | **Gate de publicació = pòster complet**: el repo es fa públic quan les sis escenes de `docs/media/poster-reader-league.html` són certes al codi (Fase 9.1–9.6 + LICENSE), no abans; pla operatiu, gates G1–G4 i checklist a `docs/reader-league-implementation-plan.md` | Triat amb l'Humbert sobre l'alternativa "nucli + roadmap públic": publicar amb la promesa a mig fer ensenyaria un pòster que menteix; publicar amb el pòster complet fa que la promesa i el codi coincideixin el dia 1. El criteri de tall del pla: una tasca entra només si fa certa una escena o és bloquejant legal/qualitat |
 | 2026-08-12 | El **regal del calabrès s'ajorna post-publicació**: run RAW en cascada, `vulns` sobre els M1x, segona tanda `v_SoftwareProduct` (570k) i rèplica al laptop queden fora del camí de publicació; el mostreig de `gold-rawTFM` passa a fer-se sobre els 90.066 títols preparats (no cal el run) | Triat amb l'Humbert: focus total de GPU i atenció al pla de publicació. Cap pèrdua: les extraccions es reclassifiquen a posteriori, i el run conserva el doble servei (primera collita de traces per a 9.7) quan es reprengui — l'ordre relatiu post-9.1 es manté. Matisa la decisió del mateix dia sobre l'ordre Fase 7↔9 |
 | 2026-08-12 | Es pleguen les fases velles fora del camí de publicació: **Fase 1 ajornada a eventual paper** (braç A, NER 2023 sobre gold-1k) i **Fase 5 tancada per subsumpció** (coberta pel pilot 10k + Fase 7 pas 4 + Fase 9) | Triat amb l'Humbert: els braços B/C de la Fase 1 ja van quedar decidits per la sentència gold-1k i l'agent; muntar l'entorn del NER 2023 no fa certa cap escena del pòster i la línia base 2023 ja es compara via distribució M (4,9%). La Fase 5 no tenia contingut propi restant |
