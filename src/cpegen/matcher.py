@@ -168,6 +168,148 @@ def version_token_in_title(token: str, title: str) -> bool:
     return len(token) >= 4 and token in clean(title)
 
 
+# ------------------------------------------------- version range checking
+
+# One run of digits or one run of letters. Separators (".", "_", "-", " ")
+# are boundaries and carry no meaning of their own: the NVD writes the
+# same release as "4.8.04690.02", "5.0.8703" and "4.0.1_build_5289".
+_VER_TOKEN = re.compile(r"\d+|[a-z]+")
+
+UNDECIDABLE = None  # readability alias for the third verdict
+
+
+def version_tokens(value: str) -> list:
+    """Split a version string into comparable tokens (ints and words)."""
+    v = value.strip().lower()
+    if len(v) > 1 and v[0] == "v" and v[1].isdigit():
+        v = v[1:]           # "v11.1.2245" is "11.1.2245" (seen in the NVD)
+    return [int(t) if t.isdigit() else t for t in _VER_TOKEN.findall(v)]
+
+
+def _year_like(token) -> bool:
+    """Does this leading token name a *year release* rather than a number?
+
+    Vendors routinely ship two numbering schemes for the same product —
+    AutoCAD is both ``19.0`` and ``2019.1.4``, Adobe Reader is both
+    ``22.002`` and ``2020.009.20074``, LabVIEW is both ``8.5.1`` and
+    ``2012`` — and the NVD's ranges use whichever the advisory used.
+    """
+    return isinstance(token, int) and 1990 <= token <= 2100
+
+
+def compare_versions(a: str, b: str) -> int | None:
+    """Order two version strings: -1, 0, 1 — or ``None`` for *undecidable*.
+
+    The third verdict is the point. CPE version strings have no single
+    grammar (playbook §9.3: ``6.00`` vs ``6.0`` vs ``6.10``, ``cpr9``,
+    ``13.00.00``, ``35.011``), so a comparator that always answers is a
+    comparator that sometimes lies. Here, anything the token structure
+    does not settle returns ``None`` and the caller treats the version as
+    unvalidated — never as in-range.
+
+    Undecidable cases: a number facing a word (``cpr9`` vs ``2.90``); a
+    trailing word-token where the other side has run out (``1.0.0`` vs
+    ``1.0.0rc1``: pre-release or build metadata, and CPE does not say);
+    and a **numbering-scheme mismatch**, where one side leads with a year
+    release and the other does not (``19.0`` vs ``2019.1.4``). That last
+    one was found by auditing real verdicts on the 10k pilot: purely
+    numerically ``19 < 2019``, so the naive answer is a confident "this
+    version is inside the vulnerable range" about two numbering schemes
+    that were never on the same scale (AutoCAD, Adobe Reader, LabVIEW).
+    Trailing zeros are equality: ``1.0`` == ``1.0.0``.
+    """
+    ta, tb = version_tokens(a), version_tokens(b)
+    if not ta or not tb:
+        return None
+    if _year_like(ta[0]) != _year_like(tb[0]):
+        return None
+    for x, y in zip(ta, tb):
+        if isinstance(x, int) and isinstance(y, int):
+            if x != y:
+                return -1 if x < y else 1
+        elif isinstance(x, str) and isinstance(y, str):
+            if x != y:
+                return -1 if x < y else 1
+        else:
+            return None
+    if len(ta) == len(tb):
+        return 0
+    common = min(len(ta), len(tb))
+    longer, sign = (ta, 1) if len(ta) > len(tb) else (tb, -1)
+    rest = longer[common:]
+    if isinstance(rest[0], str):
+        return None
+    if all(isinstance(t, int) and t == 0 for t in rest):
+        return 0
+    return sign
+
+
+@dataclass(frozen=True)
+class VersionRange:
+    """A ``PlatformConfiguration`` version range, as the NVD models it."""
+
+    start_including: str = ""
+    start_excluding: str = ""
+    end_including: str = ""
+    end_excluding: str = ""
+
+    def as_tuple(self) -> tuple[str, str, str, str]:
+        return (self.start_including, self.start_excluding,
+                self.end_including, self.end_excluding)
+
+    @property
+    def bounded(self) -> bool:
+        return any(self.as_tuple())
+
+    def __str__(self) -> str:
+        lo = (f">={self.start_including}" if self.start_including
+              else f">{self.start_excluding}" if self.start_excluding else "")
+        hi = (f"<={self.end_including}" if self.end_including
+              else f"<{self.end_excluding}" if self.end_excluding else "")
+        return " ".join(p for p in (lo, hi) if p)
+
+    def contains(self, version: str) -> bool | None:
+        """Is ``version`` inside this range? ``None`` if undecidable."""
+        if not self.bounded:
+            return None
+        checks = (
+            (self.start_including, lambda c: c >= 0),
+            (self.start_excluding, lambda c: c > 0),
+            (self.end_including, lambda c: c <= 0),
+            (self.end_excluding, lambda c: c < 0),
+        )
+        for bound, ok in checks:
+            if not bound:
+                continue
+            cmp = compare_versions(version, bound)
+            if cmp is None:
+                return None
+            if not ok(cmp):
+                return False
+        return True
+
+
+def version_in_ranges(version: str,
+                      ranges: "list[VersionRange]") -> bool | None:
+    """True if any range covers the version; None if none could be read.
+
+    A single undecidable range is enough to withhold a ``False``: saying
+    "the NVD does not know this version" when the comparator simply could
+    not read it would be a lie with consequences (it is the difference
+    between "new release" and "unchecked").
+    """
+    if not version or version in ("*", "-") or not ranges:
+        return None
+    unknown = False
+    for rng in ranges:
+        verdict = rng.contains(version)
+        if verdict is True:
+            return True
+        if verdict is None:
+            unknown = True
+    return None if unknown else False
+
+
 # ------------------------------------------------- part evidence heuristic
 
 # Only consulted when the SAME (vendor, product) exists under more than
@@ -414,6 +556,15 @@ class MatchResult:
     decision: str = ""           # auto | flagged | review | weak | none
     deprecated: bool = False     # the cited entry/pair is deprecated
     review_reason: str = ""      # semicolon-joined triggers
+    # Where the version was validated. A column, never a new M rule: the
+    # M scale measures matching and stays uniform (decision 2026-08-11 on
+    # dictionary_source, applied again here).
+    #   dict     the dictionary lists this exact version (M1/M1A)
+    #   range    it falls inside a PlatformConfiguration range
+    #   outside  ranges exist for the pair and none covers it
+    #   unknown  ranges exist but the comparator could not read them
+    #   ""       not applicable, or no ranges snapshot loaded
+    version_source: str = ""
 
     @property
     def high_confidence(self) -> bool:
@@ -468,7 +619,8 @@ def canonicalize(wfn: WFN, resolution: PairResolution | None) -> WFN:
 
 
 def classify(wfn: WFN, candidates: list[DictEntry], title: str = "",
-             resolution: PairResolution | None = None) -> MatchResult:
+             resolution: PairResolution | None = None,
+             ranges: "list[VersionRange] | None" = None) -> MatchResult:
     """Apply the M1-M3 cascade to one WFN and its dictionary candidates.
 
     Deterministic: same WFN + same candidates (+ same resolution) -> same
@@ -500,7 +652,7 @@ def classify(wfn: WFN, candidates: list[DictEntry], title: str = "",
     parsed.sort(key=lambda pair: (pair[0].deprecated, pair[0].cpe_name))
 
     result = _cascade(vendor, product, version, generated_fs, parsed)
-    return _annotate(result, candidates, resolution, effective)
+    return _annotate(result, candidates, resolution, effective, ranges)
 
 
 def _cascade(vendor: str, product: str, version: str, generated_fs: str,
@@ -599,7 +751,8 @@ def _cascade(vendor: str, product: str, version: str, generated_fs: str,
 
 def _annotate(result: MatchResult, candidates: list[DictEntry],
               resolution: PairResolution | None,
-              effective: WFN) -> MatchResult:
+              effective: WFN,
+              ranges: "list[VersionRange] | None" = None) -> MatchResult:
     """Attach the canonicalization signals to a cascade outcome.
 
     Reported whether or not the resolution was accepted: a ``review``
@@ -621,4 +774,20 @@ def _annotate(result: MatchResult, candidates: list[DictEntry],
                       if e.cpe_name == result.matched_cpe), None)
         if cited is not None:
             result.deprecated = cited.deprecated
+
+    # Version provenance. M1/M1A already matched an extensional entry;
+    # M1B is the bucket the ranges were brought in for ("the pair is
+    # right, the version is not listed") — the NVD models most of the
+    # version space intensionally, so "not listed" is not "unknown".
+    version = _val(effective.version) or ""
+    if result.rule in ("M1", "M1A"):
+        result.version_source = "dict"
+    elif result.rule == "M1B" and ranges:
+        verdict = version_in_ranges(version, ranges)
+        result.version_source = ("range" if verdict is True
+                                 else "outside" if verdict is False
+                                 else "unknown")
+        if result.version_source == "unknown":
+            result.review_reason = ";".join(
+                filter(None, [result.review_reason, "version_unreadable"]))
     return result

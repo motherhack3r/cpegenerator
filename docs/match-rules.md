@@ -446,3 +446,184 @@ del port, fixat als tests.
 - **Rangs de versió de `PlatformConfiguration`** (pas #2 del WP1) i
   **upgrade de `search_dictionary`** de l'agent (pas #3): passos
   següents, no tocats aquí.
+
+---
+
+## Validació de versió per rangs (WP1 pas 3, 2026-08-13)
+
+Pas #2 de l'espec (§2.2, N10). El diccionari CPE és **extensional** —
+enumera versions concretes— però la NVD modela la major part de l'espai
+de versions amb **rangs**, als nodes `PlatformConfiguration` del KGCS.
+Quan el parell `vendor:product` casa i la versió no consta a la llista,
+els rangs són la font més rica: "no consta" no vol dir "desconeguda".
+
+### Forma real de la font (KGCS, consulta 2026-08-13)
+
+| | |
+|---|---|
+| Nodes `PlatformConfiguration` | 645.027 |
+| Amb almenys un límit de versió | 206.277 (185.781 `Active` + 20.496 `Inactive`) |
+| Parells `vendor:product` distints amb rangs | 64.660 |
+| Vendors distints amb rangs | 21.779 |
+
+Cada node porta `criteria` (una cadena CPE 2.3 completa: part, vendor i
+product hi són) i quatre camps de límit (`versionStartIncluding`,
+`versionStartExcluding`, `versionEndIncluding`, `versionEndExcluding`),
+buits quan no apliquen. **No cal recórrer cap relació.** Per defecte
+només s'agafa `configStatus = 'Active'`: els `Inactive` són criteris
+substituïts i ressuscitarien rangs que la NVD ha retirat
+(`--include-inactive` els inclou si mai cal auditar-ho).
+
+### Com s'emmagatzema
+
+Fitxer **a part**, `data/cache/cpe_ranges.jsonl.gz`, una fila per parell
+amb els seus rangs distints, en la forma escapada del diccionari (indexa
+directament contra `by_pair`, sense una segona convenció). És un
+*sidecar* opcional: sense el fitxer, res canvia enlloc — el runtime
+segueix sent stdlib i offline, i el KGCS segueix sent només font de
+curació.
+
+```
+# al PC, amb el KGCS local. ATENCIÓ: el graf NO és a la base de dades
+# per defecte ('neo4j') — el 2026-08-13 es deia 'kgcs-dv3'
+cpegen dict --build-ranges --neo4j-database kgcs-dv3
+cpegen reclassify --input ... --dict ... --ranges data/cache/cpe_ranges.jsonl.gz
+```
+
+Un build que no troba res **falla amb error i no escriu el fitxer**
+(incident 2026-08-13: apuntant a la base de dades per defecte, la
+construcció informava "0 ranges" com si fos un èxit; un sidecar buit es
+carrega en silenci i deixa totes les versions com a `unknown` per sempre).
+El CLI imprimeix l'endpoint i la base de dades abans de començar.
+
+L'API de CPE Products de la NVD **no** porta rangs (viuen a les
+configuracions dels CVE), així que aquest build és exclusiu del KGCS.
+
+### El comparador i el seu tercer veredicte
+
+`compare_versions(a, b)` retorna `-1`, `0`, `1` — o **`None`**. El tercer
+veredicte és el disseny, no una excusa: les cadenes de versió CPE no
+tenen una gramàtica única (playbook §9.3: `6.00` vs `6.0` vs `6.10`,
+`cpr9`, `13.00.00`, `35.011`, `4.0.1_build_5289`, `v11.1.2245`), i un
+comparador que respon sempre és un comparador que menteix de tant en
+tant.
+
+- Tokenització: runs de dígits → enters, runs de lletres → paraules; els
+  separadors (`.`, `_`, `-`, espai) no signifiquen res per si sols.
+- `1.0` == `1.0.0` == `6.00` vs `6.0`: els zeros de cua són igualtat.
+- **Indecidible**: un nombre davant d'una paraula (`cpr9` vs `2.90`), i
+  un token alfabètic de cua quan l'altre costat s'ha acabat (`1.0.0` vs
+  `1.0.0rc1`: pre-release o build metadata? el CPE no ho diu).
+- `version_in_ranges` retorna `True` / `False` / `None`, i **un sol rang
+  il·legible ja impedeix retornar `False`**: dir "la NVD no coneix
+  aquesta versió" quan simplement no s'ha pogut llegir seria una mentida
+  amb conseqüències.
+
+### Columna `version_source`, no una regla M nova
+
+Aplicació de la mateixa decisió que `dictionary_source` (2026-08-11): la
+procedència es reporta en columna i **l'escala M no es toca** — mesura
+matching, no procés.
+
+| Valor | Significat |
+|---|---|
+| `dict` | el diccionari llista aquesta versió exacta (M1/M1A) |
+| `range` | cau dins d'un rang de `PlatformConfiguration` |
+| `outside` | el parell té rangs i cap la cobreix |
+| `unknown` | hi ha rangs però el comparador no els ha pogut llegir (afegeix `version_unreadable` a `review_reason`) |
+| *(buit)* | no aplica, o no hi ha sidecar carregat |
+
+Un M1B amb `version_source = range` segueix sent M1B: el parell casa i
+la versió no és al diccionari extensional. El que canvia és que ara
+sabem que la NVD **sí** la modela — senyal directe per a `vulns` i un
+disparador de revisió menys per a WP5.
+
+### Guard d'esquema de numeració (troballa d'auditoria, 2026-08-13)
+
+Un mateix producte sovint té **dos esquemes de numeració** i la NVD fa
+servir el que feia servir l'avís: AutoCAD és `19.0` i `2019.1.4`, Adobe
+Reader és `22.002` (track *continuous*) i `2020.009.20074` (*classic*),
+LabVIEW és `8.5.1` i `2012`. Numèricament `19 < 2019`, així que un
+comparador ingenu afirma amb tota la confiança que la versió cau dins
+d'un rang vulnerable — sobre dues escales que no s'han tocat mai.
+
+Regla: si un costat comença amb un **token d'any** (enter de 4 xifres
+entre 1990 i 2100) i l'altre no, la comparació és **indecidible**. Al
+pilot 10k, **72 dels 379 veredictes decidibles (19%)** eren d'aquesta
+mena. El guard no dispara quan els dos costats comparteixen esquema
+(`2020.1` vs `2019.5`, `91.0` vs `107.0.1418.62`).
+
+Es va trobar mirant a mà una mostra de veredictes, no cap agregat: la
+distribució global tenia bona pinta amb i sense el guard.
+
+### Resultat sobre el pilot 10k RAW
+
+Sidecar construït des del KGCS (`kgcs-dv3`): 180.758 rangs distints sobre
+60.367 parells, des de 185.781 configuracions `Active`, 0 malformades.
+
+**No-regressió primer**: amb i sense sidecar, la distribució M1–M4 i les
+9.764 cadenes CPE són **idèntiques**. Els rangs només escriuen
+`version_source` i `review_reason` — la decisió de columna queda
+verificada, no només declarada.
+
+Dels 682 M1B (dels quals 168 dels 313 parells distints, un 54%, tenen
+rangs):
+
+| `version_source` | Files | % |
+|---|---:|---:|
+| `range` | 233 | 34,2% |
+| `outside` | 66 | 9,7% |
+| `unknown` | 80 | 11,7% |
+| *(cap rang al parell)* | 303 | 44,4% |
+
+**Un terç dels "New software version" no eren noves.** Les 80 `unknown`
+van totes a la cua de revisió amb `version_unreadable` (2.874 → 2.939):
+són esquemes creuats i versions que no són versions (`"2020 r2"`,
+`"clgo last"`, `"vel8.20"`, buides) que un comparador complaent hauria
+declarat "fora de rang", és a dir "versió nova", en silenci.
+
+Detall: `data/benchmarks/20260813-wp1-version-ranges-raw10k-pc/`.
+
+---
+
+## `search_dictionary` de l'agent al lookup nou (WP1 pas 4, 2026-08-13)
+
+Fins ara l'agent veia un diccionari **estrictament més feble** que la
+passada ràpida: una cerca per prefix sobre valors crus, sense
+canonicalització. Contestava "cap resultat" precisament al cas per al
+qual existeix la capa nova.
+
+Ara `search_dictionary` i `classify_match` passen per
+`LocalDictionary.lookup` — **el mateix codi** que el pipeline, no una
+còpia — i accepten el `title` cru com a argument opcional. La resposta
+inclou el parell canònic (`vendor`, `product`, `part`), l'score Dice, el
+marge, la banda de decisió, si el parell és deprecat i els tres millors
+candidats descartats amb el seu score. Les entrades deprecades es
+**marquen**, no s'amaguen: l'agent ha de poder veure que l'única entrada
+d'un parell és deprecada en comptes de concloure que el parell no
+existeix.
+
+Test que ho fixa: la sortida de `classify_match` ha de coincidir amb el
+que el notari dirà després sobre les mateixes entitats. Si divergissin,
+l'agent raonaria contra un veredicte diferent del que acaba al registre.
+
+---
+
+## Desescapat d'entitats HTML (deute del WP1 pas 1, 2026-08-13)
+
+Accionable 3 de l'inventari de neteja, ara implementat a
+`titles.py::unescape_entities`, aplicat dins de `_clean()` — és a dir
+**abans** de la composició del títol, del filtre `NOISE_PATTERNS` i de
+qualsevol `clean()` del matcher.
+
+Sense ell, `clean("AT&amp;T")` dona `"atampt"` i no `"att"`: l'entitat es
+converteix en tres lletres fantasma dins de la clau de comparació.
+Confirmat amb 18 files reals de `products.csv`. El desescapat és
+**iteratiu i acotat** (màxim 5 passades): l'export real conté escapat
+múltiple (`"VPN Gateway &amp;amp;amp;lt;5.1.7"`), i una sola passada
+deixaria `&amp;amp;lt;` pel camí. Un `&` solt no és una entitat i queda
+intacte.
+
+Nota d'abast: afecta `cpegen titles` (el camí que alimenta `run`). La
+curació de diccionari (`curate.py`) treballa sobre valors CPE, no sobre
+títols d'inventari, i no necessita aquest pas.

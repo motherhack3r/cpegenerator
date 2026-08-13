@@ -148,7 +148,27 @@ Etapes (mapatge del pla d'execució de l'espec):
 3. Rangs de versió (#2): estendre `cpegen dict --build --from-neo4j` perquè el
    snapshot inclogui els rangs de PlatformConfiguration per parell; validació
    de versió per rangs quan el diccionari extensional no té la versió.
+   **✅ Codi fet 2026-08-13** — `cpegen dict --build-ranges` escriu un
+   *sidecar* `data/cache/cpe_ranges.jsonl.gz` (una fila per parell), i
+   `compare_versions`/`version_in_ranges` a `matcher.py` validen la versió
+   amb un tercer veredicte explícit (*indecidible*). Columna nova
+   `version_source` (`dict`|`range`|`outside`|`unknown`), mai una regla M
+   nova. **✅ Mesurat 2026-08-13** (sidecar construït al PC contra
+   `kgcs-dv3`: 180.758 rangs sobre 60.367 parells): distribució M1–M4 i
+   cadenes CPE **idèntiques** amb i sense rangs — la decisió de columna
+   verificada, no declarada. Dels 682 M1B: 233 `range` (34,2%), 66
+   `outside` (9,7%), 80 `unknown` (11,7%), 303 sense rangs al parell
+   (44,4%). Arxiu:
+   `data/benchmarks/20260813-wp1-version-ranges-raw10k-pc/`.
 4. Upgrade de `search_dictionary` de l'agent al lookup nou (#3).
+   **✅ Fet 2026-08-13.** `search_dictionary` i `classify_match` passen pel
+   mateix `LocalDictionary.lookup` que el pipeline (codi compartit, no una
+   còpia), accepten el `title` cru i reporten parell canònic, Dice, marge,
+   `part`, banda i deprecats marcats.
+
+**Deute del pas 1 tancat el 2026-08-13**: desescapat d'entitats HTML a
+`titles.py` (`unescape_entities`, iteratiu i acotat), abans del filtre de
+soroll i de qualsevol `clean()`.
 
 **Mesura 9.1**: `cpegen reclassify` sobre el pilot 10k RAW — transicions
 M2/M4→M1x, arxivat a `data/benchmarks/`. **Gate**: aquest resultat dona llum
@@ -165,7 +185,12 @@ Lectura oberta: 53,9% de les files segueixen a M4 i 2.581 més a la banda
 `weak` — WP1 arregla el mode de fallada de **canonicalització**, no el de
 **segmentació**, que continua sent del lector (WP3/WP4). Queden 2.874 files
 amb `needs_review` i motiu mesurable: la cua d'arrencada de WP5.
-**Gate G1 obert** un cop tancats els passos 3 i 4 de 9.1.
+**✅ G1 OBERT (2026-08-13)**: els quatre passos de la Fase 9.1 tancats,
+amb pytest verd (276 tests, offline) i dos benchmarks arxivats amb
+PROVENANCE (`20260813-wp1-canonicalization-raw10k-cloud` i
+`20260813-wp1-version-ranges-raw10k-pc`). Queda desbloquejat el camí cap a
+WP2 (capes de diccionari) i WP3 (golds per origen), que poden anar en
+paral·lel.
 
 **9.2 — Capes de diccionari (espec #4)**
 Tres capes: NVD oficial / custom MotherHacker (comunitat) / custom per origen;
@@ -242,6 +267,11 @@ cap dependència nova al runtime (Neo4j/KGCS només curació; stdlib + requests)
 
 | Data | Decisió | Motiu |
 |---|---|---|
+| 2026-08-13 | **El comparador de versions té tres veredictes**: `-1`/`0`/`1` i **indecidible**; `version_in_ranges` no pot retornar "fora de rang" si algun rang del parell és il·legible | Les cadenes de versió CPE no tenen gramàtica única (playbook §9.3: `6.00` vs `6.0`, `cpr9`, `4.0.1_build_5289`). Un comparador que sempre respon menteix de tant en tant, i aquí la mentida té conseqüències: "la NVD no coneix aquesta versió" i "no s'ha pogut comprovar" són coses diferents per al `vulns` i per a la cua de revisió. Indecidible: nombre contra paraula, i token alfabètic de cua (pre-release o build metadata? el CPE no ho diu) |
+| 2026-08-13 | **El comparador declara indecidible tot creuament d'esquemes de numeració**: si un costat comença amb token d'any (1990–2100) i l'altre no, no hi ha ordre | Troballa d'auditoria manual sobre el pilot 10k: `19.0` vs `2019.1.4` (AutoCAD intern vs edició per any), `22.002` vs `2020.009.20074` (Adobe continuous vs classic), `8.5.1` vs `2012` (LabVIEW). Numèricament `19 < 2019`, així que el comparador afirmava "versió dins d'un rang vulnerable" amb tota la confiança sobre dues escales que no s'han tocat mai. **72 dels 379 veredictes decidibles (19%)** eren d'aquesta mena. No es va veure en cap agregat: només mirant veredictes concrets un per un |
+| 2026-08-13 | Un `dict --build-ranges` que no troba cap rang **falla i no escriu el fitxer**; el CLI imprimeix l'endpoint i la base de dades abans de construir, i accepta `--neo4j-database`/`--neo4j-url` | Incident del mateix dia: el graf KGCS viu a la base de dades `kgcs-dv3` i el client anava per defecte a `neo4j`, així que la construcció va informar "0 ranges over 0 pairs" com un èxit. Un sidecar buit es carrega en silenci i deixa `version_source = unknown` per sempre — el mateix principi de "cap tall silenciós" que ja regeix el `SCORE_CAP` de l'índex |
+| 2026-08-13 | **Els rangs viuen en un sidecar opcional** (`data/cache/cpe_ranges.jsonl.gz`, `cpegen dict --build-ranges`), no dins del snapshot del diccionari; només `configStatus = 'Active'` per defecte | El snapshot és una fila per CPE i els rangs són per parell: barrejar-los trencaria el format i el resum de càrrega. Sidecar = compatibilitat cap enrere total (sense fitxer, cap comportament canvia) i el KGCS segueix sent només font de curació, mai dependència de runtime. Els `Inactive` són criteris substituïts: incloure'ls ressuscitaria rangs que la NVD ha retirat (`--include-inactive` per auditar-ho) |
+| 2026-08-13 | La procedència de la versió és la columna **`version_source`** (`dict`/`range`/`outside`/`unknown`), **no** una regla M nova ni un ascens d'M1B | Mateixa governança que `dictionary_source` (decisió 2026-08-11): l'escala M mesura matching i ha de ser uniforme entre configuracions. Un M1B amb versió coberta per rang segueix sent "parell bo, versió no llistada"; el que canvia és que ara sabem que la NVD sí la modela — senyal per a `vulns` i un disparador de revisió menys per a WP5 |
 | 2026-08-13 | **Dice de bigrames en multiconjunt, no en conjunt**, com a mètrica del port | És l'única variant que reprodueix `apoc.text.sorensenDiceSimilarity` als set casos validats del playbook (1,000/0,964/0,947/0,947/0,940/0,903/0,853 a tres decimals); la variant de conjunts desvia fins a 0,033 (FortiOS 0,870 vs 0,903). El criteri d'acceptació del port és reproduir l'evidència que el va justificar, no "una implementació raonable de Dice" |
 | 2026-08-13 | **La canonicalització reescriu el CPE, no l'extracció**: quan el lookup accepta un parell, el WFN que es vincula i es classifica porta l'ortografia del diccionari (`vendor`/`product`/`part`), però les columnes `vendor`/`product` conserven les paraules del lector i apareixen `canonical_vendor`/`canonical_product` | El mode de fallada 2 de l'espec és exactament aquest: el lector llegeix bé i el matcher perd el match per convenció de noms. Reescriure el CPE és el que converteix M2/M4 en M1x (391 files al pilot 10k, totes a M1x, cap CPE invàlid); conservar les paraules del lector és el que manté honesta l'avaluació NER. L'invariant no es toca: la cadena canònica torna a passar l'ABNF i, si fallés, es conserva l'anterior |
 | 2026-08-13 | **El marge s'avalua contra el millor candidat d'un parell diferent**, i els germans d'una família versionada amb el token confirmat al títol tampoc hi compten | Les variants de `part` del mateix parell no són alternatives (les resol l'heurística de `part`), i un `sql_server_2019` amb "2019" literal al títol aniria a revisió humana per sempre per un marge de 0,048 contra `sql_server_2017`. La comprovació determinista del token **substitueix** el marge en aquest cas concret; no s'hi suma. Sense evidència de versió al títol la regla dura mana i no hi ha automatització |

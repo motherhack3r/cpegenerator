@@ -6,9 +6,18 @@ never validates, never classifies and never emits a final CPE by itself.
 
 Tools:
 - bind_and_validate: entities -> bound CPE 2.3 string + ABNF validation
-- search_dictionary: NVD CPE dictionary lookup (match string or keyword)
+- search_dictionary: CPE dictionary lookup — exact pair, vendor alias
+                     table and clean+Dice canonicalization (WP1 step 4)
 - classify_match:    M1-M3 classification of entities vs the dictionary
 - submit:            final answer (entities + confidence); ends the loop
+
+WP1 step 4 (2026-08-13): the agent used to see a strictly weaker
+dictionary than the fast pass — a prefix lookup over raw values, with no
+canonicalization. It now goes through the same
+:meth:`cpegen.dictionary.LocalDictionary.lookup` the pipeline uses, so
+the tool answers "the dictionary spells this ``rockwellautomation``"
+instead of "no results", and reports the score, the margin, the ``part``
+and the decision band the notary will apply. Same code, not a copy.
 """
 
 from __future__ import annotations
@@ -16,6 +25,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
+from .dictionary import lookup_for
 from .matcher import classify
 from .nvd import NVDClient
 from .validator import validate_formatted_string
@@ -49,17 +59,21 @@ TOOL_SCHEMAS = [
     {
         "name": "search_dictionary",
         "description": (
-            "Search the official NVD CPE dictionary. Provide vendor and/or "
-            "product for a prefix search (values in CPE convention: lowercase, "
-            "underscores), or keyword for a free-text title search. Returns up "
-            "to 20 entries. Use it to ground vendor/product spelling (e.g. "
-            "'zoho corp' is 'zohocorp' in the dictionary)."
+            "Search the CPE dictionary. Provide vendor and/or product (any "
+            "spelling: the lookup canonicalizes), and optionally the raw "
+            "title to let it match on the whole string; or keyword for a "
+            "free-text title search. Besides the entries it returns the "
+            "canonical vendor:product the dictionary actually uses, the "
+            "similarity score, the margin over the runner-up, the CPE part "
+            "and the decision band. Use it to ground spelling: 'Rockwell "
+            "Automation' is 'rockwellautomation', 'zoho corp' is 'zohocorp'."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "vendor": {"type": "string"},
                 "product": {"type": "string"},
+                "title": {"type": "string", "description": "raw title, if you have it"},
                 "keyword": {"type": "string", "description": "free-text title search"},
             },
         },
@@ -76,6 +90,7 @@ TOOL_SCHEMAS = [
             "type": "object",
             "properties": {
                 **ENTITY_PROPERTIES,
+                "title": {"type": "string", "description": "raw title, if you have it"},
                 "confidence": {"type": "number", "description": "your confidence in [0,1]"},
             },
             "required": ["vendor", "product", "confidence"],
@@ -99,6 +114,41 @@ TOOL_SCHEMAS = [
         },
     },
 ]
+
+
+def _dict_answer(entries, resolution, source: str) -> dict:
+    """Shape a dictionary answer for the model.
+
+    Deprecated entries are listed but marked, not hidden (decision
+    2026-08-12): the agent must be able to see that the only entry for a
+    pair is deprecated instead of concluding the pair does not exist.
+    """
+    out: dict = {
+        "source": source,
+        "total": len(entries),
+        "entries": [
+            {"cpe": e.cpe_name, "title": e.title,
+             **({"deprecated": True} if e.deprecated else {})}
+            for e in entries[:MAX_DICT_RESULTS]
+        ],
+    }
+    if resolution is not None and resolution.winner is not None:
+        w = resolution.winner
+        out["canonical"] = {
+            "vendor": w.vendor, "product": w.product, "part": w.part,
+            "dice": round(w.score, 4), "margin": round(resolution.margin, 4),
+            "decision": resolution.decision,
+            "accepted": resolution.accepted,
+            "deprecated": w.deprecated,
+        }
+        if resolution.review_reasons:
+            out["canonical"]["review_reason"] = resolution.reason
+        out["runners_up"] = [
+            {"vendor": c.vendor, "product": c.product, "part": c.part,
+             "dice": round(c.score, 4)}
+            for c in resolution.candidates[1:4]
+        ]
+    return out
 
 
 def build_wfn_from_args(args: dict) -> WFN:
@@ -147,33 +197,33 @@ class ToolBox:
     def _tool_search_dictionary(self, args: dict) -> dict:
         vendor = args.get("vendor")
         product = args.get("product")
+        title = str(args.get("title") or "")
         keyword = args.get("keyword")
         if keyword:
             entries = self.nvd.keyword(str(keyword))
-        else:
-            vendor = normalize_raw(str(vendor)) if vendor else None
-            product = normalize_raw(str(product)) if product else None
-            if not vendor and not product:
-                return {"error": "provide vendor, product or keyword"}
-            entries = self.nvd.candidates_for(vendor, product)
-        active = [e for e in entries if not e.deprecated]
-        return {
-            "total": len(active),
-            "entries": [
-                {"cpe": e.cpe_name, "title": e.title}
-                for e in active[:MAX_DICT_RESULTS]
-            ],
-        }
+            return _dict_answer(entries, None, "keyword")
+        vendor = normalize_raw(str(vendor)) if vendor else None
+        product = normalize_raw(str(product)) if product else None
+        if not vendor and not product and not title:
+            return {"error": "provide vendor, product, title or keyword"}
+        lookup = lookup_for(self.nvd, vendor, product, title=title)
+        return _dict_answer(lookup.candidates, lookup.resolution,
+                            lookup.source)
 
     def _tool_classify_match(self, args: dict) -> dict:
         wfn = build_wfn_from_args(args)
         vendor = wfn.vendor if isinstance(wfn.vendor, str) else None
         product = wfn.product if isinstance(wfn.product, str) else None
-        candidates = self.nvd.candidates_for(vendor, product)
+        title = str(args.get("title") or "")
+        lookup = lookup_for(self.nvd, vendor, product, title=title)
         # Confidence is validated and echoed back, but never used in the
         # classification (deterministic cascade; decision 2026-07-24).
         confidence = float(args.get("confidence", 0.0))
-        match = classify(wfn, candidates)
+        # The very same call the notary makes — shared code, never a
+        # reimplementation, so the agent cannot be told one verdict and
+        # the pipeline record another.
+        match = classify(wfn, lookup.candidates, title=title,
+                         resolution=lookup.resolution, ranges=lookup.ranges)
         return {
             "rule": match.rule,
             "rule_name": match.rule_name,
@@ -181,6 +231,15 @@ class ToolBox:
             "similarity": round(match.similarity, 4),
             "confidence_reported": confidence,
             "matched_cpe": match.matched_cpe,
+            "canonical_vendor": match.canonical_vendor,
+            "canonical_product": match.canonical_product,
+            "part": match.part,
+            "dice": match.dice,
+            "margin": match.margin,
+            "decision": match.decision,
+            "deprecated": match.deprecated,
+            "version_source": match.version_source,
+            "review_reason": match.review_reason,
             "detail": match.detail,
         }
 

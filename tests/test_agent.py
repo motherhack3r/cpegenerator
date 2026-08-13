@@ -189,3 +189,91 @@ def test_run_agent_all_mode_offline(tmp_path):
                   cache_path=tmp_path / "cache.json")
     assert rows[0].stage == "agent"
     assert rows[0].cpe == "cpe:2.3:a:in2code:femanager:5.5.1:*:*:*:*:typo3:*:*"
+
+
+# ------------------------------------- WP1 step 4: the canonical lookup
+
+def _local_toolbox(tmp_path) -> ToolBox:
+    """A ToolBox over a local snapshot, so the agent sees the WP1 lookup."""
+    from cpegen.dictionary import LocalDictionary, build_snapshot
+
+    cpes = [
+        "cpe:2.3:a:rockwellautomation:factorytalk_linx:6.11:*:*:*:*:*:*:*",
+        "cpe:2.3:a:adobe:acrobat_reader_dc:21.0:*:*:*:*:*:*:*",
+        "cpe:2.3:o:fortinet:fortios:7.2.5:*:*:*:*:*:*:*",
+        "cpe:2.3:a:legacyvendor:legacy_tool:1.0:*:*:*:*:*:*:*",
+    ]
+
+    def fetch(start, size):
+        products = [{"cpe": {"cpeName": c, "cpeNameId": f"id-{c}",
+                             "titles": [{"title": c, "lang": "en"}],
+                             "deprecated": c.startswith("cpe:2.3:a:legacy")}}
+                    for c in cpes] if start == 0 else []
+        return {"totalResults": len(cpes), "resultsPerPage": len(products),
+                "products": products}
+
+    snap = tmp_path / "dict.jsonl.gz"
+    build_snapshot(snap, fetch=fetch, page_size=100)
+    return ToolBox(nvd=LocalDictionary.load(snap))
+
+
+def test_agent_search_canonicalizes_instead_of_returning_nothing(tmp_path):
+    # Before WP1 step 4 the agent saw a strictly weaker dictionary than
+    # the fast pass: a prefix lookup on raw values, which answers "no
+    # results" for the exact case the canonicalization layer exists for.
+    tb = _local_toolbox(tmp_path)
+    out = json.loads(tb.execute("search_dictionary", {
+        "vendor": "Rockwell Automation",
+        "product": "FactoryTalk Linx CommDTM",
+        "title": "Rockwell Automation FactoryTalk Linx CommDTM V1.4.0"}))
+    assert out["source"] == "dice"
+    assert out["canonical"]["vendor"] == "rockwellautomation"
+    assert out["canonical"]["product"] == "factorytalk_linx"
+    assert out["canonical"]["accepted"] is True
+    assert out["canonical"]["dice"] >= 0.85
+
+
+def test_agent_search_reports_the_part_it_found(tmp_path):
+    tb = _local_toolbox(tmp_path)
+    out = json.loads(tb.execute("search_dictionary",
+                                {"vendor": "fortinet", "product": "fortios"}))
+    assert out["canonical"]["part"] == "o"
+
+
+def test_agent_search_marks_deprecated_instead_of_hiding_it(tmp_path):
+    tb = _local_toolbox(tmp_path)
+    out = json.loads(tb.execute("search_dictionary",
+                                {"vendor": "legacyvendor",
+                                 "product": "legacy_tool"}))
+    assert out["entries"][0]["deprecated"] is True
+    assert out["canonical"]["deprecated"] is True
+
+
+def test_agent_classify_matches_what_the_notary_will_say(tmp_path):
+    # Shared code, not a copy: if the tool and the pipeline could
+    # diverge, the agent would be reasoning against a different verdict
+    # from the one that ends up on the record.
+    from cpegen.dictionary import lookup_for
+    from cpegen.matcher import classify
+    from cpegen.tools import build_wfn_from_args
+
+    tb = _local_toolbox(tmp_path)
+    args = {"vendor": "Rockwell Automation",
+            "product": "FactoryTalk Linx CommDTM", "version": "1.4.0",
+            "title": "Rockwell Automation FactoryTalk Linx CommDTM V1.4.0",
+            "confidence": 0.9}
+    out = json.loads(tb.execute("classify_match", args))
+    wfn = build_wfn_from_args(args)
+    lk = lookup_for(tb.nvd, "rockwell_automation",
+                    "factorytalk_linx_commdtm", title=args["title"])
+    expected = classify(wfn, lk.candidates, title=args["title"],
+                        resolution=lk.resolution, ranges=lk.ranges)
+    assert out["rule"] == expected.rule == "M1B"
+    assert out["canonical_product"] == expected.canonical_product
+    assert out["decision"] == expected.decision
+
+
+def test_agent_search_still_supports_keyword(tmp_path):
+    tb = make_toolbox(tmp_path, seed_femanager())
+    out = json.loads(tb.execute("search_dictionary", {"keyword": "femanager"}))
+    assert out["source"] == "keyword"

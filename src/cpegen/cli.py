@@ -103,9 +103,41 @@ def cmd_curate(args: argparse.Namespace) -> int:
 
 
 def cmd_dict(args: argparse.Namespace) -> int:
-    from .dictionary import DEFAULT_SNAPSHOT, LocalDictionary, build_snapshot
+    from .dictionary import (
+        DEFAULT_RANGES,
+        DEFAULT_SNAPSHOT,
+        LocalDictionary,
+        build_ranges,
+        build_snapshot,
+    )
 
     path = Path(args.snapshot or DEFAULT_SNAPSHOT)
+    ranges_path = Path(args.ranges or DEFAULT_RANGES)
+    if args.build_ranges:
+        def progress(done: int, total: int) -> None:
+            print(f"\r[{done}/{total}] platform configurations", end="",
+                  file=sys.stderr, flush=True)
+
+        from .dictionary import _neo4j_target
+
+        target = _neo4j_target(url=args.neo4j_url,
+                               database=args.neo4j_database)
+        print(f"Source: {target}", file=sys.stderr)
+        try:
+            stats = build_ranges(ranges_path, progress=progress,
+                                 include_inactive=args.include_inactive,
+                                 url=args.neo4j_url,
+                                 database=args.neo4j_database)
+        except RuntimeError as exc:
+            print(file=sys.stderr)
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+        print(file=sys.stderr)
+        print(f"Ranges: {stats['ranges']} distinct ranges over "
+              f"{stats['pairs']} vendor:product pairs "
+              f"({stats['rows']} configurations, {stats['malformed']} "
+              f"malformed) -> {ranges_path}")
+        return 0
     if args.build:
         def progress(done: int, total: int) -> None:
             print(f"\r[{done}/{total}] dictionary entries", end="",
@@ -122,7 +154,11 @@ def cmd_dict(args: argparse.Namespace) -> int:
               f"cpegen dict --build   (needs network; NVD_API_KEY "
               f"recommended: ~3 min vs ~30 min)")
         return 1
-    d = LocalDictionary.load(path)
+    d = LocalDictionary.load(path, ranges_path=ranges_path)
+    if d.ranges:
+        print(f"Ranges {ranges_path}: "
+              f"{sum(len(v) for v in d.ranges.values())} ranges over "
+              f"{len(d.ranges)} pairs")
     print(f"Snapshot {path}: {d.size} entries, "
           f"{len(d.by_pair)} vendor:product pairs, "
           f"{len(d.vendor_reps)} vendors, {len(d.product_reps)} products")
@@ -271,7 +307,10 @@ def cmd_reclassify(args: argparse.Namespace) -> int:
     nvd = NVDClient(Path(args.cache) if args.cache
                     else Path("data/cache/nvd_cache.json"),
                     offline=args.offline)
-    lookup = (HybridDictionary(LocalDictionary.load(Path(args.dict)), nvd)
+    lookup = (HybridDictionary(
+                  LocalDictionary.load(Path(args.dict),
+                                       ranges_path=Path(args.ranges)
+                                       if args.ranges else None), nvd)
               if args.dict else nvd)
     stats = reclassify_results(Path(args.input), Path(args.output), lookup,
                                progress=progress)
@@ -404,6 +443,27 @@ def main(argv: list[str] | None = None) -> int:
     p_dic.add_argument("--snapshot", default=None,
                        help="snapshot path (default "
                             "data/cache/cpe_dictionary.jsonl.gz)")
+    p_dic.add_argument("--build-ranges", action="store_true",
+                       dest="build_ranges",
+                       help="build the version-range sidecar from the local "
+                            "KGCS (PlatformConfiguration nodes); needs "
+                            "NEO4J_* env, and is the only source of ranges "
+                            "(the CPE Products API does not carry them)")
+    p_dic.add_argument("--include-inactive", action="store_true",
+                       dest="include_inactive",
+                       help="also take configStatus=Inactive ranges "
+                            "(superseded criteria; off by default)")
+    p_dic.add_argument("--ranges", default=None,
+                       help="ranges sidecar path (default "
+                            "data/cache/cpe_ranges.jsonl.gz)")
+    p_dic.add_argument("--neo4j-database", default=None,
+                       dest="neo4j_database",
+                       help="Neo4j database holding the KGCS graph "
+                            "(default: NEO4J_DATABASE, then 'neo4j'). The "
+                            "KGCS is NOT in the default database")
+    p_dic.add_argument("--neo4j-url", default=None, dest="neo4j_url",
+                       help="Neo4j HTTP endpoint (default: NEO4J_URL, "
+                            "then http://localhost:7474)")
     p_dic.add_argument("--aliases-out", default=None, dest="aliases_out",
                        help="materialize the vendor alias table to CSV "
                             "(coexisting canonical variants + validated "
@@ -518,6 +578,9 @@ def main(argv: list[str] | None = None) -> int:
                        help="results.csv from a previous run")
     p_rec.add_argument("--output", required=True, help="output directory")
     p_rec.add_argument("--dict", default="data/cache/cpe_dictionary.jsonl.gz")
+    p_rec.add_argument("--ranges", default=None,
+                       help="version-range sidecar (see 'cpegen dict "
+                            "--build-ranges'); enables version_source")
     p_rec.add_argument("--offline", action="store_true")
     p_rec.add_argument("--cache", default=None)
     p_rec.set_defaults(func=cmd_reclassify)

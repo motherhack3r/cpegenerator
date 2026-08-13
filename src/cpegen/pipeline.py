@@ -63,6 +63,7 @@ class RowResult:
     lookup_source: str = ""  # pair | alias | dice | union | api | miss
     needs_review: bool = False
     review_reason: str = ""
+    version_source: str = ""  # dict | range | outside | unknown
 
 
 def build_wfn(ext: Extraction) -> WFN | None:
@@ -127,7 +128,8 @@ def process_title(title: str, provider, nvd: NVDClient,
     except Exception as exc:  # degrade to no candidates, keep the run alive
         lk = Lookup([], None, "error")
         row.note = f"nvd lookup failed: {exc}"
-    match = classify(wfn, lk.candidates, title=title, resolution=lk.resolution)
+    match = classify(wfn, lk.candidates, title=title,
+                     resolution=lk.resolution, ranges=lk.ranges)
     apply_match(row, match, wfn, lk)
     return row
 
@@ -152,6 +154,7 @@ def apply_match(row: RowResult, match, wfn: WFN, lk: Lookup) -> RowResult:
     row.lookup_source = lk.source
     row.review_reason = match.review_reason
     row.needs_review = match.needs_review
+    row.version_source = match.version_source
 
     effective = canonicalize(wfn, lk.resolution)
     canonical = effective.bind()
@@ -391,7 +394,7 @@ def reclassify_results(results_path: Path, output_dir: Path, nvd,
                 lk = Lookup([], None, "error")
                 row["note"] = f"nvd lookup failed: {exc}"
             match = classify(wfn, lk.candidates, title=row["title"],
-                             resolution=lk.resolution)
+                             resolution=lk.resolution, ranges=lk.ranges)
             old_rule = row.get("rule", "")
             if old_rule != match.rule:
                 key = f"{old_rule or '(none)'} -> {match.rule}"
@@ -418,6 +421,7 @@ def reclassify_results(results_path: Path, output_dir: Path, nvd,
                 "lookup_source": out.lookup_source,
                 "needs_review": str(out.needs_review),
                 "review_reason": out.review_reason,
+                "version_source": out.version_source,
             })
             stats["reclassified"] += 1
             writer.writerow(row)

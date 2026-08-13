@@ -15,7 +15,9 @@ output, whatever its size.
 from __future__ import annotations
 
 import csv
+import html
 import json
+import re
 from pathlib import Path
 from typing import Callable
 
@@ -23,9 +25,37 @@ from .inventory import NOISE_PATTERNS
 
 GARBAGE_VALUES = {"", "-", "--", "---", "n/a", "null", "unknown"}
 
+# Doubly (and triply) escaped entities occur in the real SCCM export:
+# "VPN Gateway &amp;amp;amp;lt;5.1.7". Unescaping once would leave
+# "&amp;amp;lt;" behind, so we iterate until it stops changing — bounded,
+# because each pass strictly shortens the string when it changes anything.
+_ENTITY = re.compile(r"&(?:#\d+|#x[0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]{1,31});")
+_MAX_UNESCAPE_PASSES = 5
+
+
+def unescape_entities(value: str) -> str:
+    """Decode HTML entities in a raw inventory value.
+
+    WP1 step 1 actionable 3 (docs/match-rules.md), recovered from the
+    TFM's ``cpe_wfn_vendor()`` and confirmed on 18 real rows of
+    ``products.csv`` ("Comments Import &amp; Export Plugin for
+    WordPress", "EZ Media &amp; Backup"). It has to happen *before* the
+    noise filter and before the matcher's ``clean()``: without it,
+    ``clean("AT&amp;T")`` is ``"atampt"`` instead of ``"att"`` — the
+    entity turns into three phantom letters inside the comparison key.
+    """
+    for _ in range(_MAX_UNESCAPE_PASSES):
+        if not _ENTITY.search(value):
+            return value
+        decoded = html.unescape(value)
+        if decoded == value:
+            return value
+        value = decoded
+    return value
+
 
 def _clean(value: str | None) -> str:
-    value = (value or "").strip()
+    value = unescape_entities((value or "").strip()).strip()
     return "" if value.lower() in GARBAGE_VALUES else value
 
 

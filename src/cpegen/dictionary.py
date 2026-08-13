@@ -53,12 +53,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterable
 
-from .matcher import MIN_DICE, PairResolution, ScoredPair, bigrams, clean, decide
+from .matcher import (
+    MIN_DICE,
+    PairResolution,
+    ScoredPair,
+    VersionRange,
+    bigrams,
+    clean,
+    decide,
+)
 from .nvd import API_URL, DictEntry, NVDClient
 from .validator import validate_formatted_string
 from .wfn import bind_component, normalize_raw, split_formatted_string
 
 DEFAULT_SNAPSHOT = Path("data/cache/cpe_dictionary.jsonl.gz")
+DEFAULT_RANGES = Path("data/cache/cpe_ranges.jsonl.gz")
 PAGE_SIZE = 10_000          # API maximum for the CPE Products endpoint
 CANDIDATE_CAP = 2_000       # same cap as NVDClient pagination
 SCORE_CAP = 4_000           # max pairs exactly scored per query (see search)
@@ -200,6 +209,163 @@ def _neo4j_fetch(url: str | None = None, user: str | None = None,
                 "products": products}
 
     return fetch
+
+
+def _neo4j_ranges_fetch(url: str | None = None, user: str | None = None,
+                        password: str | None = None,
+                        database: str | None = None,
+                        post: Callable[..., dict] | None = None,
+                        include_inactive: bool = False) -> FetchPage:
+    """Page fetcher over the KGCS ``PlatformConfiguration`` nodes.
+
+    These are the NVD's *vulnerable configurations*: the intensional side
+    of the dictionary. Where ``Platform`` enumerates concrete CPEs, this
+    label states version **ranges** for a ``vendor:product`` pair, which
+    is how the NVD models most of the version space (206.277 of 645.027
+    nodes carry at least one bound; 64.660 distinct pairs).
+
+    Only ``configStatus = 'Active'`` by default: the inactive ones are
+    superseded criteria and would resurrect ranges the NVD has retired.
+    No relationship traversal is needed — ``criteria`` is a full CPE 2.3
+    string and carries part/vendor/product itself.
+    """
+    url = (url or os.environ.get("NEO4J_URL", "http://localhost:7474")).rstrip("/")
+    user = user or os.environ.get("NEO4J_USER", "neo4j")
+    password = password or os.environ.get("NEO4J_PASSWORD", "")
+    database = database or os.environ.get("NEO4J_DATABASE", "neo4j")
+    endpoint = f"{url}/db/{database}/tx/commit"
+
+    if post is None:
+        import requests
+
+        def post(statement: str, parameters: dict) -> dict:
+            resp = requests.post(
+                endpoint,
+                json={"statements": [{"statement": statement,
+                                      "parameters": parameters}]},
+                auth=(user, password), timeout=300)
+            resp.raise_for_status()
+            data = resp.json()
+            if data.get("errors"):
+                raise RuntimeError(f"neo4j: {data['errors']}")
+            return data
+
+    where = (
+        "WHERE (coalesce(p.versionStartIncluding,'') <> '' "
+        "OR coalesce(p.versionStartExcluding,'') <> '' "
+        "OR coalesce(p.versionEndIncluding,'') <> '' "
+        "OR coalesce(p.versionEndExcluding,'') <> '') "
+    )
+    if not include_inactive:
+        where += "AND p.configStatus = 'Active' "
+    total: int | None = None
+
+    def fetch(start_index: int, page_size: int) -> dict:
+        nonlocal total
+        if total is None:
+            data = post(f"MATCH (p:PlatformConfiguration) {where}"
+                        "RETURN count(*)", {})
+            total = data["results"][0]["data"][0]["row"][0]
+        data = post(
+            f"MATCH (p:PlatformConfiguration) {where}"
+            "RETURN p.criteria, p.versionStartIncluding, "
+            "p.versionStartExcluding, p.versionEndIncluding, "
+            "p.versionEndExcluding "
+            "ORDER BY p.matchCriteriaId SKIP $skip LIMIT $limit",
+            {"skip": start_index, "limit": page_size})
+        rows = [d["row"] for d in data["results"][0]["data"]]
+        return {"totalResults": total, "resultsPerPage": len(rows),
+                "rows": rows}
+
+    return fetch
+
+
+def _neo4j_target(url: str | None = None, database: str | None = None,
+                  **_ignored) -> str:
+    """Human-readable description of the Neo4j endpoint we will query."""
+    url = (url or os.environ.get("NEO4J_URL", "http://localhost:7474")).rstrip("/")
+    database = database or os.environ.get("NEO4J_DATABASE", "neo4j")
+    return f"{url}/db/{database}"
+
+
+def build_ranges(out_path: Path = DEFAULT_RANGES,
+                 fetch: FetchPage | None = None,
+                 page_size: int = PAGE_SIZE,
+                 progress: Callable[[int, int], None] | None = None,
+                 **fetch_kwargs) -> dict:
+    """Dump the per-pair version ranges to ``out_path`` (JSONL, gzipped).
+
+    One row per ``(vendor, product)`` with its distinct range tuples, in
+    the dictionary's own escaped component form so it keys straight into
+    ``LocalDictionary.by_pair``. Built at the PC against the local KGCS;
+    the runtime only ever reads the file (Neo4j is never a pipeline
+    dependency).
+    """
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    if fetch is None:
+        fetch = _neo4j_ranges_fetch(**fetch_kwargs)
+
+    pairs: dict[tuple[str, str], set[tuple[str, str, str, str]]] = {}
+    stats = {"rows": 0, "malformed": 0, "pairs": 0, "ranges": 0,
+             "target": _neo4j_target(**fetch_kwargs)}
+    index, total = 0, None
+    while total is None or index < total:
+        page = fetch(index, page_size)
+        total = page.get("totalResults", 0)
+        rows = page.get("rows", [])
+        for criteria, si, se, ei, ee in rows:
+            comps = split_formatted_string(criteria or "")
+            if len(comps) != 13:
+                stats["malformed"] += 1
+                continue
+            bounds = (si or "", se or "", ei or "", ee or "")
+            if not any(bounds):
+                continue
+            pairs.setdefault((comps[3], comps[4]), set()).add(bounds)
+            stats["rows"] += 1
+        got = page.get("resultsPerPage", len(rows)) or len(rows)
+        index += got
+        if progress:
+            progress(index, total)
+        if not rows:
+            break
+
+    if not pairs:
+        # A build that finds nothing is a misconfiguration, not an empty
+        # dictionary: 206k of the KGCS's 645k PlatformConfiguration nodes
+        # carry a bound. Writing an empty sidecar would be worse than
+        # failing — it loads silently and every version reads "unknown"
+        # forever (observed 2026-08-13: the KGCS database is named
+        # "kgcs-dv3", the client defaulted to "neo4j" and reported
+        # success over zero rows).
+        raise RuntimeError(
+            f"no version ranges found at {stats['target']} — check "
+            f"NEO4J_DATABASE (the KGCS graph is not in the default "
+            f"'neo4j' database), NEO4J_URL and the credentials. "
+            f"Nothing was written to {out_path}.")
+
+    with gzip.open(out_path, "wt", encoding="utf-8") as out:
+        for (vendor, product), bounds in sorted(pairs.items()):
+            out.write(json.dumps(
+                {"v": vendor, "p": product, "r": sorted(bounds)},
+                ensure_ascii=False) + "\n")
+            stats["ranges"] += len(bounds)
+    stats["pairs"] = len(pairs)
+    return stats
+
+
+def load_ranges(path: Path | str = DEFAULT_RANGES
+                ) -> dict[tuple[str, str], list[VersionRange]]:
+    """Read a ranges snapshot into the per-pair lookup table."""
+    path = Path(path)
+    opener = gzip.open if path.suffix == ".gz" else open
+    out: dict[tuple[str, str], list[VersionRange]] = {}
+    with opener(path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            raw = json.loads(line)
+            out[(raw["v"], raw["p"])] = [VersionRange(*b) for b in raw["r"]]
+    return out
 
 
 def _entry_from_product(p: dict) -> dict:
@@ -521,6 +687,7 @@ class Lookup:
     candidates: list[DictEntry] = field(default_factory=list)
     resolution: PairResolution | None = None
     source: str = "miss"   # pair | alias | dice | union | api | miss
+    ranges: list = field(default_factory=list)  # VersionRange of the pair
 
 
 # -------------------------------------------------------------- lookup
@@ -547,6 +714,10 @@ class LocalDictionary:
     product_reps: dict[str, list[DictEntry]] = field(default_factory=dict)
     index: PairIndex = field(default_factory=PairIndex)
     aliases: VendorAliases = field(default_factory=VendorAliases)
+    # Intensional side of the dictionary: version ranges per pair, from
+    # the KGCS PlatformConfiguration nodes. Empty unless a ranges
+    # snapshot is loaded — the extensional lookup never depends on it.
+    ranges: dict = field(default_factory=dict)
     size: int = 0
     hits: int = 0
     misses: int = 0
@@ -557,7 +728,8 @@ class LocalDictionary:
 
     @classmethod
     def load(cls, path: Path | str = DEFAULT_SNAPSHOT,
-             build_index: bool = True) -> "LocalDictionary":
+             build_index: bool = True,
+             ranges_path: Path | str | None = None) -> "LocalDictionary":
         path = Path(path)
         opener = gzip.open if path.suffix == ".gz" else open
         d = cls()
@@ -589,6 +761,8 @@ class LocalDictionary:
                 vendor_cpes[vendor] = vendor_cpes.get(vendor, 0) + 1
                 d.size += 1
         d.aliases = VendorAliases.build(vendor_cpes)
+        if ranges_path is not None and Path(ranges_path).exists():
+            d.ranges = load_ranges(ranges_path)
         if build_index:
             for pair, entries in d.by_pair.items():
                 d.index.add(pair[0], pair[1],
@@ -612,6 +786,10 @@ class LocalDictionary:
 
     def entries_for_pair(self, vendor: str, product: str) -> list[DictEntry]:
         return self.by_pair.get((vendor, product), [])[:CANDIDATE_CAP]
+
+    def ranges_for(self, vendor: str, product: str) -> list:
+        """Version ranges of a pair; empty when no snapshot is loaded."""
+        return self.ranges.get((vendor, product), [])
 
     def lookup(self, vendor: str | None, product: str | None,
                title: str = "", query_mode: str = "both") -> Lookup:
@@ -641,7 +819,8 @@ class LocalDictionary:
                 # versioned-family flag on an otherwise perfect hit.
                 res = decide(self.index.scored_pair(bv, bp), evidence,
                              query=clean(f"{vendor} {product}"))
-                return Lookup(exact, res, "pair")
+                return Lookup(exact, res, "pair",
+                              self.ranges_for(bv, bp))
             # Vendor alias table: same product, canonical vendor spelling.
             for canonical in self.aliases.resolve(vendor or ""):
                 if canonical == bv:
@@ -652,7 +831,8 @@ class LocalDictionary:
                     self.alias_hits += 1
                     res = decide(self.index.scored_pair(canonical, bp),
                                  evidence, query=clean(vendor or ""))
-                    return Lookup(hit, res, "alias")
+                    return Lookup(hit, res, "alias",
+                                  self.ranges_for(canonical, bp))
 
         entities = f"{vendor or ''} {product or ''}".strip()
         queries: list[str] = []
@@ -676,7 +856,8 @@ class LocalDictionary:
             if entries:
                 self.hits += 1
                 self.dice_hits += 1
-                return Lookup(entries, resolution, "dice")
+                return Lookup(entries, resolution, "dice",
+                              self.ranges_for(w.vendor, w.product))
 
         union = self.candidates_for(vendor, product)
         return Lookup(union, resolution, "union" if union else "miss")
@@ -743,7 +924,7 @@ class HybridDictionary:
             return result
         self.api_fallbacks += 1
         return Lookup(self.client.candidates_for(vendor, product),
-                      result.resolution, "api")
+                      result.resolution, "api", result.ranges)
 
     def keyword(self, keywords: str) -> list[DictEntry]:
         return self.client.keyword(keywords)

@@ -177,3 +177,27 @@ def test_escalate_empty_results_raises(tmp_path):
     with pytest.raises(ValueError, match="no rows"):
         escalate_results(empty, tmp_path / "o", model="m",
                          provider_name="mock")
+
+
+def test_titles_unescape_html_entities(tmp_path):
+    # WP1 step 1 actionable 3, confirmed on 18 real rows of products.csv.
+    # Without this the matcher's clean() key gets phantom letters:
+    # clean("AT&amp;T") is "atampt", not "att".
+    from cpegen.matcher import clean
+    from cpegen.titles import unescape_entities
+
+    assert unescape_entities("Comments Import &amp; Export Plugin") == \
+        "Comments Import & Export Plugin"
+    assert clean(unescape_entities("AT&amp;T")) == "att"
+    # Real row with triple escaping and a filtered "<" marker read as a
+    # version: "VPN Gateway &amp;amp;amp;lt;5.1.7".
+    assert unescape_entities("VPN Gateway &amp;amp;amp;lt;5.1.7") == \
+        "VPN Gateway <5.1.7"
+    # A bare ampersand is not an entity and must survive untouched.
+    assert unescape_entities("Tom & Jerry 100% pure") == "Tom & Jerry 100% pure"
+
+    path = tmp_path / "in.csv"
+    path.write_text("ProductName00\nEZ Media &amp; Backup\n", encoding="utf-8")
+    out = tmp_path / "titles.csv"
+    extract_titles(path, out, cols=["ProductName00"])
+    assert out.read_text(encoding="utf-8").strip() == "EZ Media & Backup"
