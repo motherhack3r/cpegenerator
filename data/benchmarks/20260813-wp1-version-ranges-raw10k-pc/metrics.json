@@ -1,0 +1,26 @@
+{
+  "rows": 10000,
+  "m1b": 682,
+  "version_source_m1b": {
+    "": 303,
+    "range": 233,
+    "unknown": 80,
+    "outside": 66
+  },
+  "version_source_all": {
+    "": 9424,
+    "range": 233,
+    "dict": 197,
+    "unknown": 80,
+    "outside": 66
+  },
+  "needs_review": 2939,
+  "version_unreadable": 80,
+  "m1b_pairs": 313,
+  "m1b_pairs_with_ranges": 168,
+  "sidecar_pairs": 60367,
+  "sidecar_ranges": 180758,
+  "m_distribution_unchanged": true,
+  "cpes_unchanged": true,
+  "scheme_guard_moved_to_unknown": 72
+}

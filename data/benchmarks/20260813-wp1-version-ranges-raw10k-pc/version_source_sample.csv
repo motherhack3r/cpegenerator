@@ -1,0 +1,121 @@
+title,cpe,version,canonical_vendor,canonical_product,version_source,matching_range,n_ranges
+Intel(R) Dynamic Platform and Thermal Framework 8.1,cpe:2.3:a:intel:dynamic_platform_and_thermal_framework:8.1:*:*:*:*:intellectualproperty:*:*,8.1,intel,dynamic_platform_and_thermal_framework,range,<=8.3.10208.5643,1
+Adobe Acrobat Reader DC - Chinese Simplified 22.002,cpe:2.3:a:adobe:acrobat_reader_dc:22.002:*:*:*:*:*:*:*,22.002,adobe,acrobat_reader_dc,range,<22.003.20310,184
+Citrix Workspace(USB) 22.9,cpe:2.3:a:citrix:workspace:22.9:*:*:*:*:*:*:*,22.9,citrix,workspace,range,<1904,12
+UltraEdit 23.20 EN [PR13008] 1.0,cpe:2.3:a:ultraedit:ultraedit:23.20:en\[pr13008\]:*:*:*:*:*:*,23.20,ultraedit,ultraedit,range,<=24.10.0.32,1
+Siemens Totally Integrated Automation Portal V17 - HM All Editions Single SetupPackage V17.0 UPD4 17.00,cpe:2.3:a:siemens:totally_integrated_automation_portal:17.00:upd4:*:*:*:hm_all_editions_single_setuppackage:*:*,17.00,siemens,totally_integrated_automation_portal,range,>=14 <=17,6
+Adobe Acrobat 2020 20.005,cpe:2.3:a:adobe:acrobat:20.005:*:*:*:*:*:*:*,20.005,adobe,acrobat,range,<20.005.30680,164
+Microsoft OneDrive 22.111,cpe:2.3:a:microsoft:onedrive:22.111:*:*:*:*:*:*:*,22.111,microsoft,onedrive,range,>=22.0.0.0 <23.020.0125.0002,5
+PostgreSQL 13,cpe:2.3:a:postgresql:postgresql:13:*:*:*:*:*:*:*,13,postgresql,postgresql,range,<14.23,218
+Facebook Gameroom 1.21.6697.19829,cpe:2.3:a:facebook:gameroom:1.21.6697.19829:*:*:*:*:*:*:*,1.21.6697.19829,facebook,gameroom,range,<1.26.0,1
+Microsoft Edge 83.0,cpe:2.3:a:microsoft:edge:83.0:*:*:*:*:*:*:*,83.0,microsoft,edge,range,<107.0.1418.62,31
+Siemens Totally Integrated Automation Portal V17 - Simatic Single SetupPackage 32 Bit V17.0 17.00,cpe:2.3:a:siemens:totally_integrated_automation_portal:17.0:*:*:*:*:simatic_single_setuppackage:*:*,17.0,siemens,totally_integrated_automation_portal,range,>=14 <=17,6
+Siemens Totally Integrated Automation Portal V13 - Support Base Package TO-02 V13.0 13.00,cpe:2.3:a:siemens:totally_integrated_automation_portal:13.0:to-02:*:*:*:tia:*:*,13.0,siemens,totally_integrated_automation_portal,range,<=14,6
+Adobe Premiere Pro CC 2015 9.2,cpe:2.3:a:adobe:premiere_pro_cc:9.2:*:*:*:*:*:*:*,9.2,adobe,premiere_pro_cc,range,<=13.1.2,1
+Siemens NX 19.46,cpe:2.3:o:siemens:nx:19.46:*:*:*:*:*:*:*,19.46,siemens,nx,range,<2512.0,1
+VMware Horizon Client 5.5,cpe:2.3:a:vmware:horizon_client:5.5:*:*:*:*:horizon:*:*,5.5,vmware,horizon_client,range,>=5.0.0 <5.5.2,10
+"Siemens Totally Integrated Automation Portal V17 - SINAMICS Startdrive G110M, G120, G120C, G120D, G120P V17.0 17.00","cpe:2.3:a:siemens:totally_integrated_automation_portal:v17:*:*:*:*:sinnamics_startdrive_g110m\,_g120\,_g120c\,_g120d\,_g120p:*:*",v17,siemens,totally_integrated_automation_portal,range,>=14 <=17,6
+HP Smart Storage Administrator CLI 2.40,cpe:2.3:a:hp:smart_storage_administrator:2.40:*:*:*:*:*:*:*,2.40,hp,smart_storage_administrator,range,<2.60.18.0,1
+Citrix Workspace(DV) 22.9,cpe:2.3:a:citrix:workspace:22.9:*:*:*:*:*:*:*,22.9,citrix,workspace,range,<1904,12
+Adobe AIR 16.0,cpe:2.3:a:adobe:air:16.0:*:*:*:*:*:*:*,16.0,adobe,air,range,<20.0.0.233,33
+Intel® PROSet/Wireless Software 20.90,cpe:2.3:a:intel:proset\/wireless_software:20.90:*:*:*:*:*:*:*,20.90,intel,proset/wireless_software,range,<20.90.0.7,1
+Schneider Electric EcoStruxure Building Operation WebReports 2.0.2.67,cpe:2.3:a:schneider-electric:ecostruxure_building_operation:2.0.2.67:*:*:*:*:*:*:*,2.0.2.67,schneider-electric,ecostruxure_building_operation,range,>=2.0 <=3.1,1
+"Siemens Totally Integrated Automation Portal V16 - SINAMICS Startdrive G130, G150, S120, S150, SINAMICS MV V16.0 + Upd5 16.00","cpe:2.3:a:siemens:totally_integrated_automation_portal:v16.0:upd5_16.00:*:*:*:sinaics_startdrive_g130\,_g150\,_s120\,_s150\,_sinaics_mv_v16.0:*:*",v16.0,siemens,totally_integrated_automation_portal,range,>=14 <=17,6
+HP Array Configuration Utility CLI 8.70,cpe:2.3:a:hp:array_configuration_utility:8.70:*:*:*:*:*:*:*,8.70,hp,array_configuration_utility,range,<=9.40,1
+Docker Desktop 4.1,cpe:2.3:a:docker:docker_desktop:4.1:*:*:*:*:*:*:*,4.1,docker,docker_desktop,range,<4.12.0,14
+Citrix Workspace (DV) 22.7,cpe:2.3:a:citrix:workspace:22.7:*:*:*:*:*:*:*,22.7,citrix,workspace,range,<1904,12
+Siemens Totally Integrated Automation Portal V13 - Startdrive Hardware Support Base Package 0 V13.0 13.00,cpe:2.3:a:siemens:totally_integrated_automation_portal:v13.0:13.00:*:*:*:startdrive_hardware_support_base_package:*:*,v13.0,siemens,totally_integrated_automation_portal,range,<=14,6
+"HPE Insight Remote Support, v7.6.0.0031",cpe:2.3:a:hpe:insight_remote_support:7.6.0.0031:*:*:*:*:*:*:*,7.6.0.0031,hpe,insight_remote_support,range,<7.14.0.629,3
+SOPAS Engineering Tool 3.2,cpe:2.3:a:sick:sopas_engineering_tool:3.2:*:*:*:*:*:*:*,3.2,sick,sopas_engineering_tool,range,<4.8.0,1
+Node.js 6.11,cpe:2.3:a:nodejs:node.js:6.11:*:*:*:*:node.js:*:*,6.11,nodejs,node.js,range,<10.21.0,226
+UltraEdit 23.00,cpe:2.3:a:ultraedit:ultraedit:23.00:*:*:*:*:*:*:*,23.00,ultraedit,ultraedit,range,<=24.10.0.32,1
+Microsoft .NET Core Host - 2.1.17 (x86) 16.68,cpe:2.3:a:microsoft:.net_core:2.1.17:16.68:*:*:*:x86:*:*,2.1.17,microsoft,.net_core,range,>=2.1 <2.1.28,13
+Bosch Video Client 1.7.6.078 Software,cpe:2.3:a:bosch:video_client:1.7.6.078:*:*:*:*:*:*:*,1.7.6.078,bosch,video_client,range,<=1.7.6.079,1
+NVIDIA GeForce Experience 3.20.0.118,cpe:2.3:a:nvidia:geforce_experience:3.20.0.118:*:*:*:*:*:*:*,3.20.0.118,nvidia,geforce_experience,range,<3.20.1,20
+인텔® PROSet/무선 소프트웨어 20.70,cpe:2.3:a:intel:proset\/wireless_software:20.70:*:*:*:*:*:*:*,20.70,intel,proset/wireless_software,range,<20.90.0.7,1
+Siemens Totally Integrated Automation Portal V17 - Hardware Support Base Package 04 1036 V17.0 17.00,cpe:2.3:a:siemens:totally_integrated_automation_portal:17.00:04_1036:*:*:*:v17:*:*,17.00,siemens,totally_integrated_automation_portal,range,>=14 <=17,6
+Siemens Totally Integrated Automation Portal V16 - SINAMICS-STARTDRIVE-COMMON-OPENNESS V16.0 16.00,cpe:2.3:a:siemens:totally_integrated_automation_portal:16.00:*:*:*:*:sinnamics-startdrive-common-opensinness:*:*,16.00,siemens,totally_integrated_automation_portal,range,>=14 <=17,6
+Irfan View 4.2.8 1.0,cpe:2.3:a:irfanview:irfanview:4.2.8:1.0:*:*:*:*:*:*,4.2.8,irfanview,irfanview,range,<4.72,9
+Siemens Totally Integrated Automation Portal V15 - SIMOCODE ES V15 Single SetupPackage V15.0 UPD2 15.00,cpe:2.3:a:siemens:totally_integrated_automation_portal:15.00:upd2:*:*:*:simocode_es_v15:*:*,15.00,siemens,totally_integrated_automation_portal,range,>=14 <=17,6
+TeamViewer 15.26,cpe:2.3:a:teamviewer:teamviewer:15.26:*:*:*:*:*:*:*,15.26,teamviewer,teamviewer,range,<15.28,20
+AXIS Device Manager 5.18,cpe:2.3:a:axis:device_manager:5.18:*:*:*:*:*:*:*,5.18,axis,device_manager,range,<5.32.137,2
+XMind 10.3.1,cpe:2.3:a:xmind:xmind:10.3.1:*:*:*:*:*:*:*,10.3.1,xmind,xmind,outside,,1
+Cisco Webex Productivity Tools 40.11,cpe:2.3:a:cisco:webex_productivity_tools:40.11:*:*:*:*:*:*:*,40.11,cisco,webex_productivity_tools,outside,,2
+KeePass Password Safe 2.48.1,cpe:2.3:a:keepass:password_safe:2.48.1:*:*:*:*:*:*:*,2.48.1,keepass,password_safe,outside,,1
+ffftp 5.7,cpe:2.3:a:ffftp:ffftp:5.7:*:*:*:*:*:*:*,5.7,ffftp,ffftp,outside,,1
+Oracle VM VirtualBox 6.1.32,cpe:2.3:a:oracle:virtualbox:6.1.32:*:*:*:*:virtualbox:*:*,6.1.32,oracle,virtualbox,outside,,1
+Citrix Receiver 14.9.5000.7 MULTI [PR19583] 1.0,cpe:2.3:a:citrix:receiver:14.9.5000.7:pr19583:*:*:*:*:*:*,14.9.5000.7,citrix,receiver,outside,,1
+Polycom BToE Connector 4.3,cpe:2.3:a:polycom:btoe_connector:4.3:*:*:*:*:*:*:*,4.3,polycom,btoe_connector,outside,,1
+IBM Personal Communications 5.6,cpe:2.3:a:ibm:personal_communications:5.6:*:*:*:*:*:*:*,5.6,ibm,personal_communications,outside,,1
+Autodesk Maya 2022 2022.4,cpe:2.3:a:autodesk:maya:2022.4:*:*:*:*:*:*:*,2022.4,autodesk,maya,outside,,1
+SolarWinds Orion Network Performance Monitor v12.5,cpe:2.3:a:solarwinds:orion_network_performance_monitor:12.5:*:*:*:*:orion:*:*,12.5,solarwinds,orion_network_performance_monitor,outside,,4
+Adobe AIR 30.0,cpe:2.3:a:adobe:air:30.0:*:*:*:*:*:*:*,30.0,adobe,air,outside,,33
+Cisco Webex Productivity Tools 42.6,cpe:2.3:a:cisco:webex_productivity_tools:42.6:*:*:*:*:*:*:*,42.6,cisco,webex_productivity_tools,outside,,2
+IBM i Access Client Solutions - Application Package 11.16,cpe:2.3:a:ibm:i_access_client_solutions:11.16:*:*:*:*:*:*:*,11.16,ibm,i_access_client_solutions,outside,,4
+Oracle VM VirtualBox 6.1.10,cpe:2.3:a:oracle:virtualbox:6.1.10:*:*:*:*:virtualbox:*:*,6.1.10,oracle,virtualbox,outside,,1
+SIMATIC WinCC Runtime Advanced V16.0 UPD6,cpe:2.3:a:siemens:simatic_wincc_runtime_advanced:16.0:6:*:*:*:wincc:*:*,16.0,siemens,simatic_wincc_runtime_advanced,outside,,2
+Auth0 AD LDAP Connector 6.1,cpe:2.3:a:auth0:ad\/ldap_connector:6.1:*:*:*:*:*:*:*,6.1,auth0,ad/ldap_connector,outside,,1
+SIMATIC WinCC Runtime Advanced V16.0,cpe:2.3:a:siemens:simatic_wincc_runtime_advanced:16.0:*:*:*:*:wincc:*:*,16.0,siemens,simatic_wincc_runtime_advanced,outside,,2
+JetBrains ETW Host Service 112.0,cpe:2.3:a:jetbrains:etw_host_service:112.0:*:*:*:*:*:*:*,112.0,jetbrains,etw_host_service,outside,,1
+Autodesk Storm and Sanitary Analysis 2023.0.1 13.5,cpe:2.3:a:autodesk:storm_and_sanitary_analysis:2023.0.1:*:*:*:*:storm_and_sanitary_analysis:*:*,2023.0.1,autodesk,storm_and_sanitary_analysis,outside,,2
+IBM Tivoli Storage Manager Client 07.01,cpe:2.3:a:ibm:tivoli_storage_manager_client:07.01:*:*:*:*:*:*:*,07.01,ibm,tivoli_storage_manager_client,outside,,11
+Microsoft SQL Server 2019 (64 Bit),cpe:2.3:a:microsoft:sql_server_2019:64_bit:*:*:*:*:sqlserver:*:*,64 bit,microsoft,sql_server_2019,outside,,30
+Autodesk Inventor 2015 19.0,cpe:2.3:a:autodesk:inventor:2015_19.0:*:*:*:*:*:*:*,2015 19.0,autodesk,inventor,outside,,10
+인텔® PROSet/무선 소프트웨어 21.10,cpe:2.3:a:intel:proset\/wireless_software:21.10:*:*:*:*:*:*:*,21.10,intel,proset/wireless_software,outside,,1
+Firebird 2.5.4.26856 (x64),cpe:2.3:a:firebird:firebird:2.5.4.26856:*:*:*:*:x64:*:*,2.5.4.26856,firebird,firebird,outside,,1
+HP PC Hardware Diagnostics UEFI 7.8,cpe:2.3:a:hp:pc_hardware_diagnostics:7.8:*:*:*:*:uefi:*:*,7.8,hp,pc_hardware_diagnostics,outside,,2
+Intel® Software Installer 22.170,cpe:2.3:a:intel:ispc_software_installer:22.170:*:*:*:*:*:*:*,22.170,intel,ispc_software_installer,outside,,1
+HP Support Solutions Framework 12.5,cpe:2.3:a:hp:support_solution_framework:12.5:*:*:*:*:*:*:*,12.5,hp,support_solution_framework,outside,,1
+Citrix Receiver 14.6.0.12010 MULTI [PR14109] 1.0,cpe:2.3:a:citrix:receiver:14.6.0.12010:pr14109:*:*:*:*:*:*,14.6.0.12010,citrix,receiver,outside,,1
+Oracle VM VirtualBox 4.3.16,cpe:2.3:a:oracle:virtualbox:4.3.16:*:*:*:*:virtualbox:*:*,4.3.16,oracle,virtualbox,outside,,1
+Citrix Receiver (SSON) 14.12,cpe:2.3:a:citrix:receiver:14.12:*:*:*:*:sson:*:*,14.12,citrix,receiver,outside,,1
+Microsoft ASP.NET Core Module 12.2,cpe:2.3:a:microsoft:asp.net_core:12.2:*:*:*:*:*:*:*,12.2,microsoft,asp.net_core,outside,,30
+Flash Player 26.0.0.137 EN [PR15698] 1.0,cpe:2.3:a:gnu:flash_player:26.0.0.137:en\[pr15698\]:*:*:*:*:*:*,26.0.0.137,gnu,flash_player,outside,,1
+Intel® Software Installer 21.50,cpe:2.3:a:intel:ispc_software_installer:21.50:*:*:*:*:*:*:*,21.50,intel,ispc_software_installer,outside,,1
+ExtraPuTTY 0.30-2016-04-04 0.30:r17,cpe:2.3:a:extraputty:extraputty:0.30\:r17:*:*:*:*:*:*:*,0.30:r17,extraputty,extraputty,outside,,1
+Oracle VM VirtualBox 6.0.24,cpe:2.3:a:oracle:virtualbox:6.0.24:*:*:*:*:virtualbox:*:*,6.0.24,oracle,virtualbox,outside,,1
+Intel® Software Installer 22.60,cpe:2.3:a:intel:ispc_software_installer:22.60:*:*:*:*:*:*:*,22.60,intel,ispc_software_installer,outside,,1
+GNS3 2.2,cpe:2.3:a:gns3:gns3:2.2:*:*:*:*:*:*:*,2.2,gns3,gns3,outside,,1
+KeePass Password Safe 2.34,cpe:2.3:a:keepass:password_safe:2.34:*:*:*:*:*:*:*,2.34,keepass,password_safe,outside,,1
+Citrix Receiver 14.3.0.5014 1.0,cpe:2.3:a:citrix:receiver:14.3.0.5014:*:*:*:*:1.0:*:*,14.3.0.5014,citrix,receiver,outside,,1
+IBM SPSS Statistics 24 24.0,cpe:2.3:a:ibm:spss_statistics:24.0:*:*:*:*:spssstatistics:*:*,24.0,ibm,spss_statistics,outside,,5
+Autodesk AutoCAD Architecture 2017 SP1 7.9,cpe:2.3:a:autodesk:autocad_architecture:7.9:*:*:*:*:autocad:*:*,7.9,autodesk,autocad_architecture,unknown,,39
+NI LabVIEW 2014 Real-Time OPCUA Support 14.0,cpe:2.3:a:ni:labview:14.0:*:*:*:*:opcua:*:*,14.0,ni,labview,unknown,,4
+Autodesk Navisworks Manage 2022 19.2,cpe:2.3:a:autodesk:navisworks_manage:19.2:*:*:*:*:navisworksmanage:*:*,19.2,autodesk,navisworks_manage,unknown,,3
+AutoCAD LT 2017 - Deutsch (German) 21.0,cpe:2.3:a:autodesk:autocad_lt:21.0:*:*:*:*:*:*:*,21.0,autodesk,autocad_lt,unknown,,41
+SolarWinds Orion NetFlow Traffic Analyzer 2020.2.5 120.2,cpe:2.3:a:solarwinds:orion_netflow_traffic_analyzer:2020.2.5_120.2:*:*:*:*:*:*:*,2020.2.5 120.2,solarwinds,orion_netflow_traffic_analyzer,unknown,,1
+AutoCAD LT 2021 - Deutsch (German) 24.0,cpe:2.3:a:autodesk:autocad_lt:24.0:*:*:*:*:autocad_lt:*:*,24.0,autodesk,autocad_lt,unknown,,41
+Autodesk Navisworks Manage 2019 16.0,cpe:2.3:a:autodesk:navisworks_manage:16.0:*:*:*:*:navisworks:*:*,16.0,autodesk,navisworks_manage,unknown,,3
+AutoCAD Architecture 2022 Language Core - Deutsch (German) 8.4,cpe:2.3:a:autodesk:autocad_architecture:8.4:*:*:*:*:*:*:*,8.4,autodesk,autocad_architecture,unknown,,39
+AutoCAD Mechanical 2022 - Français (French) 26.0,cpe:2.3:a:autodesk:autocad_mechanical:26.0:*:*:*:*:*:*:*,26.0,autodesk,autocad_mechanical,unknown,,38
+Autodesk Civil 3D 2020 13.2,cpe:2.3:a:autodesk:civil_3d:13.2:*:*:*:*:civil_3d:*:*,13.2,autodesk,civil_3d,unknown,,28
+AutoCAD Mechanical 2018 - Deutsch (German) 22.0,cpe:2.3:a:autodesk:autocad_mechanical:22.0:*:*:*:*:*:*:*,22.0,autodesk,autocad_mechanical,unknown,,38
+InTouch Access Anywhere 10.6,cpe:2.3:a:aveva:intouch_access_anywhere:10.6:*:*:*:*:*:*:*,10.6,aveva,intouch_access_anywhere,unknown,,1
+AutoCAD 2020 23.1,cpe:2.3:a:autodesk:autocad:23.1:*:*:*:*:*:*:*,23.1,autodesk,autocad,unknown,,47
+Autodesk 3ds Max 2017 19.3,cpe:2.3:a:autodesk:3ds_max:19.3:*:*:*:*:*:*:*,19.3,autodesk,3ds_max,unknown,,8
+AVEVA Communication Drivers Pack 2020 R2 SE 7.2,cpe:2.3:a:aveva:communication_drivers:2020_r2_se_7.2:*:*:*:*:*:*:*,2020 r2 se 7.2,aveva,communication_drivers,unknown,,1
+Autodesk AutoCAD Plant 3D 2022 Core 13.0,cpe:2.3:a:autodesk:autocad_plant_3d:13.0:*:*:*:*:plant3d:*:*,13.0,autodesk,autocad_plant_3d,unknown,,38
+AutoCAD 2022 — polski (Polish) 24.1,cpe:2.3:a:autodesk:autocad:24.1:*:*:*:*:*:*:*,24.1,autodesk,autocad,unknown,,47
+AutoCAD Architecture 2019 8.1,cpe:2.3:a:autodesk:autocad_architecture:8.1:*:*:*:*:autocad:*:*,8.1,autodesk,autocad_architecture,unknown,,39
+SolarWinds Orion Network Performance Monitor 2019.4 119.4,cpe:2.3:a:solarwinds:orion_network_performance_monitor:2019.4_119.4:*:*:*:*:*:*:*,2019.4 119.4,solarwinds,orion_network_performance_monitor,unknown,,4
+AutoCAD LT 2013 - Deutsch (German) 19.0,cpe:2.3:a:autodesk:autocad_lt:19.0:*:*:*:*:*:*:*,19.0,autodesk,autocad_lt,unknown,,41
+Autodesk Inventor View 2017 - English 21.0,cpe:2.3:a:autodesk:inventor:21.0:*:*:*:*:inventor:*:*,21.0,autodesk,inventor,unknown,,10
+Autodesk Navisworks Manage 2022 - пакет локализации для русского (Russian) языка 19.0,cpe:2.3:a:autodesk:navisworks_manage:19.0:*:*:*:*:navisworks_manage:*:*,19.0,autodesk,navisworks_manage,unknown,,3
+UiPath Orchestrator 19.4,cpe:2.3:a:uipath:orchestrator:19.4:*:*:*:*:*:*:*,19.4,uipath,orchestrator,unknown,,2
+NI LabVIEW 2014 Search 14.0,cpe:2.3:a:ni:labview:14.0:*:*:*:*:*:*:*,14.0,ni,labview,unknown,,4
+NI LabVIEW 2018 SP1 Executable 18.10,cpe:2.3:a:ni:labview:18.10:*:*:*:*:*:*:*,18.10,ni,labview,unknown,,4
+AVEVA InTouch HMI 20.1,cpe:2.3:a:aveva:intouch:20.1:*:*:*:*:*:*:*,20.1,aveva,intouch,unknown,,1
+NI LabWindows/CVI 2020 .NET Reflector Library 20.00,cpe:2.3:a:ni:labwindows:20.00:*:*:*:*:*:*:*,20.00,ni,labwindows,unknown,,1
+Autodesk AutoCAD Mechanical 2022 - English 26.0,cpe:2.3:a:autodesk:autocad_mechanical:26.0:*:*:*:*:autocad:*:*,26.0,autodesk,autocad_mechanical,unknown,,38
+NI LabWindows/CVI 8.5.0 Run-Time Engine,cpe:2.3:a:ni:labwindows:8.5.0:*:*:*:*:*:*:*,8.5.0,ni,labwindows,unknown,,1
+SAP 3D Visual Enterprise Viewer 9.0 EN [PR13116] 1.0,cpe:2.3:a:sap:3d_visual_enterprise_viewer:9.0_en:pr13116:*:*:*:*:*:*,9.0 en,sap,3d_visual_enterprise_viewer,unknown,,2
+Autodesk AutoCAD Mechanical 2017 - English 21.0,cpe:2.3:a:autodesk:autocad_mechanical:21.0:*:*:*:*:autocad:*:*,21.0,autodesk,autocad_mechanical,unknown,,38
+Microsoft Visual Studio 6 -I 1.0,cpe:2.3:a:microsoft:visual_studio:1.0:*:*:*:*:*:*:*,1.0,microsoft,visual_studio,unknown,,1
+Autodesk AutoCAD Architecture 2021 - English 8.3,cpe:2.3:a:autodesk:autocad_architecture:8.3:*:*:*:*:*:*:*,8.3,autodesk,autocad_architecture,unknown,,39
+NI LabVIEW 2016 License 16.0,cpe:2.3:a:ni:labview:16.0:*:*:*:*:*:*:*,16.0,ni,labview,unknown,,4
+AutoCAD Mechanical 2022 26.0,cpe:2.3:a:autodesk:autocad_mechanical:26.0:*:*:*:*:autocad:*:*,26.0,autodesk,autocad_mechanical,unknown,,38
+Mozilla Firefox - CLGO Last,cpe:2.3:a:mozilla:firefox:clgo_last:*:*:*:*:*:*:*,clgo last,mozilla,firefox,unknown,,563
+Autodesk Revit 2020 20.2,cpe:2.3:a:autodesk:revit:20.2:*:*:*:*:*:*:*,20.2,autodesk,revit,unknown,,31
+USB Server 0.11,cpe:2.3:a:userver:userver:0.11:*:*:*:*:*:*:*,0.11,userver,userver,unknown,,1
+AutoCAD 2017 - Deutsch (German) 21.0,cpe:2.3:a:autodesk:autocad:21.0:*:*:*:*:*:*:*,21.0,autodesk,autocad,unknown,,47
+AutoCAD LT 2019 - Deutsch (German) 23.0,cpe:2.3:a:autodesk:autocad_lt:23.0:*:*:*:*:*:*:*,23.0,autodesk,autocad_lt,unknown,,41
