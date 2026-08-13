@@ -1,0 +1,92 @@
+{
+  "rows": 10000,
+  "distribution_pre_wp1": {
+    "M1": 30,
+    "M1A": 64,
+    "M1B": 383,
+    "M1C": 194,
+    "M2": 3088,
+    "M2B": 554,
+    "M3": 1,
+    "M4": 5450,
+    "": 236
+  },
+  "distribution_wp1": {
+    "M1": 63,
+    "M1A": 134,
+    "M1B": 682,
+    "M1C": 182,
+    "M2": 2799,
+    "M2B": 512,
+    "M3": 0,
+    "M4": 5392,
+    "": 236
+  },
+  "m1x_pre_wp1": 671,
+  "m1x_wp1": 1061,
+  "m1x_delta": 390,
+  "m1x_ratio": 1.5812,
+  "m1x_rate_pre_wp1": 0.0671,
+  "m1x_rate_wp1": 0.1061,
+  "baseline_2023_m1x_rate": 0.049,
+  "transitions": {
+    "M2 -> M1B": 212,
+    "M2 -> M1A": 58,
+    "M4 -> M1B": 40,
+    "M2B -> M1B": 30,
+    "M2 -> M1": 26,
+    "M1C -> M1B": 18,
+    "M4 -> M2": 10,
+    "M2B -> M1A": 9,
+    "M4 -> M2B": 6,
+    "M2B -> M1": 5,
+    "M2B -> M1C": 4,
+    "M2 -> M1C": 3,
+    "M4 -> M1A": 2,
+    "M1B -> M1A": 1,
+    "M3 -> M1": 1,
+    "M1A -> M1": 1,
+    "M1C -> M1A": 1
+  },
+  "m1x_downgrades": 0,
+  "cpes_rewritten": 391,
+  "cpes_failing_abnf": 0,
+  "lookup_source": {
+    "api": 5392,
+    "union": 3493,
+    "pair": 494,
+    "dice": 373,
+    "": 236,
+    "alias": 12
+  },
+  "decision_band": {
+    "none": 6133,
+    "weak": 2581,
+    "auto": 782,
+    "": 236,
+    "review": 171,
+    "flagged": 97
+  },
+  "part": {
+    "a": 9756,
+    "": 236,
+    "h": 6,
+    "o": 2
+  },
+  "needs_review": 2874,
+  "review_reason": {
+    "weak_score": 2498,
+    "versioned_family;weak_score": 109,
+    "thin_margin": 86,
+    "deprecated;weak_score": 43,
+    "part_ambiguous;weak_score": 40,
+    "narrow_margin": 35,
+    "deprecated": 25,
+    "versioned_family;narrow_margin": 18,
+    "versioned_family": 8,
+    "part_ambiguous": 5,
+    "deprecated;thin_margin": 5,
+    "versioned_family;deprecated;weak_score": 1,
+    "part_ambiguous;thin_margin": 1
+  }
+}
