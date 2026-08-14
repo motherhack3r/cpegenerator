@@ -67,6 +67,11 @@ body{font-family:var(--sans);color:var(--ink);background:#EDF2F7;line-height:1.5
 .bar .blabel{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:9.5px;font-weight:600;color:#fff;white-space:nowrap;pointer-events:none}
 .gate-d{position:absolute;top:13px;width:12px;height:12px;background:#fff;border:2.5px solid var(--red);transform:translate(-50%,-50%) rotate(45deg);cursor:pointer;z-index:2}
 .gate-d:hover{background:var(--red-pale)}
+.gate-d.done{background:var(--green);border-color:var(--green)}
+.gate-d.done:hover{background:#3c9670}
+.gate-lbl.done{color:var(--green)}
+.glegend .dm.done{background:var(--green);border-color:var(--green)}
+.bar.isdone{background:repeating-linear-gradient(135deg,var(--green),var(--green) 5px,#5aa583 5px,#5aa583 10px)}
 .gate-lbl{position:absolute;top:-9px;transform:translateX(-50%);font-family:var(--mono);font-size:9px;font-weight:700;color:var(--red);pointer-events:none}
 .axis-lbl{position:absolute;top:2px;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;color:var(--grey-light)}
 .glegend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:11px;color:var(--grey)}
@@ -87,6 +92,14 @@ table.plan th{font-family:var(--disp);font-size:11px;font-weight:700;letter-spac
 table.plan td{padding:9px 10px;border:1px solid var(--line);vertical-align:top}
 table.plan tr:nth-child(even) td{background:var(--blue-paler)}
 table.plan tr.gate-row td{background:var(--red-pale);border-top:2px solid var(--red);font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red)}
+table.plan tr.gate-row.passed td{background:var(--green-pale);border-top:2px solid var(--green);color:var(--green)}
+table.plan tr.done td,table.plan tr.done:nth-child(even) td{background:var(--green-pale)}
+table.plan tr.done td.num{color:var(--green)}
+.state{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;border-radius:12px;padding:2px 8px;margin-right:6px;vertical-align:1px}
+.state.ok{background:var(--green);color:#fff}
+.state.next{background:var(--blue);color:#fff}
+.result{font-size:11px;color:var(--green);font-weight:600;display:block;margin-top:5px;line-height:1.35}
+.result .ev{display:block;font-family:var(--mono);font-size:10px;font-weight:400;color:var(--grey);margin-top:3px;line-height:1.45;white-space:normal}
 td.num{font-family:var(--mono);font-weight:600;color:var(--blue-dark);white-space:nowrap}
 td.resp,td.quan{white-space:nowrap;color:var(--grey)}
 td.model{font-family:var(--mono);font-size:11px;white-space:nowrap}
@@ -105,6 +118,16 @@ details.pr .ptext{margin-top:8px;font-family:var(--mono);font-size:10.8px;line-h
 button.copy{position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:9.5px;font-weight:600;background:var(--blue);color:#fff;border:none;border-radius:5px;padding:3px 9px;cursor:pointer}
 button.copy:hover{background:#3d7cc9}
 button.copy.ok{background:var(--green)}
+
+/* ─── progress strip ─── */
+.prog{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.prog .k{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--green-pale)}
+.prog .k.pending{background:var(--blue-paler)}
+.prog .k .kn{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);font-weight:600}
+.prog .k .kv{font-family:var(--disp);font-weight:700;font-size:20px;color:var(--green-dark,var(--green));margin:2px 0}
+.prog .k.pending .kv{color:var(--blue-dark)}
+.prog .k .kd{font-size:10.5px;color:var(--grey);line-height:1.3}
+@media(max-width:860px){.prog{grid-template-columns:repeat(2,1fr)}}
 
 /* ─── deferred strip ─── */
 .defer{display:flex;gap:8px;flex-wrap:wrap}
@@ -129,6 +152,8 @@ button.copy.ok{background:var(--green)}
     <div class="metarow">
       <span class="badge">branca feature/reader-league</span>
       <span class="badge">decisions d'abast 2026-08-12</span>
+      <span class="badge">actualitzat 2026-08-14</span>
+      <span class="badge gate">◆ G1 obert · WP0+WP1+WP2 ✅ · WP3 pre-anotació ✅</span>
       <span class="badge gate">G4 = publicable · flip = Humbert</span>
     </div>
   </div>
@@ -137,12 +162,31 @@ button.copy.ok{background:var(--green)}
   <div class="card">
     <h2><span class="idx">1</span>El contracte: sis escenes → paquets de treball</h2>
     <div class="note">Cada escena del pòster (<code>docs/media/poster-reader-league.html</code>) ha de ser
-    certa al codi abans de publicar. L'escena 1 ja ho és; la resta són el pla.</div>
+    certa al codi abans de publicar. L'escena 1 ja ho era; la resta són el pla.
+    <b>Actualització 2026-08-13</b>: el fonament que el pòster no ensenya però que ho sosté tot
+    — la canonicalització <code>clean</code>+Dice al matcher — ja és al codi i mesurat, i el mateix dia
+    les <b>tres capes de diccionari</b> (WP2) han quedat implementades: «Consult the registry» ja no és
+    una promesa, i l'escena 4 té els tres registres (NVD/MotherHacker/teu) certs — només hi falten els
+    tres segells (VALID/NIE/EXCEPTION), que és WP5. El mateix dia, la <b>pre-anotació de WP3</b> també
+    ha quedat feta: <code>title_features</code> compartit i les dues cues estratificades
+    (<code>gold-rawTFM</code>/<code>gold-rawPC</code>) generades i lliurades a l'Humbert com a
+    <b>pending-freeze</b>. Les sis escenes segueixen igual: cap depenia de WP1/WP2/WP3 per canviar
+    d'abast, només per avançar l'estat.</div>
+    <div class="prog">
+      <div class="k"><div class="kn">WP0 · WP1 · WP2</div><div class="kv">✅ fets</div>
+        <div class="kd">LICENSE Apache-2.0; canonicalització (4 passos) + capes de diccionari, tots mesurats</div></div>
+      <div class="k"><div class="kn">M1x al pilot 10k</div><div class="kv">671 → 1.061</div>
+        <div class="kd">+390 files (×1,58) · 6,71% → 10,61% contra el 4,9% de la base 2023 · zero GPU</div></div>
+      <div class="k"><div class="kn">WP3 pre-anotació</div><div class="kv">✅ 2 cues</div>
+        <div class="kd">title_features + mostreig estratificat; gold-rawTFM (100) i gold-rawPC (82) generats, seed 20260813 · 308 tests verds</div></div>
+      <div class="k pending"><div class="kn">següent</div><div class="kv">G2</div>
+        <div class="kd">únic coll d'ampolla extern: 2–4 h d'anotació de l'Humbert sobre les cues ja pre-anotades</div></div>
+    </div>
     <div class="scenes">
       <div class="sc"><div class="n">1 · mission</div><div class="t">Del gargot al carnet</div><div class="d">títol brut → entitats → CPE validat</div><span class="wp done">✅ fet</span></div>
       <div class="sc"><div class="n">2 · team</div><div class="t">Cinc rols, una firma</div><div class="d">coordinador · especialistes · expert · notari · humà</div><span class="wp todo">WP4</span></div>
       <div class="sc"><div class="n">3 · game</div><div class="t">Canvia la jugada</div><div class="d">5 accions, màx 3 intents, tot a la traça</div><span class="wp todo">WP4</span></div>
-      <div class="sc"><div class="n">4 · verdict</div><div class="t">Tres registres, tres segells</div><div class="d">NVD · MotherHacker · teu — VALID / NIE / EXCEPTION</div><span class="wp todo">WP2 + WP5</span></div>
+      <div class="sc"><div class="n">4 · verdict</div><div class="t">Tres registres, tres segells</div><div class="d">NVD · MotherHacker · teu ✅ — VALID / NIE / EXCEPTION</div><span class="wp todo">WP5</span></div>
       <div class="sc"><div class="n">5 · learning</div><div class="t">1 resposta, 4 actius</div><div class="d">memòria · exemples · àlies · registre</div><span class="wp todo">WP5</span></div>
       <div class="sc"><div class="n">6 · payoff</div><div class="t">Cada dia pregunta menys</div><div class="d">mètrica de freqüència de preguntes</div><span class="wp todo">WP5</span></div>
     </div>
@@ -153,7 +197,10 @@ button.copy.ok{background:var(--green)}
     <h2><span class="idx">2</span>Seqüència — GANTT relatiu amb gates</h2>
     <div class="note">Eix en <b>setmanes d'esforç relatiu</b> (S&lt;M&lt;L del pla), no calendari.
     Passa el ratolí per sobre de barres i gates; clica una barra per anar a la seva fila de la taula.
-    WP2 ∥ WP3 corren en paral·lel després de G1; WP0 no depèn de res: <b>fer-lo primer</b>.</div>
+    Les barres <b>en verd amb ratlla</b> ja estan fetes; <b>G1 està obert</b> (rombe verd ple). WP2 ja
+    s'ha tancat el mateix dia; la part de codi de WP3 (<code>title_features</code> + mostreig +
+    pre-anotació) també és feta — només hi queda la sessió d'anotació de l'Humbert (★), que és el que
+    obre G2.</div>
     <div class="gwrap">
       <div class="gantt" id="gantt">
         <div class="grow gaxis"><div class="lbl"></div><div class="track" id="axis"></div></div>
@@ -161,14 +208,19 @@ button.copy.ok{background:var(--green)}
       </div>
     </div>
     <div class="glegend">
-      <span><i style="background:var(--green)"></i> legal / repo</span>
+      <span><i style="background:var(--green)"></i> legal / repo (WP0)</span>
       <span><i style="background:var(--blue)"></i> nucli (codi + docs)</span>
       <span><i style="background:var(--blue-dark)"></i> benchmark (GPU local)</span>
       <span><i style="background:var(--amber)"></i> humà (Humbert)</span>
-      <span><i class="dm"></i> gate G1–G4</span>
+      <span><i style="background:repeating-linear-gradient(135deg,var(--green),var(--green) 4px,#5aa583 4px,#5aa583 8px)"></i> fet (2026-08-13)</span>
+      <span><i class="dm"></i> gate pendent</span>
+      <span><i class="dm done"></i> gate obert</span>
     </div>
-    <div class="gdisclaimer">Coll d'ampolla extern únic: les 2–4 h d'anotació de l'Humbert (WP3) — demanar-les
-    només amb la pre-anotació llesta. El run RAW (regal del calabrès) és fora del pla: ajornat post-publicació.</div>
+    <div class="gdisclaimer">Coll d'ampolla extern únic: les 2–4 h d'anotació de l'Humbert (WP3) — la
+    pre-anotació ja està llesta i lliurada (2026-08-13), les dues cues l'esperen a
+    <code>data/gold/queues/</code>. El run RAW (regal del calabrès) és fora del pla: ajornat post-publicació.
+    Nota 2026-08-13: WP1 va costar més del previst pel pas 3 (el comparador de versions i la seva auditoria),
+    però va sortir dins de l'esforç estimat.</div>
   </div>
 
   <!-- ══ 3 · taula resum ══ -->
@@ -192,73 +244,91 @@ button.copy.ok{background:var(--green)}
         <th>#</th><th>Acció</th><th>WP</th><th>Resp.</th><th>Quan</th><th>Com es mesura</th><th>Model / effort</th><th>Model local</th><th>Prompt nova sessió</th>
       </tr></thead>
       <tbody>
-        <tr id="row-0">
+        <tr id="row-0" class="done">
           <td class="num">0</td>
-          <td>LICENSE <b>Apache-2.0</b> al root + secció de llicència a README / README_ca</td>
-          <td class="num">WP0</td><td class="resp">Claude</td><td class="quan">immediat, ∥ a tot</td>
-          <td>fitxer al repo; cap «not yet decided»</td>
+          <td><span class="state ok">✅ fet</span>LICENSE <b>Apache-2.0</b> al root + secció de llicència a README / README_ca</td>
+          <td class="num">WP0</td><td class="resp">Claude</td><td class="quan">2026-08-12</td>
+          <td>fitxer al repo; cap «not yet decided»
+            <span class="result">LICENSE al repo (commit <code>403b405</code>)
+              <span class="ev">⚠ pendent: la secció de llicència dels README encara parla de l'Unlicense del TFM 2024 — cal tancar-ho abans de G4</span></span></td>
           <td class="model"><span class="mm haiku">haiku · low</span></td>
           <td class="model"><span class="mm loc">qwen3-4b-instruct-2507</span><span class="sub">mateix prompt</span></td>
           <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP0). Add an Apache-2.0 LICENSE file at the repo root (standard text, copyright 2026 MotherHacker) and update the license sections of README.md and README_ca.md ("not yet decided" → Apache-2.0). Nothing else. Commit on feature/reader-league with the project's author convention (Laia Cabot &lt;laia@motherhacker.me&gt;).<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr id="row-1">
+        <tr id="row-1" class="done">
           <td class="num">1</td>
-          <td>Inventari de neteja: pipeline actual vs heurístiques TFM vs <code>clean()</code> → una funció única</td>
-          <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">primer</td>
-          <td>la taula decideix; secció nova a <code>docs/match-rules.md</code></td>
+          <td><span class="state ok">✅ fet</span>Inventari de neteja: pipeline actual vs heurístiques TFM vs <code>clean()</code> → una funció única</td>
+          <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">2026-08-12/13</td>
+          <td>la taula decideix; secció nova a <code>docs/match-rules.md</code>
+            <span class="result">19 heurístiques inventariades; <code>clean()</code> adoptada com a clau única
+              <span class="ev">Les del TFM eren al paquet R <code>mitre</code> (<code>mitre.cpe.R</code>), no a la carpeta antiga. Contrastades amb <code>products.csv</code> (487.462 files): 3 accionables recuperats, 2 descartats amb contraexemple real. Deute tancat el 13: desescapat d'entitats HTML a <code>titles.py</code></span></span></td>
           <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
           <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">ctx 262k per llegir el TFM vell; el doc surt en CA — prompt local propi</span></td>
           <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 1) and .ideas/reader-league-active-learning-v2.md §2.1. Build the cleaning-heuristics comparison table: current pipeline (titles.py noise filter, normalize_raw/bind_component) vs the 2023 TFM regex/replace heuristics (F:\DEVEL\NEURONA\TFM — read-only) vs clean() from the KGCS playbook. Deliverable: a new section in docs/match-rules.md deciding one single tested cleaning function, with keep / already-covered / discard rationale per heuristic. No matcher code yet.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local</summary><div class="ptext">Task scope: ONE file — docs/match-rules.md. Add a new section "Inventari de neteja" (write it in Catalan). Compare three cleaning approaches: (1) current pipeline — read src/cpegen/titles.py (noise filter) and the normalize_raw/bind_component functions; (2) the 2023 TFM regex/replace title-cleaning heuristics in F:\DEVEL\NEURONA\TFM (READ-ONLY, never modify anything there); (3) clean() = lowercase + strip all non-alphanumeric characters. Output: one markdown table, one row per heuristic, columns: heuristic | source | covered by clean()? | keep/discard | reason. End the section with the exact signature of the single cleaning function to implement. Do not touch any other file. Do not write code.<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr id="row-2">
+        <tr id="row-2" class="done">
           <td class="num">2</td>
-          <td>Port <b>clean+Dice+marge</b> al matcher: índex de bigrames, regla de marge, famílies versionades, àlies de vendor; <code>deprecated</code> flag+desempat; <code>part</code> = identitat</td>
-          <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">post #1</td>
-          <td><code>cpegen reclassify</code> al pilot 10k: M2/M4→M1x, arxivat</td>
+          <td><span class="state ok">✅ fet</span>Port <b>clean+Dice+marge</b> al matcher: índex de bigrames, regla de marge, famílies versionades, àlies de vendor; <code>deprecated</code> flag+desempat; <code>part</code> = identitat</td>
+          <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">2026-08-13</td>
+          <td><code>cpegen reclassify</code> al pilot 10k: M2/M4→M1x, arxivat
+            <span class="result">M1x <b>671 → 1.061</b> (+390, ×1,58) · 6,71% → 10,61% vs 4,9% base 2023
+              <span class="ev">0 files baixen d'M1x · 0 CPEs invàlids · les 391 cadenes reescrites acaben totes a M1x · <code>reclassify</code> idempotent. Els 7 casos del playbook KGCS es reprodueixen a 3 decimals (Dice de <b>multiconjunt</b>). Arxiu: <code>data/benchmarks/20260813-wp1-canonicalization-raw10k-cloud/</code> · commits <code>2fd23a3</code>+<code>046847a</code></span></span></td>
           <td class="model"><span class="mm opus">opus · high</span></td>
           <td class="model"><span class="mm loc">gemma-4-12b-qat ⚠</span><span class="sub">només el subset pur (textnorm + tests) amb revisió per diff; la integració al matcher és de Claude</span></td>
           <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 2) and .ideas/reader-league-active-learning-v2.md §2.2. Implement the clean+Dice+margin lookup in src/cpegen/matcher.py + dictionary.py: symmetric clean(), stdlib bigram Dice, inverted bigram index pre-filter for recall, margin rule over the 2nd candidate, versioned-family hard rule (deterministic version-token check against the title), materialized vendor alias table (coexisting variants). deprecated = flag + tiebreak; part = (vendor, product, part) candidate identity with title-evidence heuristic. Measure with cpegen reclassify on the 10k RAW pilot and archive to data/benchmarks/ with PROVENANCE. Full pytest suite green and offline.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task — pure functions + tests ONLY, no integration. Create src/cpegen/textnorm.py with: clean(s) (lowercase, strip all non-alphanumeric), dice(a, b) (Sorensen-Dice over character bigrams, 0..1), and a BigramIndex class (inverted index bigram → candidate ids, method candidates(query, min_shared=2)). Python 3.10 stdlib only, type hints, English docstrings. Create tests/test_textnorm.py with pytest cases: clean('Schneider-Electric') == clean('schneider_electric'); dice is symmetric; dice('sqlserver2019','sqlserver2017') &gt; 0.9 (the family trap must stay visible); escaped CPE values equal their raw form after clean; empty and 1-char inputs. Run pytest tests/test_textnorm.py until green. Touch NOTHING else — integrating this into matcher.py is a separate task for another session.<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr id="row-3">
+        <tr id="row-3" class="done">
           <td class="num">3</td>
-          <td>Rangs de <b>PlatformConfiguration</b> al snapshot + validació de versió per rangs</td>
-          <td class="num">WP1</td><td class="resp">Claude <small>(build al PC)</small></td><td class="quan">amb #2</td>
-          <td>casos de versió no-extensional resolts al 10k</td>
+          <td><span class="state ok">✅ fet</span>Rangs de <b>PlatformConfiguration</b> en un <b>sidecar</b> + validació de versió per rangs
+            <small style="display:block;color:var(--grey-light);margin-top:4px">Canvi respecte del pla: no van <i>dins</i> del snapshot sinó a <code>data/cache/cpe_ranges.jsonl.gz</code> (<code>cpegen dict --build-ranges</code>). El snapshot és una fila per CPE i els rangs són per parell; el sidecar manté compatibilitat total cap enrere — sense fitxer, res canvia.</small></td>
+          <td class="num">WP1</td><td class="resp">Claude <small>(build al PC)</small></td><td class="quan">2026-08-13</td>
+          <td>casos de versió no-extensional resolts al 10k
+            <span class="result">Dels 682 M1B: <b>233 <code>range</code> (34,2%)</b> · 66 <code>outside</code> · 80 <code>unknown</code> · 303 sense rangs
+              <span class="ev">Distribució M i les 9.764 cadenes CPE <b>idèntiques</b> amb i sense sidecar: <code>version_source</code> és columna, no regla. Auditant veredictes a mà van sortir 72 de 379 (19%) comparats entre esquemes de numeració incompatibles (<code>19.0</code> vs <code>2019.1.4</code>) → guard d'any. Arxiu: <code>20260813-wp1-version-ranges-raw10k-pc/</code>. El graf KGCS és a la BD <code>kgcs-dv3</code>, no a la per defecte</span></span></td>
           <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
           <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">subset acotat (builder + funció de rangs); prompt local propi</span></td>
           <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP1 step 3) and .ideas/reader-league-active-learning-v2.md §2.2 (N10). Extend cpegen dict --build --from-neo4j so the snapshot includes PlatformConfiguration version ranges per vendor:product pair, and add deterministic range-based version validation to the matcher for versions missing from the extensional dictionary. The build runs on the PC against the local KGCS; runtime stays offline (stdlib + snapshot). Tests use a synthetic snapshot fixture — no network, no credentials.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task: extend the snapshot builder. In src/cpegen/dictionary.py, the build path (cpegen dict --build --from-neo4j) reads Platform nodes. Add per-pair version ranges: for each vendor:product pair, collect PlatformConfiguration ranges (versionStartIncluding/Excluding, versionEndIncluding/Excluding) into the snapshot JSONL record under a 'ranges' key. Add a pure function version_in_ranges(version, ranges) -&gt; bool with deterministic, numeric-aware comparison (handle padding: '6.00' vs '6.0'). Tests with a synthetic snapshot fixture — no network, no credentials. Do NOT change any matcher decision logic in this task.<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr id="row-4">
+        <tr id="row-4" class="done">
           <td class="num">4</td>
-          <td>Upgrade de <code>search_dictionary</code> de l'agent al lookup nou</td>
-          <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">amb #2</td>
-          <td>pytest verd; contracte de l'eina intacte</td>
+          <td><span class="state ok">✅ fet</span>Upgrade de <code>search_dictionary</code> de l'agent al lookup nou</td>
+          <td class="num">WP1</td><td class="resp">Claude</td><td class="quan">2026-08-13</td>
+          <td>pytest verd; contracte de l'eina intacte
+            <span class="result">276 tests verds offline; contracte <b>ampliat</b>, no trencat
+              <span class="ev">L'eina accepta ara el <code>title</code> cru i retorna parell canònic, Dice, marge, <code>part</code> i banda; els deprecats es marquen, no s'amaguen. <code>classify_match</code> crida el mateix <code>LocalDictionary.lookup</code> que el pipeline, amb un test que falla si l'eina i el notari poden divergir</span></span></td>
           <td class="model"><span class="mm sonnet">sonnet · low</span></td>
           <td class="model"><span class="mm loc">qwen3-4b-instruct-2507</span><span class="sub">mateix prompt (canvi petit i acotat)</span></td>
           <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md and docs/reader-league-implementation-plan.md (WP1 step 4). Upgrade the agent tool search_dictionary (src/cpegen/tools.py) to use the new clean+Dice lookup, keeping the tool contract unchanged so agent and pipeline behavior stay compatible. Offline tests with the mock/replay providers.<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr class="gate-row"><td colspan="9">◆ G1 — el reclassify del 10k queda arxivat a data/benchmarks/ i dona llum verda a WP2 ∥ WP3</td></tr>
-        <tr id="row-5">
+        <tr class="gate-row passed"><td colspan="9">◆ G1 — OBERT 2026-08-13 · dos benchmarks arxivats amb PROVENANCE (canonicalització ×1,58 i rangs de versió) · 276 tests verds offline en obrir-se · WP2 ∥ WP3 desbloquejats</td></tr>
+        <tr id="row-5" class="done">
           <td class="num">5</td>
-          <td>Tres <b>capes de diccionari</b> (NVD / MotherHacker / origen) + columna <code>dictionary_source</code> + esquema NIE</td>
-          <td class="num">WP2</td><td class="resp">Claude</td><td class="quan">post G1, ∥ #6</td>
-          <td>M idèntiques amb només-NVD; desglossament per <code>dictionary_source</code></td>
+          <td><span class="state ok">✅ fet</span>Tres <b>capes de diccionari</b> (NVD / MotherHacker / origen) + columna <code>dictionary_source</code> + esquema NIE
+            <small style="display:block;color:var(--grey-light);margin-top:4px">Precedent ja aplicat dos cops a WP1: la procedència va en columna i l'escala M no es toca (<code>version_source</code> n'és el segon cas, amb la no-regressió verificada).</small></td>
+          <td class="num">WP2</td><td class="resp">Claude</td><td class="quan">2026-08-13</td>
+          <td>M idèntiques amb només-NVD; desglossament per <code>dictionary_source</code>
+            <span class="result"><code>LayeredDictionary</code>: NVD → MotherHacker → origen, sempre activa
+              <span class="ev">Capes custom = CSV de registres NIE (<code>cpe, origin, human_identity, timestamp, evidence, motivating_titles</code>) carregades amb <code>LocalDictionary.from_nie</code> — mateix motor clean+Dice/àlies que el snapshot NVD, mai una reimplementació a part. <code>pipeline.run</code>/<code>reclassify</code> embolcallen sempre (capes custom a <code>None</code> per defecte), així que el pass-through és el mateix camí de codi que es prova, no una branca separada. No-regressió provada camp a camp amb les capes buides. Esquema documentat a <code>docs/dataset-catalog.md</code> §4b. 287 tests verds offline (276+11)</span></span></td>
           <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
           <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">subset acotat (capes + regressió); prompt local propi</span></td>
           <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP2) and .ideas/reader-league-active-learning-v2.md §3. Implement the three dictionary layers (NVD / MotherHacker community / per-origin custom) with lookup order NVD → MotherHacker → origin and a dictionary_source column (nvd | motherhacker | &lt;origin&gt;) in results and reporting — never new M rules. Define the origin custom-dictionary schema (NIE record: cpe, origin, human identity, timestamp, evidence, motivating titles). No-regression proof: with empty custom layers, existing results and M metrics are identical.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task: dictionary layering. In src/cpegen/dictionary.py add a LayeredDictionary that consults, in order: the NVD snapshot, a MotherHacker custom JSONL, and a per-origin custom JSONL, returning candidates tagged with dictionary_source ('nvd' | 'motherhacker' | origin name). Custom record schema: {cpe, origin, human_id, timestamp, evidence, titles}. Add a dictionary_source column to the results CSV. Hard constraint: with no custom files present, output must be byte-identical to today — add a regression test that asserts exactly this. Do NOT touch the M1-M4 rules.<button class="copy">copy</button></div></details></td>
         </tr>
-        <tr id="row-6">
+        <tr id="row-6" class="done">
           <td class="num">6</td>
-          <td>Mòdul compartit <code>title_features</code> + mostres estratificades (~70+~30) de rawTFM i rawPC + <b>pre-anotació</b></td>
-          <td class="num">WP3</td><td class="resp">Claude</td><td class="quan">post G1, ∥ #5</td>
-          <td>dues cues pre-anotades llestes per a l'humà</td>
+          <td><span class="state ok">✅ fet</span>Mòdul compartit <code>title_features</code> + mostres estratificades (~70+~30) de rawTFM i rawPC + <b>pre-anotació</b>
+            <small style="display:block;color:var(--grey-light);margin-top:4px">Les features reusen la implementació de referència del matcher (<code>family_token</code>, <code>DIRECT_DICE_THRESHOLD</code>) — el mòdul compartit les extreu, no les reinventa.</small></td>
+          <td class="num">WP3</td><td class="resp">Claude</td><td class="quan">2026-08-13</td>
+          <td>dues cues pre-anotades llestes per a l'humà
+            <span class="result">gold-rawTFM (100 files) + gold-rawPC (82 files), seed 20260813
+              <span class="ev"><code>is_hard()</code> usa només els 4 senyals sense diccionari (barat sobre 90.066 títols); el diccionari (<code>LocalDictionary.resolve</code>) només es consulta per als ~100 títols mostrejats, com a suggeriment mai com a resposta. <code>annotated_title</code> queda en blanc a propòsit (format RASA-bracket, ja parsejable per <code>goldset</code>) — la grafia canònica sovint no és substring literal del títol cru. Troballa: 94,9% de rawTFM i 67% de rawPC surten "durs" (dominat per família versionada) — molt més que a NVD net. Cues a <code>data/gold/queues/</code> (gitignored); <code>.provenance.json</code> bessó versionat, només agregats. <code>docs/dataset-catalog.md</code> §3 actualitzat a <b>pending-freeze</b>. 308 tests verds offline (287+21)</span></span></td>
           <td class="model"><span class="mm sonnet">sonnet · medium</span></td>
           <td class="model"><span class="mm loc">gemma-4-12b-qat</span><span class="sub">features+mostreig; la pre-anotació la fa el pipeline amb <b>qwen3-8b</b> (837/1000)</span></td>
           <td class="prompt"><details class="pr"><summary>prompt Claude</summary><div class="ptext">Read CLAUDE.md, docs/reader-league-implementation-plan.md (WP3) and .ideas/reader-league-active-learning-v2.md §4 + §8.1. Implement the shared title_features module (parentheses, arch/locale tokens, alias-table vendor, versioned family, length, numeric tokens, direct Dice &gt; 0.85) — it will be reused by the trace schema and the future router. Then build stratified samples (~70 random + ~30 hard) for rawTFM (the 90,066 prepared titles) and rawPC (cpegen inventory) and pre-annotate both. Everything derived from real inventories stays out of git; register both golds as pending-freeze in docs/dataset-catalog.md. Output: annotation-ready CSV queues for Humbert.<button class="copy">copy</button></div></details><details class="pr"><summary>prompt local (subset)</summary><div class="ptext">Bounded task: title features + stratified sampling only. Create src/cpegen/title_features.py: features(title) -&gt; dict with has_parens, has_arch_locale_tokens, vendor_in_alias_table, versioned_family, length, n_numeric_tokens, direct_dice_ge_085. Then a sampling routine: from a titles CSV, draw ~70 random + ~30 hard rows (hard = versioned_family, driver/OEM tokens, non-ASCII, or arch/locale tokens), fixed seed, writing an annotation CSV with the feature columns. Everything offline; pytest cases for features() with synthetic titles. Pre-annotation is NOT this task — it runs separately via cpegen with the local dictionary and qwen3-8b.<button class="copy">copy</button></div></details></td>
         </tr>
         <tr id="row-7">
           <td class="num">7</td>
-          <td><b>Anotar i congelar</b> els dos golds de mesura (~100 c/u) + alta al catàleg amb PROVENANCE</td>
+          <td><span class="state next">▶ següent</span><b>Anotar i congelar</b> els dos golds de mesura (~100 c/u) + alta al catàleg amb PROVENANCE
+            <small style="display:block;color:var(--grey-light);margin-top:4px">Les dues cues pre-anotades ja existeixen i s'han lliurat (2026-08-13) — aquest pas és només la sessió d'anotació, no cap feina de codi.</small></td>
           <td class="num">WP3</td><td class="resp">Humbert</td><td class="quan">2–4 h</td>
           <td>golds congelats = jurat per origen</td>
           <td class="model"><span class="mm huma">humà</span> <span class="mm sonnet">sonnet · low</span></td>
@@ -321,6 +391,15 @@ button.copy.ok{background:var(--green)}
       <span><b>9.8</b> — la lliga competitiva</span>
       <span><b>Matriu E-oficial/comunitat/custom</b> — en queda el desglossament</span>
       <span><b>Tanda v_SoftwareProduct 570k</b> — va amb el run RAW</span>
+      <span><b>Variants de neteja del Coordinador</b> — <code>strip_arch</code> / <code>strip_dash_suffix</code> / <code>strip_symbol_marks</code>: no regles globals, sinó reintents acotats de l'acció 1 → a WP4 (espec §5.1.1)</span>
+    </div>
+    <div class="note" style="margin:16px 0 0">
+      <b>Obert per WP1, per no perdre-ho</b> — no bloqueja cap gate, però són deutes amb propietari:
+      la secció de llicència dels <b>README</b> encara diu Unlicense (tanca WP0, i és checklist de G4);
+      i el <b>53,9% de les files segueix a M4</b> amb 2.581 més a la banda <code>weak</code> — WP1 arregla
+      el mode de fallada de <i>canonicalització</i>, no el de <i>segmentació</i>, que és del lector i el
+      mesuren WP3/WP4. De regal, WP1 ja deixa <b>2.939 files marcades <code>needs_review</code> amb motiu
+      mesurable</b>: la cua d'arrencada de WP5, disponible abans que WP5 existeixi.
     </div>
   </div>
 
@@ -328,7 +407,8 @@ button.copy.ok{background:var(--green)}
     <div>Complement visual del pla — la font de veritat operativa és
     <a href="../reader-league-implementation-plan.md">docs/reader-league-implementation-plan.md</a>;
     si divergeixen, mana <a href="../../ROADMAP.md">ROADMAP.md</a>.
-    Contracte: <a href="poster-reader-league.html">el pòster</a>.</div>
+    Contracte: <a href="poster-reader-league.html">el pòster</a>.<br>
+    Estat d'aquesta pàgina: <b>alineat amb el ROADMAP del 2026-08-13</b> (Fase 9.1, 9.2 tancades i 9.3 pre-anotació feta, G1 obert; falta l'anotació de l'Humbert per a G2).</div>
     <div class="mono">CPEgenerator v2 · MotherHacker · github.com/motherhack3r/cpegenerator</div>
     <div style="margin-top:6px"><a href="index.html">↩ media index</a></div>
   </div>
@@ -340,26 +420,26 @@ button.copy.ok{background:var(--green)}
 <script>
 // ── Gantt data: weeks are relative effort, 0..9 ──
 const GDATA = [
-  {lbl:'WP0 · LICENSE', sub:'legal', cls:'legal', s:0, e:0.5, row:'row-0',
-   tip:'<b>WP0 — Desbloqueig legal (S)</b><br>LICENSE Apache-2.0 + README. No depèn de res: fer-ho primer. Desbloqueja G4.'},
-  {lbl:'WP1 · matcher', sub:'clean+Dice', cls:'core', s:0, e:3, row:'row-2',
-   tip:'<b>WP1 — Canonicalització (L)</b><br>#0 inventari de neteja · #1 port clean+Dice+marge · #2 rangs al snapshot · #3 upgrade agent.<br>Mesura: reclassify 10k (M2/M4→M1x), zero GPU.'},
-  {lbl:'WP2 · diccionaris', sub:'3 capes', cls:'core', s:3, e:4.5, row:'row-5',
-   tip:'<b>WP2 — Capes de diccionari (M)</b><br>NVD / MotherHacker / origen + dictionary_source + esquema NIE.<br>Mesura: no-regressió amb només-NVD.'},
-  {lbl:'WP3 · golds', sub:'∥ WP2 · +Humbert 2–4h', cls:'core', s:3, e:4.5, row:'row-6',
-   tip:'<b>WP3 — Golds per origen (M)</b><br>title_features compartit + mostres estratificades + pre-anotació.<br>★ Humbert: 2–4 h d\u2019anotació al final.', star:4.2},
+  {lbl:'WP0 · LICENSE', sub:'✅ fet', cls:'legal', s:0, e:0.5, row:'row-0', done:true,
+   tip:'<b>WP0 — Desbloqueig legal (S)</b> ✅<br>LICENSE Apache-2.0 al root (commit 403b405). Queda la secció de llicència dels README, que encara diu Unlicense.'},
+  {lbl:'WP1 · matcher', sub:'✅ clean+Dice+rangs', cls:'core', s:0, e:3, row:'row-2', done:true,
+   tip:'<b>WP1 — Canonicalització (L)</b> ✅ 2026-08-13<br>Els quatre passos tancats.<br><b>M1x 671 → 1.061 (×1,58)</b> al pilot 10k, zero GPU, cap regressió.<br>Rangs de versió: 34,2% dels M1B ja els cobria la NVD.'},
+  {lbl:'WP2 · diccionaris', sub:'✅ 3 capes', cls:'core', s:3, e:4.5, row:'row-5', done:true,
+   tip:'<b>WP2 — Capes de diccionari (M)</b> ✅ 2026-08-13<br>LayeredDictionary: NVD → MotherHacker → origen + dictionary_source + esquema NIE (LocalDictionary.from_nie).<br>No-regressió provada amb capes buides · 287 tests verds offline.'},
+  {lbl:'WP3 · golds', sub:'pre-anotació ✅ · +Humbert 2–4h', cls:'core', s:3, e:4.5, row:'row-6',
+   tip:'<b>WP3 — Golds per origen (M)</b><br>title_features compartit + mostres estratificades ✅ 2026-08-13 — gold-rawTFM (100) i gold-rawPC (82), seed 20260813, ambdues pending-freeze.<br>★ Humbert: 2–4 h d\u2019anotació per obrir G2.', star:4.2},
   {lbl:'WP4a · benchmark', sub:'GPU local', cls:'gpu', s:4.5, e:5.5, row:'row-8',
    tip:'<b>WP4.1 — Benchmark 3 braços (GPU hores)</b><br>single / per-field / single+hints per origen → decideix l\u2019expert amb evidència.'},
   {lbl:'WP4b · equip únic', sub:'coordinador+expert', cls:'core', s:5.5, e:7, row:'row-9',
    tip:'<b>WP4.2 — Equip únic (L)</b><br>Coordinador de codi (pre-validació compartida, accions 1–5, màx 3 it.) + expert + traça completa.<br>DoD: venç el braç guanyador.'},
   {lbl:'WP5 · bucle humà', sub:'review+NIE', cls:'core', s:7, e:8, row:'row-10',
    tip:'<b>WP5 — Review + NIE + 4 actius (M)</b><br>Cua prioritzada, identitat, cerimònia NIE, exception, mètrica de salut.<br>Les escenes 4–6 es tanquen aquí.'},
-  {lbl:'WP6 · tancament', sub:'checklist G4', cls:'legal', s:8, e:9, row:'row-11',
+  {lbl:'WP6 · tancament', sub:'checklist G4', cls:'core', s:8, e:9, row:'row-11',
    tip:'<b>WP6 — Tancament (M)</b><br>Docs⇄codi, pytest, out-of-the-box, privacitat, decisió del gold publicable, ROADMAP.<br>G4 = publicable; flip = Humbert.'}
 ];
 const GATES = [
-  {x:3,   n:'G1', tip:'<b>G1</b> — reclassify del 10k arxivat: llum verda a WP2 ∥ WP3 (i, quan es reprengui, al run RAW).'},
-  {x:4.5, n:'G2', tip:'<b>G2</b> — jurat congelat per origen (gold-rawTFM + gold-rawPC).'},
+  {x:3,   n:'G1', done:true, tip:'<b>G1 — OBERT (2026-08-13)</b> ✅<br>Dos benchmarks arxivats amb PROVENANCE: canonicalització (M1x ×1,58) i rangs de versió.<br>276 tests verds en obrir-se. Llum verda a WP2 ∥ WP3 (tots dos tancats el mateix dia, pre-anotació inclosa); 308 tests verds ara (i, quan es reprengui, al run RAW).'},
+  {x:4.5, n:'G2', tip:'<b>G2</b> — jurat congelat per origen (gold-rawTFM + gold-rawPC). Pre-anotació ✅ 2026-08-13; falta només l\u2019anotació de l\u2019Humbert.'},
   {x:7,   n:'G3', tip:'<b>G3</b> — l\u2019equip iguala o venç el seu braç de referència.'},
   {x:9,   n:'G4', tip:'<b>G4</b> — publicable: checklist §6 complet. El flip de visibilitat és de l\u2019Humbert.'}
 ];
@@ -378,7 +458,7 @@ GDATA.forEach(d=>{
   const gl=document.createElement('div');gl.className='gridlines';
   for(let w=1;w<=WEEKS;w++){const i=document.createElement('i');i.style.left=pct(w);gl.appendChild(i);}
   tr.appendChild(gl);
-  const bar=document.createElement('div');bar.className='bar '+d.cls;
+  const bar=document.createElement('div');bar.className='bar '+d.cls+(d.done?' isdone':'');
   bar.style.left=pct(d.s);bar.style.width=pct(d.e-d.s);
   bar.dataset.tip=d.tip;
   bar.addEventListener('click',()=>{const t=document.getElementById(d.row);if(t){t.scrollIntoView({behavior:'smooth',block:'center'});t.style.outline='2px solid var(--blue)';setTimeout(()=>t.style.outline='',1800);}});
@@ -395,8 +475,8 @@ const ggl=document.createElement('div');ggl.className='gridlines';
 for(let w=1;w<=WEEKS;w++){const i=document.createElement('i');i.style.left=pct(w);ggl.appendChild(i);}
 gtr.appendChild(ggl);
 GATES.forEach(g=>{
-  const d=document.createElement('div');d.className='gate-d';d.style.left=pct(g.x);d.dataset.tip=g.tip;gtr.appendChild(d);
-  const l=document.createElement('span');l.className='gate-lbl';l.style.left=pct(g.x);l.textContent=g.n;gtr.appendChild(l);
+  const d=document.createElement('div');d.className='gate-d'+(g.done?' done':'');d.style.left=pct(g.x);d.dataset.tip=g.tip;gtr.appendChild(d);
+  const l=document.createElement('span');l.className='gate-lbl'+(g.done?' done':'');l.style.left=pct(g.x);l.textContent=g.n;gtr.appendChild(l);
 });
 grow.appendChild(glbl);grow.appendChild(gtr);gantt.appendChild(grow);
 
