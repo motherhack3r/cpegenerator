@@ -63,7 +63,8 @@ VERDICTS = ("annotated", "not_software", "skipped")
 # free text (design 2026-08-14, point 3).
 PART_VALUES = ("*", "a", "o", "h", "-")
 
-TERMS_LIMIT = 20  # results returned per /api/terms query
+TERMS_LIMIT = 0  # 0 = unlimited (decision 2026-08-14: no cap; the
+# dropdown scrolls — silent truncation would hide coexisting variants)
 
 
 class VerdictError(ValueError):
@@ -190,7 +191,8 @@ def match_terms(items: list[tuple[str, int]], q: str,
     """
     q = (q or "").strip()
     if not q:
-        return [{"value": v, "count": n} for v, n in items[:limit]]
+        shown = items[:limit] if limit > 0 else items
+        return [{"value": v, "count": n} for v, n in shown]
     ql = q.lower()
     qc = clean(q)
     prefix, substring, cleaned = [], [], []
@@ -203,7 +205,9 @@ def match_terms(items: list[tuple[str, int]], q: str,
         elif qc and qc in clean(v):
             cleaned.append((v, n))
     ranked = prefix + substring + cleaned
-    return [{"value": v, "count": n} for v, n in ranked[:limit]]
+    if limit > 0:
+        ranked = ranked[:limit]
+    return [{"value": v, "count": n} for v, n in ranked]
 
 
 def handle_terms(terms: TermsIndex | None, field_name: str, q: str,
