@@ -14,10 +14,12 @@ import pytest
 
 from cpegen import goldset
 from cpegen.review_web import (
+    CSV_FIELDS,
     ENTITY_RE,
     UI_ASSET,
     ReviewState,
     VerdictError,
+    bind_components,
     handle_state,
     handle_verdict,
 )
@@ -109,7 +111,7 @@ def test_save_preserves_all_queue_columns(tmp_path):
     state.apply_verdict(0, "skipped", "")
     with open(q, newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
-        assert reader.fieldnames == list(QUEUE_FIELDS)
+        assert reader.fieldnames == list(CSV_FIELDS)
         rows = list(reader)
     assert rows[0]["title"] == "7-Zip 25.00 (x64)"
     assert rows[0]["origin"] == "rawTest"
@@ -156,3 +158,68 @@ def test_ui_asset_exists_and_is_self_contained():
     # and are the single allowed external reference)
     external = re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
     assert external == [], f"unexpected external resources: {external}"
+
+
+def test_bind_components_notary_path():
+    out = bind_components({"part": "a", "vendor": "Microsoft",
+                           "product": "Visual C++", "version": "2013"})
+    assert out["ok"] is True
+    assert out["cpe"] == "cpe:2.3:a:microsoft:visual_c\\+\\+:2013:*:*:*:*:*:*:*"
+    assert out["wfn"].startswith("wfn:[")
+    # normalization is the notary's, echoed back
+    assert out["components"]["product"] == "visual_c++"
+
+
+def test_bind_components_na_and_invalid_part():
+    ok = bind_components({"part": "o", "vendor": "fortinet",
+                          "product": "fortios", "update": "-"})
+    assert ok["ok"] and ":o:fortinet:fortios:" in ok["cpe"] and ":-:" in ok["cpe"]
+    bad = bind_components({"part": "x", "vendor": "acme", "product": "thing"})
+    assert bad["ok"] is False and bad["cpe"] == "" and bad["errors"]
+
+
+def test_annotated_verdict_stores_validated_cpe(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    row = state.apply_verdict(
+        0, "annotated", "[7-Zip](cpe_vendor) [7-Zip](cpe_product)",
+        components={"part": "a", "vendor": "7-Zip", "product": "7-Zip",
+                    "version": "25.00"})
+    assert row["cpe"] == "cpe:2.3:a:7-zip:7-zip:25.00:*:*:*:*:*:*:*"
+    # persisted and resumable
+    resumed = ReviewState.load(state.queue_path, identity="humbert")
+    assert resumed.rows[0]["cpe"] == row["cpe"]
+
+
+def test_annotated_verdict_rejects_unbindable_cpe(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    with pytest.raises(VerdictError):
+        state.apply_verdict(
+            0, "annotated", "[7-Zip](cpe_vendor) [7-Zip](cpe_product)",
+            components={"part": "zz", "vendor": "7-Zip", "product": "7-Zip"})
+    # nothing was written for that row
+    assert state.rows[0]["verdict"] == ""
+
+
+def test_untouched_builder_defaults_store_no_cpe(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    row = state.apply_verdict(
+        0, "annotated", "[Steam](cpe_vendor) [Steam](cpe_product)",
+        components={"part": "a", "target_sw": "confluence"})  # defaults only
+    assert row["cpe"] == ""
+
+
+def test_not_software_clears_cpe(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    state.apply_verdict(0, "annotated", "[Steam](cpe_vendor) [Steam](cpe_product)",
+                        components={"vendor": "valve", "product": "steam"})
+    row = state.apply_verdict(0, "not_software", "")
+    assert row["cpe"] == "" and row["annotated_title"] == ""
+
+
+def test_legacy_queue_without_cpe_column_loads_and_upgrades(tmp_path):
+    q = make_queue(tmp_path)  # written with QUEUE_FIELDS only (no cpe)
+    state = ReviewState.load(q, identity="humbert")
+    assert all(r["cpe"] == "" for r in state.rows)
+    state.apply_verdict(0, "skipped", "")
+    with open(q, newline="", encoding="utf-8") as fh:
+        assert csv.DictReader(fh).fieldnames == list(CSV_FIELDS)

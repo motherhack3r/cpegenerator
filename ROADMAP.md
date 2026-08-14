@@ -244,7 +244,7 @@ Cues generades amb seed 20260813: `gold-rawTFM_queue.csv` (70+30 sobre
 golds **pending-freeze**, no congelats — la congelació requereix la sessió
 d'anotació real de Humbert (2–4 h), pas encara pendent. 308 tests verds
 offline (287 + 21).
-**Eina d'anotació (2026-08-14)**: `cpegen review --queue data/gold/queues/gold-rawTFM_queue.csv --identity humbert` — UI web local (decisió del mateix dia) amb selecció de spans sobre el títol cru, hint del diccionari com a guia (mai resposta), dreceres de teclat i desat incremental; la cua reviewada segueix sent el mateix CSV congelable. 12 tests nous.
+**Eina d'anotació (2026-08-14)**: `cpegen review --queue data/gold/queues/gold-rawTFM_queue.csv --identity humbert` — UI web local (decisió del mateix dia) amb selecció de spans sobre el títol cru, hint del diccionari com a guia (mai resposta), dreceres de teclat i desat incremental; la cua reviewada segueix sent el mateix CSV congelable. **Ampliació (mateix dia, feedback de l'Humbert)**: panell **CPE 2.3 builder** — els 11 components editables (prefill des dels spans anotats + `part` del hint + `target_sw` del sufix "for X"), `/api/bind` que vincula i valida amb el codi del notari (`normalize_raw` + `WFN.bind()` + validador ABNF — mai una reimplementació) i columna nova `cpe` a la cua reviewada: només s'hi escriu una cadena validada, mai text lliure. Les cues velles sense la columna carreguen i s'actualitzen soles. 19 tests.
 
 **9.4 — Benchmark de tres braços per origen (espec #7)**
 single / per-field / single+hints sobre `gold-rawTFM` i `gold-rawPC`: decideix

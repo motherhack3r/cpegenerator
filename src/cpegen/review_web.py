@@ -36,6 +36,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from .sampling import QUEUE_FIELDS
+from .validator import validate_formatted_string
+from .wfn import WFN, Logical, normalize_raw
+
+CPE_ATTRS = ("part", "vendor", "product", "version", "update", "edition",
+             "language", "sw_edition", "target_sw", "target_hw", "other")
+# The reviewed CSV adds one column over the sample queue: the humanly built,
+# notary-validated CPE (blank when none was built). Legacy queues without it
+# load fine (backfilled empty) and gain the column on first save.
+CSV_FIELDS = QUEUE_FIELDS + ("cpe",)
 
 UI_ASSET = Path(__file__).with_name("review_ui.html")
 
@@ -48,6 +57,51 @@ VERDICTS = ("annotated", "not_software", "skipped")
 
 class VerdictError(ValueError):
     """A verdict payload that must not be written to the queue."""
+
+
+def bind_components(components: dict) -> dict:
+    """Deterministically bind an 11-component dict to a validated CPE 2.3.
+
+    The exact notary code path, never a reimplementation: ``normalize_raw``
+    per component, ``WFN.bind()``, then the ABNF validator as the single
+    exit gate. ``*`` (or blank) means ANY, ``-`` means NA. Returns
+    ``{ok, cpe, wfn, errors, components}`` where ``components`` echoes the
+    normalized values actually bound.
+    """
+    kwargs = {}
+    normalized = {}
+    for attr in CPE_ATTRS:
+        raw = str(components.get(attr, "") or "").strip()
+        if raw in ("", "*"):
+            kwargs[attr] = Logical.ANY
+            normalized[attr] = "*"
+        elif raw == "-":
+            kwargs[attr] = Logical.NA
+            normalized[attr] = "-"
+        else:
+            value = raw if attr == "part" else normalize_raw(raw)
+            kwargs[attr] = value
+            normalized[attr] = value
+    try:
+        wfn = WFN(**kwargs)
+    except ValueError as exc:
+        return {"ok": False, "cpe": "", "wfn": "", "errors": [str(exc)],
+                "components": normalized}
+    formatted = wfn.bind()
+    result = validate_formatted_string(formatted)
+    return {"ok": result.ok, "cpe": formatted if result.ok else "",
+            "wfn": wfn.to_wfn_string(),
+            "errors": [] if result.ok else list(result.errors),
+            "components": normalized}
+
+
+def components_present(components: dict | None) -> bool:
+    """True when the builder was actually used (any non-wildcard value
+    beyond the auto-prefilled ``part``/``target_sw`` defaults)."""
+    if not components:
+        return False
+    return any(str(components.get(a, "") or "").strip() not in ("", "*")
+               for a in CPE_ATTRS if a not in ("part", "target_sw"))
 
 
 @dataclass
@@ -77,7 +131,7 @@ class ReviewState:
                 raise VerdictError(
                     f"not an annotation queue (missing columns: {missing})")
             for row in reader:
-                rows.append({f: (row.get(f) or "") for f in QUEUE_FIELDS})
+                rows.append({f: (row.get(f) or "") for f in CSV_FIELDS})
         if not rows:
             raise VerdictError(f"empty queue: {source}")
         return cls(queue_path=queue_path, output_path=output_path,
@@ -86,7 +140,7 @@ class ReviewState:
     # -- verdict handling -------------------------------------------------
 
     def apply_verdict(self, index: int, verdict: str, annotated_title: str,
-                      notes: str = "") -> dict:
+                      notes: str = "", components: dict | None = None) -> dict:
         if not 0 <= index < len(self.rows):
             raise VerdictError(f"row index out of range: {index}")
         if verdict not in VERDICTS:
@@ -106,7 +160,15 @@ class ReviewState:
                     "verdict 'annotated' needs a vendor or a product bracket")
         else:
             annotated_title = ""  # never carry stale brackets on non-gold rows
+        cpe = ""
+        if verdict == "annotated" and components_present(components):
+            bound = bind_components(components or {})
+            if not bound["ok"]:
+                raise VerdictError("CPE does not bind/validate: "
+                                   + "; ".join(bound["errors"]))
+            cpe = bound["cpe"]  # only a notary-validated string is ever stored
         row = self.rows[index]
+        row["cpe"] = cpe
         row["annotated_title"] = annotated_title
         row["verdict"] = verdict
         row["annotator"] = self.identity
@@ -122,7 +184,7 @@ class ReviewState:
         tmp = self.output_path.with_name(self.output_path.name + ".tmp")
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(tmp, "w", newline="", encoding="utf-8") as fh:
-            writer = csv.DictWriter(fh, fieldnames=QUEUE_FIELDS)
+            writer = csv.DictWriter(fh, fieldnames=CSV_FIELDS)
             writer.writeheader()
             for row in self.rows:
                 writer.writerow(row)
@@ -162,6 +224,8 @@ def handle_verdict(state: ReviewState, payload: dict) -> dict:
             verdict=str(payload.get("verdict", "")),
             annotated_title=str(payload.get("annotated_title", "")),
             notes=str(payload.get("notes", "")),
+            components=payload.get("components")
+            if isinstance(payload.get("components"), dict) else None,
         )
     except VerdictError as exc:
         return {"ok": False, "error": str(exc)}
@@ -192,7 +256,7 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "error": "not found"}, 404)
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/api/verdict":
+        if self.path not in ("/api/verdict", "/api/bind"):
             self._send_json({"ok": False, "error": "not found"}, 404)
             return
         length = int(self.headers.get("Content-Length") or 0)
@@ -200,6 +264,9 @@ class _Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length) or b"{}")
         except json.JSONDecodeError:
             self._send_json({"ok": False, "error": "invalid JSON"}, 400)
+            return
+        if self.path == "/api/bind":
+            self._send_json(bind_components(payload.get("components") or {}))
             return
         result = handle_verdict(self.state, payload)
         self._send_json(result, 200 if result["ok"] else 422)

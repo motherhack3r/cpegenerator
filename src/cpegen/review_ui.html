@@ -100,6 +100,24 @@ h1{font-family:var(--disp);font-weight:700;font-size:22px;color:var(--blue-dark)
 #flash{margin-top:12px;font-size:13px;border-radius:8px;padding:9px 14px;display:none}
 #flash.ok{display:block;background:var(--green-pale);color:var(--green)}
 #flash.err{display:block;background:var(--red-pale);color:var(--red)}
+.cpanel{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px;background:#fff}
+.cpanel-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.cpanel-title{font-family:var(--disp);font-weight:700;font-size:14px;color:var(--blue-dark)}
+.cpanel-sub{font-size:11px;color:var(--grey-light)}
+.cbtn{font-family:var(--mono);font-size:11px;font-weight:600;border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;color:var(--grey)}
+.cbtn:hover{background:var(--blue-paler)}
+.cbtn.primary{border-color:var(--blue);color:var(--blue-dark)}
+.cbtn.primary:hover{background:var(--blue-pale)}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.cfield span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-light);margin-bottom:2px}
+.cfield input{width:100%;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--ink)}
+.cfield input:focus{outline:2px solid var(--blue-pale);border-color:var(--blue)}
+#bindout{margin-top:10px;font-size:12.5px}
+.cpeok{font-family:var(--disp);font-weight:700;color:var(--green);border:2px solid var(--green);border-radius:6px;padding:2px 8px;background:var(--green-pale);font-size:11px;letter-spacing:.08em}
+.cpeko{font-family:var(--disp);font-weight:700;color:var(--red);border:2px solid var(--red);border-radius:6px;padding:2px 8px;background:var(--red-pale);font-size:11px;letter-spacing:.08em}
+.cpestr{font-family:var(--mono);font-size:12px;color:var(--blue-dark);background:var(--blue-pale);padding:2px 6px;border-radius:4px;word-break:break-all}
+.wfnstr{font-family:var(--mono);font-size:10.5px;color:var(--grey-light);display:block;margin-top:4px;word-break:break-all}
+.cpeerr{color:var(--red);font-family:var(--mono);font-size:11px;margin-top:3px}
 .donecard{padding:40px;text-align:center;font-family:var(--disp);font-weight:700;font-size:20px;color:var(--green)}
 </style>
 </head>
@@ -254,6 +272,18 @@ function render(){
       <button class="apply" id="applysugg">highlight in title</button>
       <div class="why">Canonical spelling — a hint to guide your selection, never the answer. The button only highlights literal matches.</div>
     </div>`:""}
+    <div class="cpanel">
+      <div class="cpanel-head">
+        <span class="cpanel-title">CPE 2.3 builder</span>
+        <span class="cpanel-sub">optional — * = ANY, - = NA; the notary binds and validates, never this page</span>
+        <button class="cbtn" id="prefill">Prefill from annotation</button>
+        <button class="cbtn primary" id="bindbtn">Bind &amp; validate</button>
+      </div>
+      <div class="cgrid">
+        ${CPE_ATTRS.map(a=>`<label class="cfield"><span>${a}</span><input data-attr="${a}" value="${escapeHtml((WORK[CUR].compvals&&WORK[CUR].compvals[a])||defaultComp(a,row))}"></label>`).join("")}
+      </div>
+      <div id="bindout">${row.cpe?`<span class="cpeok">VALID \u2713</span> <code class="cpestr">${escapeHtml(row.cpe)}</code>`:""}</div>
+    </div>
     <div class="outrow"><label>annotated</label><input id="preview" readonly value=""></div>
     <div class="outrow"><label>notes</label><input id="notes" placeholder="optional" value="${escapeHtml(row.notes||"")}"></div>
     <div class="actions">
@@ -271,6 +301,28 @@ function render(){
   bindCard();
 }
 
+const CPE_ATTRS=["part","vendor","product","version","update","edition","language","sw_edition","target_sw","target_hw","other"];
+function defaultComp(a,row){
+  if(a==="part") return row.suggested_part||"*";
+  if(a==="target_sw"){ const m=row.title.toLowerCase().match(/\bfor ([a-z0-9._+-]+)\s*$/); if(m) return m[1]; }
+  return "*";
+}
+function spanText(cls){
+  const {tks,marks}=WORK[CUR]; const segs=[]; let cur=[];
+  tks.forEach((t,k)=>{ if(t.trim()&&marks[k]===cls) cur.push(t.trim()); else if(cur.length){segs.push(cur.join(" ")); cur=[];} });
+  if(cur.length) segs.push(cur.join(" "));
+  return segs.join(" ");
+}
+function readComponents(){
+  const out={};
+  document.querySelectorAll(".cgrid input").forEach(i=>{ out[i.dataset.attr]=i.value.trim(); });
+  return out;
+}
+function collectComponents(){
+  const c=readComponents();
+  const touched=CPE_ATTRS.some(a=>a!=="part"&&a!=="target_sw"&&c[a]&&c[a]!=="*");
+  return touched?c:null;
+}
 function updatePreview(){
   document.getElementById("preview").value=bracketString(CUR);
 }
@@ -309,6 +361,10 @@ async function submit(verdict){
   const payload={index:CUR, verdict,
     annotated_title: verdict==="annotated" ? bracketString(CUR) : "",
     notes: document.getElementById("notes").value};
+  if(verdict==="annotated"){
+    const comps=collectComponents();
+    if(comps) payload.components=comps;
+  }
   const res=await api("/api/verdict",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
   if(!res.ok){ flash(res.error, false); return; }
   STATE.rows[CUR]={...STATE.rows[CUR], ...res.row};
@@ -357,6 +413,21 @@ function bindCard(){
       }
     });
   };
+  const pf=document.getElementById("prefill");
+  if(pf) pf.onclick=()=>{
+    const set=(attr,v)=>{const el=document.querySelector(`.cgrid input[data-attr="${attr}"]`); if(el&&v) el.value=v.toLowerCase();};
+    set("vendor",spanText("v")); set("product",spanText("p")); set("version",spanText("b"));
+    WORK[CUR].compvals=readComponents();
+  };
+  const bb=document.getElementById("bindbtn");
+  if(bb) bb.onclick=async()=>{
+    WORK[CUR].compvals=readComponents();
+    const res=await api("/api/bind",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({components:WORK[CUR].compvals})});
+    const out=document.getElementById("bindout");
+    if(res.ok) out.innerHTML=`<span class="cpeok">VALID \u2713</span> <code class="cpestr">${escapeHtml(res.cpe)}</code><span class="wfnstr">${escapeHtml(res.wfn)}</span>`;
+    else out.innerHTML=`<span class="cpeko">REJECTED \u2715</span>${(res.errors||[]).map(e=>`<div class="cpeerr">${escapeHtml(e)}</div>`).join("")}`;
+  };
+  document.querySelectorAll(".cgrid input").forEach(i=>i.addEventListener("input",()=>{WORK[CUR].compvals=readComponents();}));
   document.getElementById("save").onclick=()=>submit("annotated");
   document.getElementById("nosw").onclick=()=>submit("not_software");
   document.getElementById("skip").onclick=()=>submit("skipped");
