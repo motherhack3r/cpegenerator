@@ -26,6 +26,7 @@ from cpegen.review_web import (
     TermsIndex,
     VerdictError,
     bind_components,
+    handle_dictcheck,
     handle_history,
     handle_progress,
     handle_state,
@@ -558,3 +559,104 @@ def test_ui_asset_still_self_contained_after_rebuild():
     html = UI_ASSET.read_text(encoding="utf-8")
     external = re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
     assert external == [], f"unexpected external resources: {external}"
+
+
+# -- portal v2: extra (non-gold) component span marks -----------------------
+#
+# Buttons for update/edition/language/sw_edition/target_sw/target_hw/other
+# feed the builder only — they never touch the RASA-bracket
+# annotated_title, so the frozen vendor/product/version gold format and
+# goldset.parse_annotation are completely untouched (feedback 2026-08-14:
+# "falten els botons per anotar la resta de components").
+
+
+def test_save_progress_persists_extra_marks(tmp_path):
+    q = make_queue(tmp_path)
+    state = ReviewState.load(q, identity="humbert")
+    row = state.save_progress(
+        0, annotated_title="[7-Zip](cpe_vendor)",
+        components={"vendor": "7-zip", "update": "sp1"},
+        extra_marks={"3": "u", "5": "ts"})
+    draft = json.loads(row["draft"])
+    assert draft["extra_marks"] == {"3": "u", "5": "ts"}
+
+    resumed = ReviewState.load(q, identity="humbert")
+    assert json.loads(resumed.rows[0]["draft"])["extra_marks"] == \
+        {"3": "u", "5": "ts"}
+
+
+def test_save_progress_extra_marks_default_empty(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    row = state.save_progress(0)
+    assert json.loads(row["draft"])["extra_marks"] == {}
+
+
+def test_handle_progress_passes_through_extra_marks(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    ok = handle_progress(state, {"index": 0, "extra_marks": {"2": "ed"}})
+    assert ok["ok"] is True
+    assert json.loads(ok["row"]["draft"])["extra_marks"] == {"2": "ed"}
+
+
+# -- portal v2 point 4: dictionary field-match stamp (design 2026-08-14) ---
+
+
+def test_handle_dictcheck_degrades_cleanly_without_index():
+    out = handle_dictcheck(None, {"vendor": "microsoft", "product": "windows"})
+    assert out == {"ok": True, "vendor_known": None, "product_known": None,
+                   "pair_known": None, "candidate": None}
+
+
+def test_handle_dictcheck_known_pair_matches(tmp_path):
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    out = handle_dictcheck(terms, {"vendor": "microsoft", "product": "windows"})
+    assert out["ok"] is True
+    assert out["vendor_known"] is True
+    assert out["product_known"] is True
+    assert out["pair_known"] is True
+    assert out["candidate"] is False
+
+
+def test_handle_dictcheck_unknown_vendor_is_a_candidate(tmp_path):
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    out = handle_dictcheck(terms, {"vendor": "acme-corp", "product": "widget"})
+    assert out["vendor_known"] is False
+    assert out["pair_known"] is False
+    assert out["candidate"] is True
+
+
+def test_handle_dictcheck_known_names_but_new_pairing_is_a_candidate(tmp_path):
+    # both names exist in the dictionary individually, but never together
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    out = handle_dictcheck(terms, {"vendor": "microsoft", "product": "ecostruxure"})
+    assert out["vendor_known"] is True
+    # product not in microsoft's own pair list -> falls back to the global
+    # product set, where it IS known (ships under schneider-electric)
+    assert out["product_known"] is True
+    assert out["pair_known"] is False
+    assert out["candidate"] is True
+
+
+def test_handle_dictcheck_blank_and_wildcard_fields_are_not_checked(tmp_path):
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    out = handle_dictcheck(terms, {"vendor": "*", "product": "-"})
+    assert out == {"ok": True, "vendor_known": None, "product_known": None,
+                   "pair_known": None, "candidate": None}
+
+
+def test_handle_dictcheck_vendor_only_no_pair_verdict(tmp_path):
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    out = handle_dictcheck(terms, {"vendor": "microsoft", "product": ""})
+    assert out["vendor_known"] is True
+    assert out["product_known"] is None
+    assert out["pair_known"] is None
+    assert out["candidate"] is False  # the one checked field is known
+
+
+def test_ui_asset_has_full_component_button_set_and_dictcheck_panel():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    for attr in ("update", "edition", "language", "sw_edition",
+                "target_sw", "target_hw", "other"):
+        assert f'"{attr}"' in html or f"'{attr}'" in html, attr
+    assert "/api/dictcheck" in html
+    assert "NEW CANDIDATE" in html or "new candidate" in html.lower()

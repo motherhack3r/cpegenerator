@@ -81,6 +81,7 @@ details.lvl[open] .lvl-body{padding-top:14px}
 #title .tk.v{background:var(--blue-pale);color:var(--blue-dark);outline:1.5px solid var(--blue)}
 #title .tk.p{background:var(--blue-dark);color:#fff}
 #title .tk.b{background:var(--green-pale);color:var(--green);outline:1.5px solid var(--green)}
+#title .tk.x{background:var(--amber-pale);color:var(--amber);outline:1.5px dashed var(--amber)}
 .hint{font-size:12px;color:var(--grey-light);margin-bottom:14px}
 .hint kbd{font-family:var(--mono);font-size:10.5px;background:var(--blue-pale);color:var(--blue-dark);border-radius:3px;padding:1px 5px}
 
@@ -90,6 +91,7 @@ details.lvl[open] .lvl-body{padding-top:14px}
 .ebtn.v{border-color:var(--blue)}   .ebtn.v:hover,.ebtn.v.armed{background:var(--blue-pale);color:var(--blue-dark)}
 .ebtn.p{border-color:var(--blue-dark)} .ebtn.p:hover,.ebtn.p.armed{background:var(--blue-dark);color:#fff}
 .ebtn.b{border-color:var(--green)}  .ebtn.b:hover,.ebtn.b.armed{background:var(--green-pale);color:var(--green)}
+.ebtn.x{border-color:var(--amber)}  .ebtn.x:hover,.ebtn.x.armed{background:var(--amber-pale);color:var(--amber)}
 .ebtn.clear{border-style:dashed}    .ebtn.clear:hover{background:var(--red-pale);color:var(--red)}
 
 .outrow{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center}
@@ -139,6 +141,15 @@ details.lvl[open] .lvl-body{padding-top:14px}
 .wfnstr{font-family:var(--mono);font-size:10.5px;color:var(--grey-light);display:block;margin-top:4px;word-break:break-all}
 .cpeerr{color:var(--red);font-family:var(--mono);font-size:11px;margin-top:3px}
 .donecard{padding:40px;text-align:center;font-family:var(--disp);font-weight:700;font-size:20px;color:var(--green)}
+
+/* dictionary match stamp (level 4) */
+.dchips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.dchip{font-family:var(--mono);font-size:11px;font-weight:600;border-radius:6px;padding:4px 10px;display:inline-block}
+.dchip.yes{background:var(--green-pale);color:var(--green)}
+.dchip.no{background:var(--amber-pale);color:var(--amber)}
+.dchip.unk{background:var(--blue-paler);color:var(--grey-light);border:1px solid var(--line)}
+.dcand{font-size:12px;color:var(--amber);background:var(--amber-pale);border:1px dashed var(--amber);border-radius:8px;padding:8px 12px}
+.dexists{font-size:12px;color:var(--green);background:var(--green-pale);border-radius:8px;padding:8px 12px}
 
 /* right sidebar */
 .side{display:flex;flex-direction:column;gap:14px}
@@ -194,6 +205,27 @@ details.lvl[open] .lvl-body{padding-top:14px}
 let STATE=null, CUR=0, FILTER="all", ARMED=null; // ARMED: pending entity for next selection
 const LABELS={v:"cpe_vendor", p:"cpe_product", b:"cpe_version"};
 const CLASSOF={cpe_vendor:"v", cpe_product:"p", cpe_version:"b"};
+const GOLD=new Set(["v","p","b"]); // the only marks that reach annotated_title/goldset
+
+// Every span-annotatable CPE component. v/p/b feed the frozen gold
+// annotation (RASA brackets, goldset.parse_annotation) AND the builder;
+// the rest (feedback 2026-08-14: "falten els botons per anotar la resta
+// de components") only ever feed the builder — title highlights, never
+// brackets, so the NER gold format never changes shape. `part` has no
+// button: it's driven by the dropdown + the dictionary's suggested_part.
+const ENTITY_BUTTONS=[
+  {key:"v", label:"Vendor", attr:"vendor", gold:true},
+  {key:"p", label:"Product", attr:"product", gold:true},
+  {key:"b", label:"Version", attr:"version", gold:true},
+  {key:"u", label:"Update", attr:"update"},
+  {key:"ed", label:"Edition", attr:"edition"},
+  {key:"lg", label:"Language", attr:"language"},
+  {key:"sw", label:"SW Edition", attr:"sw_edition"},
+  {key:"ts", label:"Target SW", attr:"target_sw"},
+  {key:"th", label:"Target HW", attr:"target_hw"},
+  {key:"ot", label:"Other", attr:"other"},
+];
+function tkClass(cls){ return GOLD.has(cls) ? cls : (cls ? "x" : ""); }
 
 // per-row working state: token marks (spans), builder components, the
 // editable WFN/formatted-string field. Kept in memory across navigation
@@ -242,24 +274,34 @@ function initWork(i){
   }
   // seed the builder + WFN field: an in-progress draft wins, else a
   // stored (final, notary-validated) cpe seeds the WFN field read-only-ish
-  let compvals=null, wfnText="";
+  let compvals=null, wfnText="", extraMarks={};
   if(row.verdict==="in_progress" && row.draft){
     try{
       const draft=JSON.parse(row.draft);
       compvals=draft.components||null;
       wfnText=draft.cpe_text||"";
+      extraMarks=draft.extra_marks||{};
     }catch(e){ /* corrupt draft: fall back to blank, never crash the UI */ }
   } else if(row.cpe){
     wfnText=row.cpe;
   }
+  // overlay the non-gold spans (update/edition/... — never in
+  // annotated_title, so they're not covered by the seeding loop above)
+  Object.entries(extraMarks).forEach(([k,cls])=>{
+    const idx=+k; if(idx>=0 && idx<marks.length && !marks[idx]) marks[idx]=cls;
+  });
   WORK[i]={tks, marks, compvals, wfnText};
 }
 
 function bracketString(i){
+  // only v/p/b ever become brackets — this is what apply_verdict writes to
+  // annotated_title and what goldset.parse_annotation reads back, so the
+  // gold NER format is untouched by the extra component buttons.
   const {tks,marks}=WORK[i]; const parts=[]; let k=0;
   while(k<tks.length){
-    if(!tks[k].trim() || !marks[k]){ parts.push(tks[k]); k++; continue; }
-    const cls=marks[k]; const seg=[];
+    const cls=marks[k];
+    if(!tks[k].trim() || !GOLD.has(cls)){ parts.push(tks[k]); k++; continue; }
+    const seg=[];
     while(k<tks.length && (marks[k]===cls || (!tks[k].trim() && k+1<tks.length && marks[k+1]===cls))){
       seg.push(tks[k]); k++;
     }
@@ -332,18 +374,18 @@ function render(){
         <div class="titlebox">
           <div class="titlelabel">raw title</div>
           <div id="title">${tks.map((t,k)=>t.trim()
-            ? `<span class="tk ${marks[k]}" data-k="${k}">${escapeHtml(t)}</span>`
+            ? `<span class="tk ${tkClass(marks[k])}" data-k="${k}">${escapeHtml(t)}</span>`
             : escapeHtml(t)).join("")}</div>
         </div>
         <div class="hint">Click a word (or drag across several) then press
           <kbd>V</kbd> vendor · <kbd>P</kbd> product · <kbd>B</kbd> version ·
           <kbd>X</kbd> clear word · <kbd>Enter</kbd> save · <kbd>N</kbd> not software ·
           <kbd>S</kbd> skip · <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> navigate.
-          Or arm an entity button first and click words to paint them.</div>
+          Or arm an entity button first and click words to paint them.
+          Vendor/Product/Version feed the frozen gold annotation; the other
+          component buttons below only fill the builder (step 2).</div>
         <div class="entbtns">
-          <button class="ebtn v" data-e="v">Vendor</button>
-          <button class="ebtn p" data-e="p">Product</button>
-          <button class="ebtn b" data-e="b">Version</button>
+          ${ENTITY_BUTTONS.map(eb=>`<button class="ebtn ${eb.gold?eb.key:"x"}" data-e="${eb.key}">${eb.label}</button>`).join("")}
           <button class="ebtn clear" data-e="">Clear word</button>
         </div>
       </div>
@@ -372,6 +414,13 @@ function render(){
         <textarea id="wfnfield" spellcheck="false" placeholder="cpe:2.3:a:vendor:product:version:*:*:*:*:*:*:*">${escapeHtml(WORK[CUR].wfnText||"")}</textarea>
         <div id="wfnout">${row.cpe?`<span class="cpeok">VALID ✓</span> <code class="cpestr">${escapeHtml(row.cpe)}</code>`:""}</div>
       </div>
+    </div>
+
+    <div class="lvl" id="lvl4">
+      <div class="lvl-head">4 &middot; Dictionary match
+        <span class="lvl-sub">per-field stamp against the official (NVD) dictionary — unmatched fields are new candidates</span>
+      </div>
+      <div class="lvl-body" id="dictcheck"><div class="side-empty">checking…</div></div>
     </div>
 
     <div class="actions">
@@ -409,6 +458,7 @@ function render(){
   updatePreview();
   bindCard();
   loadHistory(CUR);
+  checkDictMatch();
 }
 
 const CPE_ATTRS=["part","vendor","product","version","update","edition","language","sw_edition","target_sw","target_hw","other"];
@@ -457,7 +507,7 @@ function paint(k, cls){
   const w=WORK[CUR]; if(!w.tks[k] || !w.tks[k].trim()) return;
   w.marks[k]=cls;
   const el=document.querySelector(`#title .tk[data-k="${k}"]`);
-  if(el) el.className="tk "+cls;
+  if(el) el.className="tk "+tkClass(cls);
   updatePreview();
 }
 
@@ -503,6 +553,7 @@ async function bindFromBuilder(){
       ? `<span class="cpeko">REJECTED ✕</span>${res.errors.map(e=>`<div class="cpeerr">${escapeHtml(e)}</div>`).join("")}`
       : "";
   }
+  checkDictMatch();
 }
 
 async function unbindFromWfn(){
@@ -523,6 +574,40 @@ async function unbindFromWfn(){
     if(el) el.value=res.components[a]; // programmatic: no input event, no bind-loop
   });
   if(out) out.innerHTML=`<span class="cpeok">VALID ✓</span> <code class="cpestr">${escapeHtml(res.cpe)}</code><span class="wfnstr">${escapeHtml(res.wfn)}</span>`;
+  checkDictMatch();
+}
+
+// Portal v2 point 4 (design 2026-08-14, feedback "afegiria un punt 4..."):
+// per-field stamp against the official (NVD) dictionary. A vendor/product
+// that doesn't match is marked a "new candidate" — it can still be BOUND
+// and pass the ABNF validator (syntax), but only a MotherHacker community
+// dictionary or a client's custom dictionary can validate it for
+// inclusion (the same human+notary ceremony as a NIE). Purely
+// informational/live — never persisted, never blocks anything.
+async function checkDictMatch(){
+  const box=document.getElementById("dictcheck");
+  if(!box) return;
+  const comps=WORK[CUR].compvals||readComponents();
+  const vendor=(comps.vendor||"").trim(), product=(comps.product||"").trim();
+  if(!vendor && !product){
+    box.innerHTML=`<div class="side-empty">Fill vendor/product in the builder to check the official dictionary.</div>`;
+    return;
+  }
+  const url=`/api/dictcheck?vendor=${encodeURIComponent(vendor)}&product=${encodeURIComponent(product)}`;
+  const res=await api(url);
+  if(!res.ok){ box.innerHTML=""; return; }
+  if(res.vendor_known===null && res.product_known===null){
+    box.innerHTML=`<div class="side-empty">No dictionary sidecar loaded — run 'cpegen dict --export-terms'.</div>`;
+    return;
+  }
+  const badge=(known,label)=>{
+    if(known===null) return `<span class="dchip unk">${label}: n/a</span>`;
+    return known ? `<span class="dchip yes">${label}: match ✓</span>` : `<span class="dchip no">${label}: new</span>`;
+  };
+  const overall = res.candidate===null ? "" : res.candidate
+    ? `<div class="dcand">NEW CANDIDATE — this pair isn't in the official NVD dictionary. It can still bind and validate (syntax), but only a MotherHacker community dictionary or a client's custom dictionary can validate it for inclusion.</div>`
+    : `<div class="dexists">Matches the official (NVD) dictionary.</div>`;
+  box.innerHTML=`<div class="dchips">${badge(res.vendor_known,"vendor")}${badge(res.product_known,"product")}</div>${overall}`;
 }
 
 let WFN_TIMER=null;
@@ -638,6 +723,14 @@ async function submit(verdict){
   gotoNextPending();
 }
 
+function extraMarksOf(i){
+  // the non-gold span marks (update/edition/...) as {token_index: code} —
+  // v/p/b are excluded, they're already fully covered by annotated_title
+  const {marks}=WORK[i]; const out={};
+  marks.forEach((cls,k)=>{ if(cls && !GOLD.has(cls)) out[k]=cls; });
+  return out;
+}
+
 async function submitDraft(){
   const payload={
     index: CUR,
@@ -645,6 +738,7 @@ async function submitDraft(){
     notes: document.getElementById("notes").value,
     components: readComponents(),
     cpe_text: document.getElementById("wfnfield").value,
+    extra_marks: extraMarksOf(CUR),
   };
   const res=await api("/api/progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
   if(!res.ok){ flash(res.error, false); return; }
@@ -712,7 +806,7 @@ function bindCard(){
   const pf=document.getElementById("prefill");
   if(pf) pf.onclick=()=>{
     const set=(attr,v)=>{const el=document.querySelector(`.cgrid input[data-attr="${attr}"]`); if(el&&v) el.value=v.toLowerCase();};
-    set("vendor",spanText("v")); set("product",spanText("p")); set("version",spanText("b"));
+    ENTITY_BUTTONS.forEach(eb=>set(eb.attr, spanText(eb.key)));
     WORK[CUR].compvals=readComponents();
     bindFromBuilder();
   };

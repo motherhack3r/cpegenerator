@@ -28,7 +28,16 @@ editable WFN/formatted-string field, kept in sync through the same
 (``verdict="in_progress"``, ``/api/progress``) which persists every piece
 of partial state and is never counted as done; every real verdict appends
 to a per-row, append-only JSONL history beside the output CSV
-(``ReviewState.history_path``, ``/api/history``).
+(``ReviewState.history_path``, ``/api/history``). A fourth panel,
+``/api/dictcheck``, stamps the builder's vendor/product fields against the
+official (NVD) dictionary via the same typeahead sidecar (:class:`TermsIndex`)
+— an unmatched field is a "candidate", which only a MotherHacker community
+dictionary or a client custom dictionary can validate for inclusion (the
+NIE ceremony, WP5/9.6); this is informational only and never persisted.
+Title spans for the other 7 CPE components (update/edition/language/
+sw_edition/target_sw/target_hw/other) feed the builder the same way but
+never the RASA-bracket ``annotated_title`` — the frozen vendor/product/
+version gold format used by :mod:`cpegen.goldset` is untouched.
 
 The server binds 127.0.0.1 only. No network is ever required: the HTML
 asset is self-contained (web fonts degrade to system fallbacks offline).
@@ -163,6 +172,12 @@ class TermsIndex:
     vendors: list[tuple[str, int]] = field(default_factory=list)
     pairs: dict[str, list[tuple[str, int]]] = field(default_factory=dict)
     products: list[tuple[str, int]] = field(default_factory=list)
+    # O(1) membership sets for the dictionary-match stamp (portal v2 point
+    # 4, design 2026-08-14) — derived from the three lists above, never
+    # serialized, always rebuilt in `load()` alongside them.
+    vendor_set: set = field(default_factory=set, repr=False, compare=False)
+    pair_sets: dict = field(default_factory=dict, repr=False, compare=False)
+    product_set: set = field(default_factory=set, repr=False, compare=False)
 
     @classmethod
     def load(cls, path: Path | str) -> "TermsIndex":
@@ -177,7 +192,11 @@ class TermsIndex:
             for p, n in products:
                 agg[p] = agg.get(p, 0) + n
         merged = sorted(agg.items(), key=lambda kv: (-kv[1], kv[0]))
-        return cls(vendors=vendors, pairs=pairs, products=merged)
+        return cls(vendors=vendors, pairs=pairs, products=merged,
+                   vendor_set={v for v, _ in vendors},
+                   pair_sets={vendor: {p for p, _ in prods}
+                              for vendor, prods in pairs.items()},
+                   product_set={p for p, _ in merged})
 
 
 def load_or_build_terms(terms_path: Path | str = DEFAULT_TERMS,
@@ -248,6 +267,52 @@ def handle_terms(terms: TermsIndex | None, field_name: str, q: str,
         if items is None:
             items = terms.products
     return {"ok": True, "results": match_terms(items, q)}
+
+
+def handle_dictcheck(terms: TermsIndex | None, components: dict) -> dict:
+    """Pure handler behind ``GET /api/dictcheck`` — portal v2 point 4
+    (design 2026-08-14): per-field "does this value exist in the official
+    (NVD) dictionary" stamp, reusing the same typeahead sidecar as
+    ``/api/terms`` (never the full 1.77M-row snapshot; a field-level
+    check, never version — the sidecar only ever indexed vendor/product).
+
+    A vendor/product that doesn't exist in the official dictionary isn't
+    wrong — it's a **candidate**: only a MotherHacker community dictionary
+    or a client's custom dictionary can validate it for inclusion (same
+    human+notary ceremony as a NIE, WP5/9.6). This endpoint only computes
+    the stamp; it never writes anything.
+
+    ``None`` fields mean "nothing to check" (blank/ANY/NA, or no sidecar
+    loaded at all) — never conflated with a confirmed "not found".
+    """
+    def value(attr: str) -> str:
+        raw = str(components.get(attr, "") or "").strip()
+        return raw if raw not in ("", "*", "-") else ""
+
+    vendor, product = value("vendor"), value("product")
+    if terms is None:
+        return {"ok": True, "vendor_known": None, "product_known": None,
+                "pair_known": None, "candidate": None}
+
+    # vendor_known / product_known are independent, global "does this
+    # string exist anywhere in the dictionary" checks; pair_known is the
+    # vendor-scoped one — a CPE is fundamentally about the (vendor,
+    # product) pair, not either field in isolation, so it (not the two
+    # independent checks) drives the overall candidate verdict.
+    vendor_known = (vendor in terms.vendor_set) if vendor else None
+    product_known = (product in terms.product_set) if product else None
+    pair_known = (vendor in terms.pair_sets
+                 and product in terms.pair_sets[vendor]) \
+        if (vendor and product) else None
+
+    if pair_known is not None:
+        candidate = not pair_known
+    else:
+        knowns = [k for k in (vendor_known, product_known) if k is not None]
+        candidate = (not all(knowns)) if knowns else None
+    return {"ok": True, "vendor_known": vendor_known,
+            "product_known": product_known, "pair_known": pair_known,
+            "candidate": candidate}
 
 
 @dataclass
@@ -329,16 +394,21 @@ class ReviewState:
 
     def save_progress(self, index: int, annotated_title: str = "",
                       notes: str = "", components: dict | None = None,
-                      cpe_text: str = "") -> dict:
+                      cpe_text: str = "", extra_marks: dict | None = None
+                      ) -> dict:
         """Persist partial work without a final verdict ("save without
         marking done"). Keeps the row pending — `verdict` becomes
         ``in_progress``, which is neither in :data:`VERDICTS` nor counted
         as done by :meth:`progress` — while round-tripping every piece of
-        client-side draft state: span marks (the same RASA-bracket
+        client-side draft state: gold span marks (the same RASA-bracket
         `annotated_title` column a real annotation uses, so the existing
         resume-from-brackets logic restores them unchanged), the builder's
-        11 components and the WFN/formatted-string field (both inside the
-        new `draft` JSON column), and notes.
+        11 components and the WFN/formatted-string field, and the
+        non-gold span marks for the other CPE components (``update``,
+        ``edition``, ... — title highlights that only ever feed the
+        builder, never the frozen vendor/product/version annotation; kept
+        as ``{token_index: component}``) — all three inside the new
+        `draft` JSON column — and notes.
 
         Refuses to downgrade a row that already carries a final verdict —
         re-open it with a real verdict action instead of a draft save.
@@ -356,6 +426,7 @@ class ReviewState:
         row["draft"] = json.dumps({
             "components": components or {},
             "cpe_text": (cpe_text or "").strip(),
+            "extra_marks": extra_marks or {},
         })
         row["annotator"] = self.identity
         row["timestamp"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -468,6 +539,8 @@ def handle_progress(state: ReviewState, payload: dict) -> dict:
             components=payload.get("components")
             if isinstance(payload.get("components"), dict) else None,
             cpe_text=str(payload.get("cpe_text", "")),
+            extra_marks=payload.get("extra_marks")
+            if isinstance(payload.get("extra_marks"), dict) else None,
         )
     except VerdictError as exc:
         return {"ok": False, "error": str(exc)}
@@ -552,6 +625,13 @@ class _Handler(BaseHTTPRequestHandler):
             except ValueError:
                 index = -1
             result = handle_history(self.state, index)
+            self._send_json(result, 200 if result["ok"] else 400)
+        elif parsed.path == "/api/dictcheck":
+            qs = parse_qs(parsed.query)
+            result = handle_dictcheck(self.terms, {
+                "vendor": (qs.get("vendor") or [""])[0],
+                "product": (qs.get("product") or [""])[0],
+            })
             self._send_json(result, 200 if result["ok"] else 400)
         else:
             self._send_json({"ok": False, "error": "not found"}, 404)
