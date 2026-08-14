@@ -159,5 +159,7 @@ and file names are in English.
 
 ## License
 
-Not yet decided — pending before publication. The 2024 thesis notebooks at
-the root of this repo's history were released under the Unlicense.
+[Apache License 2.0](LICENSE) — permissive, with an explicit patent grant
+(decision 2026-08-12). The 2024 thesis notebooks at the root of this repo's
+history were originally released under the Unlicense; everything from
+CPEgenerator v2 onwards is Apache-2.0.

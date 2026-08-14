@@ -165,5 +165,7 @@ comentaris i els noms de fitxer, en anglès.
 
 ## Llicència
 
-Pendent de decidir — abans de publicar. Els notebooks de la tesi de 2024 a
-l'arrel de l'historial d'aquest repo es van alliberar sota l'Unlicense.
+[Apache License 2.0](LICENSE) — permissiva, amb patent grant explícit
+(decisió 2026-08-12). Els notebooks de la tesi de 2024 a l'arrel de
+l'historial d'aquest repo es van alliberar originalment sota l'Unlicense;
+tot el que és CPEgenerator v2 en endavant és Apache-2.0.
