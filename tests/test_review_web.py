@@ -18,14 +18,19 @@ from cpegen import goldset
 from cpegen.review_web import (
     CSV_FIELDS,
     ENTITY_RE,
+    IN_PROGRESS,
     PART_VALUES,
     UI_ASSET,
+    VERDICTS,
     ReviewState,
     TermsIndex,
     VerdictError,
     bind_components,
+    handle_history,
+    handle_progress,
     handle_state,
     handle_terms,
+    handle_unbind,
     handle_verdict,
     load_or_build_terms,
     match_terms,
@@ -363,3 +368,193 @@ def test_ui_asset_has_part_dropdown_and_typeahead_wiring():
     assert '"ta-wrap"' in html
     assert "/api/terms" in html
     assert "TA_FIELDS" in html
+
+
+# -- portal v2: in_progress draft persistence (design 2026-08-14) ----------
+
+
+def test_in_progress_kept_out_of_verdicts_and_never_counts_as_done():
+    assert IN_PROGRESS not in VERDICTS
+
+
+def test_save_progress_persists_full_partial_state_and_resumes(tmp_path):
+    q = make_queue(tmp_path)
+    state = ReviewState.load(q, identity="humbert")
+    row = state.save_progress(
+        0, annotated_title="[7-Zip](cpe_vendor) partial",
+        notes="still checking the version",
+        components={"part": "a", "vendor": "7-zip", "product": "7-zip"},
+        cpe_text="cpe:2.3:a:7-zip:7-zip:*:*:*:*:*:*:*:*")
+    assert row["verdict"] == IN_PROGRESS
+    assert row["annotated_title"] == "[7-Zip](cpe_vendor) partial"
+
+    # a fresh load (new session) restores every piece of the draft
+    resumed = ReviewState.load(q, identity="humbert")
+    r0 = resumed.rows[0]
+    assert r0["verdict"] == IN_PROGRESS
+    assert r0["annotated_title"] == "[7-Zip](cpe_vendor) partial"
+    assert r0["notes"] == "still checking the version"
+    draft = json.loads(r0["draft"])
+    assert draft["components"] == {"part": "a", "vendor": "7-zip",
+                                    "product": "7-zip"}
+    assert draft["cpe_text"] == "cpe:2.3:a:7-zip:7-zip:*:*:*:*:*:*:*:*"
+    # in_progress is not a final verdict: it must not count as done
+    assert resumed.progress()["done"] == 0
+
+
+def test_save_progress_refuses_to_downgrade_a_final_verdict(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    state.apply_verdict(0, "annotated",
+                        "[7-Zip](cpe_vendor) [7-Zip](cpe_product)")
+    with pytest.raises(VerdictError):
+        state.save_progress(0, notes="changed my mind")
+    # the final verdict is untouched
+    assert state.rows[0]["verdict"] == "annotated"
+
+
+def test_save_progress_bad_index_raises(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    with pytest.raises(VerdictError):
+        state.save_progress(99)
+
+
+def test_apply_verdict_clears_a_prior_draft(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    state.save_progress(0, components={"vendor": "7-zip"},
+                        cpe_text="cpe:2.3:a:7-zip:*:*:*:*:*:*:*:*:*")
+    assert state.rows[0]["draft"] != ""
+    row = state.apply_verdict(0, "skipped", "")
+    assert row["draft"] == ""
+    assert state.rows[0]["draft"] == ""
+
+
+def test_handle_progress_thin_wrapper(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    ok = handle_progress(state, {
+        "index": 0, "annotated_title": "[Steam](cpe_vendor)",
+        "components": {"vendor": "valve"}, "cpe_text": "", "notes": "x",
+    })
+    assert ok["ok"] is True and ok["row"]["verdict"] == IN_PROGRESS
+
+    bad = handle_progress(state, {"index": 99})
+    assert bad["ok"] is False and "index" in bad["error"]
+
+
+def test_legacy_queue_without_draft_column_loads_and_upgrades(tmp_path):
+    q = make_queue(tmp_path)  # written with QUEUE_FIELDS only (no draft)
+    state = ReviewState.load(q, identity="humbert")
+    assert all(r["draft"] == "" for r in state.rows)
+    state.save_progress(0, components={"vendor": "7-zip"})
+    with open(q, newline="", encoding="utf-8") as fh:
+        assert csv.DictReader(fh).fieldnames == list(CSV_FIELDS)
+
+
+# -- portal v2: WFN-wins bidirectional sync (design 2026-08-14) ------------
+
+
+def test_handle_unbind_is_the_mirror_of_bind_components():
+    bound = bind_components({"part": "a", "vendor": "Microsoft",
+                             "product": "Visual C++", "version": "2013"})
+    assert bound["ok"] is True
+    out = handle_unbind(bound["cpe"])
+    assert out["ok"] is True
+    assert out["components"]["vendor"] == "microsoft"
+    assert out["components"]["product"] == "visual_c++"
+    assert out["components"]["version"] == "2013"
+    assert out["components"]["part"] == "a"
+    # untouched attributes come back as the "*" ANY marker, same convention
+    # the builder inputs already use
+    assert out["components"]["update"] == "*"
+    assert out["wfn"] == bound["wfn"]
+
+
+def test_handle_unbind_na_component_roundtrips():
+    bound = bind_components({"part": "o", "vendor": "fortinet",
+                             "product": "fortios", "update": "-"})
+    out = handle_unbind(bound["cpe"])
+    assert out["ok"] is True and out["components"]["update"] == "-"
+
+
+def test_handle_unbind_rejects_invalid_formatted_string():
+    out = handle_unbind("cpe:2.3:x:acme:thing:*:*:*:*:*:*:*:*")
+    assert out["ok"] is False and out["errors"]
+
+
+def test_handle_unbind_rejects_empty_input():
+    assert handle_unbind("") == {"ok": False, "errors": ["empty"]}
+
+
+# -- portal v2: append-only verdict history (design 2026-08-14) ------------
+
+
+def test_history_appends_one_entry_per_verdict_not_per_draft(tmp_path):
+    q = make_queue(tmp_path)
+    state = ReviewState.load(q, identity="humbert")
+    state.save_progress(0, components={"vendor": "7-zip"})  # draft: no log
+    state.apply_verdict(0, "skipped", "")  # verdict #1
+    state.apply_verdict(
+        0, "annotated", "[7-Zip](cpe_vendor) [7-Zip](cpe_product)")  # #2
+
+    entries = state.read_history(0)
+    assert len(entries) == 2
+    assert [e["verdict"] for e in entries] == ["skipped", "annotated"]
+    assert entries[0]["annotator"] == "humbert"
+    assert entries[0]["timestamp"]
+    # a different, never-touched row has no history
+    assert state.read_history(1) == []
+
+
+def test_history_survives_reload_and_is_per_output_file(tmp_path):
+    q = make_queue(tmp_path)
+    state = ReviewState.load(q, identity="humbert")
+    state.apply_verdict(0, "not_software", "")
+    assert state.history_path.exists()
+    assert state.history_path.name.endswith(".history.jsonl")
+
+    resumed = ReviewState.load(q, identity="laia")
+    resumed.apply_verdict(1, "skipped", "")
+    # history accumulates across sessions, keyed by row index
+    assert len(resumed.read_history(0)) == 1
+    assert len(resumed.read_history(1)) == 1
+
+
+def test_handle_history_thin_wrapper(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    state.apply_verdict(0, "skipped", "")
+    ok = handle_history(state, 0)
+    assert ok["ok"] is True and len(ok["entries"]) == 1
+
+    bad = handle_history(state, 99)
+    assert bad["ok"] is False
+
+
+# -- portal v2: UI asset wiring for the rebuilt workspace -------------------
+
+
+def test_ui_asset_wires_progress_unbind_and_history_endpoints():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    assert "/api/progress" in html
+    assert "/api/unbind" in html
+    assert "/api/history" in html
+
+
+def test_ui_asset_has_editable_wfn_field_and_notes_textarea():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    assert 'id="wfnfield"' in html
+    assert "<textarea" in html  # notes get a large field now, not <input>
+
+
+def test_ui_asset_has_collapsible_title_block():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    assert "<details" in html and "<summary" in html
+
+
+def test_ui_asset_has_save_draft_action():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    assert "savedraft" in html.lower().replace(" ", "").replace("-", "").replace("_", "")
+
+
+def test_ui_asset_still_self_contained_after_rebuild():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    external = re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
+    assert external == [], f"unexpected external resources: {external}"

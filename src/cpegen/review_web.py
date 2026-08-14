@@ -20,6 +20,16 @@ reuse the same module for the WP5 ``needs_review``/NIE flow; Fase C (the
 multi-user community/client dictionary platform) is a separate
 post-publication product for which A/B act as the validated prototype.
 
+Portal v2 (design 2026-08-14, "portal de review v2 — disseny aprovat"):
+three-level workspace — title spans, the 11-component builder, and an
+editable WFN/formatted-string field, kept in sync through the same
+``bind_components``/``WFN.unbind`` notary path (``/api/bind``,
+``/api/unbind``); a row can be saved without a final verdict
+(``verdict="in_progress"``, ``/api/progress``) which persists every piece
+of partial state and is never counted as done; every real verdict appends
+to a per-row, append-only JSONL history beside the output CSV
+(``ReviewState.history_path``, ``/api/history``).
+
 The server binds 127.0.0.1 only. No network is ever required: the HTML
 asset is self-contained (web fonts degrade to system fallbacks offline).
 """
@@ -45,10 +55,12 @@ from .wfn import WFN, Logical, normalize_raw
 
 CPE_ATTRS = ("part", "vendor", "product", "version", "update", "edition",
              "language", "sw_edition", "target_sw", "target_hw", "other")
-# The reviewed CSV adds one column over the sample queue: the humanly built,
-# notary-validated CPE (blank when none was built). Legacy queues without it
-# load fine (backfilled empty) and gain the column on first save.
-CSV_FIELDS = QUEUE_FIELDS + ("cpe",)
+# The reviewed CSV adds two columns over the sample queue: the humanly
+# built, notary-validated CPE (blank when none was built), and a JSON
+# blob of in-progress draft state (blank once a row has a final verdict).
+# Both are additive — legacy queues without them load fine (backfilled
+# empty) and gain the columns on first save; the contract only grows.
+CSV_FIELDS = QUEUE_FIELDS + ("cpe", "draft")
 
 UI_ASSET = Path(__file__).with_name("review_ui.html")
 
@@ -57,6 +69,16 @@ UI_ASSET = Path(__file__).with_name("review_ui.html")
 ENTITY_RE = re.compile(r"\[([^\]]+)\]\((cpe_vendor|cpe_product|cpe_version)\)")
 
 VERDICTS = ("annotated", "not_software", "skipped")
+
+# A fourth, non-final row state (portal v2, design 2026-08-14): "save
+# without marking done". Deliberately kept OUT of VERDICTS — it never
+# satisfies `apply_verdict`'s bracket/vendor-or-product requirements and
+# must never count as done in `progress()` — but every row still carries
+# it in the same `verdict` column so a reload shows it as still-pending
+# (client-side filters treat it like blank/skipped) while restoring the
+# exact partial state (span marks via `annotated_title`, builder
+# components + the WFN/formatted-string field via `draft`, and notes).
+IN_PROGRESS = "in_progress"
 
 # The five closed values of the ``part`` component (WFN grammar, §5.3.2 of
 # the ABNF reference) — the builder UI renders these as a <select>, never
@@ -298,8 +320,89 @@ class ReviewState:
         row["annotator"] = self.identity
         row["timestamp"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         row["notes"] = (notes or "").strip()
+        row["draft"] = ""  # a final verdict retires any in-progress draft
+        self.save()
+        self.append_history(index, row)
+        return dict(row)
+
+    # -- draft persistence (in_progress; portal v2, design 2026-08-14) ----
+
+    def save_progress(self, index: int, annotated_title: str = "",
+                      notes: str = "", components: dict | None = None,
+                      cpe_text: str = "") -> dict:
+        """Persist partial work without a final verdict ("save without
+        marking done"). Keeps the row pending — `verdict` becomes
+        ``in_progress``, which is neither in :data:`VERDICTS` nor counted
+        as done by :meth:`progress` — while round-tripping every piece of
+        client-side draft state: span marks (the same RASA-bracket
+        `annotated_title` column a real annotation uses, so the existing
+        resume-from-brackets logic restores them unchanged), the builder's
+        11 components and the WFN/formatted-string field (both inside the
+        new `draft` JSON column), and notes.
+
+        Refuses to downgrade a row that already carries a final verdict —
+        re-open it with a real verdict action instead of a draft save.
+        """
+        if not 0 <= index < len(self.rows):
+            raise VerdictError(f"row index out of range: {index}")
+        row = self.rows[index]
+        if row["verdict"] in ("annotated", "not_software"):
+            raise VerdictError(
+                "row already has a final verdict; re-annotate it with a "
+                "real verdict action instead of a draft save")
+        row["verdict"] = IN_PROGRESS
+        row["annotated_title"] = (annotated_title or "").strip()
+        row["notes"] = (notes or "").strip()
+        row["draft"] = json.dumps({
+            "components": components or {},
+            "cpe_text": (cpe_text or "").strip(),
+        })
+        row["annotator"] = self.identity
+        row["timestamp"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         self.save()
         return dict(row)
+
+    # -- verdict history (append-only JSONL beside the output CSV) --------
+    #
+    # Drafts are not verdicts and are never logged here — only a real
+    # `apply_verdict` call appends, so the sidebar's "verdict history"
+    # shows human decisions, not every keystroke.
+
+    @property
+    def history_path(self) -> Path:
+        return self.output_path.with_name(self.output_path.stem + ".history.jsonl")
+
+    def append_history(self, index: int, row: dict) -> None:
+        entry = {
+            "row_index": index,
+            "title": row.get("title", ""),
+            "verdict": row.get("verdict", ""),
+            "annotator": row.get("annotator", ""),
+            "timestamp": row.get("timestamp", ""),
+            "notes": row.get("notes", ""),
+            "cpe": row.get("cpe", ""),
+        }
+        self.history_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.history_path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry) + "\n")
+
+    def read_history(self, index: int) -> list[dict]:
+        """All past verdicts for one row, oldest first."""
+        if not self.history_path.exists():
+            return []
+        out = []
+        with open(self.history_path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if entry.get("row_index") == index:
+                    out.append(entry)
+        return out
 
     # -- persistence ------------------------------------------------------
 
@@ -356,6 +459,61 @@ def handle_verdict(state: ReviewState, payload: dict) -> dict:
     return {"ok": True, "row": row, "progress": state.progress()}
 
 
+def handle_progress(state: ReviewState, payload: dict) -> dict:
+    try:
+        row = state.save_progress(
+            index=int(payload.get("index", -1)),
+            annotated_title=str(payload.get("annotated_title", "")),
+            notes=str(payload.get("notes", "")),
+            components=payload.get("components")
+            if isinstance(payload.get("components"), dict) else None,
+            cpe_text=str(payload.get("cpe_text", "")),
+        )
+    except VerdictError as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "row": row}
+
+
+def handle_history(state: ReviewState, index: int) -> dict:
+    if not 0 <= index < len(state.rows):
+        return {"ok": False, "error": f"row index out of range: {index}"}
+    return {"ok": True, "entries": state.read_history(index)}
+
+
+def handle_unbind(cpe: str) -> dict:
+    """Pure handler behind ``POST /api/unbind`` — formatted string ->
+    builder components, the mirror of ``bind_components``.
+
+    The editable "WFN" field holds the CPE 2.3 **formatted string**
+    (``cpe:2.3:...``): that is the one representation ``WFN.bind()`` /
+    ``WFN.unbind()`` / ``validate_formatted_string`` already round-trip
+    without any new notary code (reuse, not rewrite). The informal
+    ``wfn:[...]`` notation stays a read-only echo of
+    ``WFN.to_wfn_string()``, exactly as ``/api/bind`` already returns it.
+    """
+    cpe = (cpe or "").strip()
+    if not cpe:
+        return {"ok": False, "errors": ["empty"]}
+    result = validate_formatted_string(cpe)
+    if not result.ok:
+        return {"ok": False, "errors": list(result.errors)}
+    try:
+        wfn = WFN.unbind(cpe)
+    except ValueError as exc:
+        return {"ok": False, "errors": [str(exc)]}
+    components = {}
+    for attr in CPE_ATTRS:
+        value = getattr(wfn, attr)
+        if value is Logical.ANY:
+            components[attr] = "*"
+        elif value is Logical.NA:
+            components[attr] = "-"
+        else:
+            components[attr] = value
+    return {"ok": True, "cpe": cpe, "wfn": wfn.to_wfn_string(),
+            "components": components}
+
+
 class _Handler(BaseHTTPRequestHandler):
     state: ReviewState  # set by serve()
     terms: "TermsIndex | None" = None  # set by serve(); None degrades cleanly
@@ -387,11 +545,20 @@ class _Handler(BaseHTTPRequestHandler):
                 vendor=(qs.get("vendor") or [""])[0],
             )
             self._send_json(result, 200 if result["ok"] else 400)
+        elif parsed.path == "/api/history":
+            qs = parse_qs(parsed.query)
+            try:
+                index = int((qs.get("index") or ["-1"])[0])
+            except ValueError:
+                index = -1
+            result = handle_history(self.state, index)
+            self._send_json(result, 200 if result["ok"] else 400)
         else:
             self._send_json({"ok": False, "error": "not found"}, 404)
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path not in ("/api/verdict", "/api/bind"):
+        if self.path not in ("/api/verdict", "/api/bind", "/api/progress",
+                             "/api/unbind"):
             self._send_json({"ok": False, "error": "not found"}, 404)
             return
         length = int(self.headers.get("Content-Length") or 0)
@@ -402,6 +569,13 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if self.path == "/api/bind":
             self._send_json(bind_components(payload.get("components") or {}))
+            return
+        if self.path == "/api/unbind":
+            self._send_json(handle_unbind(str(payload.get("cpe", ""))))
+            return
+        if self.path == "/api/progress":
+            result = handle_progress(self.state, payload)
+            self._send_json(result, 200 if result["ok"] else 422)
             return
         result = handle_verdict(self.state, payload)
         self._send_json(result, 200 if result["ok"] else 422)
