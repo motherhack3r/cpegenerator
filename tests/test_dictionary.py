@@ -8,9 +8,15 @@ from pathlib import Path
 
 from cpegen.dictionary import (
     HybridDictionary,
+    LayeredDictionary,
     LocalDictionary,
+    NIERecord,
     _neo4j_fetch,
     build_snapshot,
+    layered_dictionary,
+    load_nie_records,
+    lookup_for,
+    write_nie_record,
 )
 from cpegen.nvd import DictEntry
 
@@ -197,3 +203,122 @@ def test_hybrid_falls_back_to_client_on_miss(tmp_path):
     assert h.api_fallbacks == 1
     assert h.keyword("seven zip") == [stub.entry]
     assert ("kw", "seven zip") in stub.calls
+
+
+# ------------------------------------------------------- WP2: NIE records
+
+def _nie(cpe, origin="motherhacker", human="laia", ts="2026-08-13T10:00:00Z",
+        evidence="", titles=""):
+    return NIERecord(cpe=cpe, origin=origin, human_identity=human,
+                     timestamp=ts, evidence=evidence,
+                     motivating_titles=titles)
+
+
+def test_nie_record_roundtrip_csv(tmp_path):
+    path = tmp_path / "custom.csv"
+    r1 = _nie("cpe:2.3:a:acme:widget:2.0:*:*:*:*:*:*:*",
+              evidence="human confirmed", titles="Acme Widget 2.0;Widget 2")
+    r2 = _nie("cpe:2.3:a:acme:gadget:1.0:*:*:*:*:*:*:*", origin="rawTFM")
+    write_nie_record(path, r1)
+    write_nie_record(path, r2)
+    loaded = load_nie_records(path)
+    assert [r.cpe for r in loaded] == [r1.cpe, r2.cpe]
+    assert loaded[0].human_identity == "laia"
+    assert loaded[1].origin == "rawTFM"
+
+
+def test_load_nie_records_drops_malformed_cpe(tmp_path):
+    path = tmp_path / "custom.csv"
+    write_nie_record(path, _nie("cpe:2.3:a:acme:widget:2.0:*:*:*:*:*:*:*"))
+    write_nie_record(path, _nie("not-a-cpe-at-all"))
+    loaded = load_nie_records(path)
+    assert len(loaded) == 1
+    assert loaded[0].cpe == "cpe:2.3:a:acme:widget:2.0:*:*:*:*:*:*:*"
+
+
+def test_local_dictionary_from_nie_builds_lookup():
+    records = [_nie("cpe:2.3:a:acme:widget:2.0:*:*:*:*:*:*:*",
+                    titles="Acme Widget 2.0")]
+    d = LocalDictionary.from_nie(records)
+    hits = d.candidates_for("acme", "widget")
+    assert len(hits) == 1
+    assert hits[0].cpe_name == records[0].cpe
+    # same clean+Dice machinery as the NVD layer: canonicalizes too.
+    lk = d.lookup("acme", "widget", title="Acme Widget 2.0")
+    assert lk.candidates and lk.resolution is not None
+
+
+# --------------------------------------------------- WP2: layered lookup
+
+def test_layered_dictionary_no_regression_with_empty_layers(tmp_path):
+    base = LocalDictionary.load(_snapshot(tmp_path))
+    layered = layered_dictionary(base)  # no custom paths -> pass-through
+    direct = base.lookup("7-zip", "7-zip", title="7-Zip 26.01")
+    wrapped = layered.lookup("7-zip", "7-zip", title="7-Zip 26.01")
+    assert wrapped.candidates == direct.candidates
+    assert wrapped.resolution == direct.resolution
+    assert wrapped.source == direct.source
+    assert wrapped.dictionary_source == "nvd"
+
+    # a genuine miss stays a miss, with no dictionary_source claimed.
+    miss = layered.lookup("no_such_vendor", "no_such_product", title="x")
+    assert miss.candidates == []
+    assert miss.dictionary_source == ""
+
+
+def test_layered_dictionary_falls_through_to_motherhacker(tmp_path):
+    base = LocalDictionary.load(_snapshot(tmp_path))
+    mh = LocalDictionary.from_nie([
+        _nie("cpe:2.3:a:newvendor:newproduct:1.0:*:*:*:*:*:*:*")])
+    layered = LayeredDictionary(base, motherhacker=mh)
+    lk = layered.lookup("newvendor", "newproduct", title="NewVendor NewProduct 1.0")
+    assert lk.candidates
+    assert lk.dictionary_source == "motherhacker"
+
+
+def test_layered_dictionary_falls_through_to_origin(tmp_path):
+    base = LocalDictionary.load(_snapshot(tmp_path))
+    origin_dict = LocalDictionary.from_nie([
+        _nie("cpe:2.3:a:clienta:special_tool:1.0:*:*:*:*:*:*:*",
+            origin="ClientA")])
+    layered = LayeredDictionary(base, origin=origin_dict, origin_name="ClientA")
+    lk = layered.lookup("clienta", "special_tool",
+                        title="ClientA Special Tool 1.0")
+    assert lk.candidates
+    assert lk.dictionary_source == "ClientA"
+
+
+def test_layered_dictionary_nvd_wins_over_motherhacker_on_hit(tmp_path):
+    # The order is fixed: NVD answers first even when the other layers
+    # also know the pair (playbook §3 — "NVD -> MotherHacker -> origen").
+    base = LocalDictionary.load(_snapshot(tmp_path))
+    mh = LocalDictionary.from_nie([
+        _nie("cpe:2.3:a:7-zip:7-zip:99.0:*:*:*:*:*:*:*")])
+    layered = LayeredDictionary(base, motherhacker=mh)
+    lk = layered.lookup("7-zip", "7-zip", title="7-Zip")
+    assert lk.dictionary_source == "nvd"
+    assert all(e.cpe_name != "cpe:2.3:a:7-zip:7-zip:99.0:*:*:*:*:*:*:*"
+              for e in lk.candidates)
+
+
+def test_layered_dictionary_candidates_for_and_keyword(tmp_path):
+    base = LocalDictionary.load(_snapshot(tmp_path))
+    mh = LocalDictionary.from_nie([
+        _nie("cpe:2.3:a:newvendor:newproduct:1.0:*:*:*:*:*:*:*")])
+    layered = LayeredDictionary(base, motherhacker=mh)
+    assert layered.candidates_for("newvendor", "newproduct")
+    assert layered.candidates_for("no_such_vendor", "no_such_product") == []
+    stub = _StubClient()
+    hybrid_base = HybridDictionary(LocalDictionary.load(_snapshot(tmp_path)),
+                                   stub)
+    layered_over_hybrid = LayeredDictionary(hybrid_base, motherhacker=mh)
+    assert layered_over_hybrid.keyword("seven zip") == [stub.entry]
+
+
+def test_layered_dictionary_works_through_lookup_for(tmp_path):
+    # The pipeline never calls LayeredDictionary directly — it goes
+    # through the same uniform lookup_for() every other client uses.
+    base = LocalDictionary.load(_snapshot(tmp_path))
+    layered = layered_dictionary(base)
+    lk = lookup_for(layered, "7-zip", "7-zip", title="7-Zip 26.01")
+    assert lk.dictionary_source == "nvd"

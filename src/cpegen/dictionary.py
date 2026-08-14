@@ -368,6 +368,104 @@ def load_ranges(path: Path | str = DEFAULT_RANGES
     return out
 
 
+# --------------------------------------------------- custom dictionaries
+#
+# WP2 (.ideas/reader-league-active-learning-v2.md §3, §6.3): three
+# dictionary layers, consulted NVD -> MotherHacker -> per-origin custom.
+# The NVD layer is the snapshot above; MotherHacker and per-origin are
+# both small CSVs of NIE records loaded through the same class
+# (:meth:`LocalDictionary.from_nie`) — a NIE is never a second kind of
+# dictionary, just a different source of entries.
+
+NIE_FIELDS = ("cpe", "origin", "human_identity", "timestamp", "evidence",
+             "motivating_titles")
+
+
+@dataclass(frozen=True)
+class NIERecord:
+    """One custom-dictionary entry: a CPE that does not exist at the NVD.
+
+    Minted by the NIE ceremony (§6.3): a human and the notary agree the
+    CPE is well-formed and correct for this title, even though no
+    official dictionary lists it. Every field here is what the ceremony
+    records — never a silent alta:
+
+    - ``cpe``: the full, ABNF-valid CPE 2.3 formatted string.
+    - ``origin``: which inventory earned it (``motherhacker`` for the
+      community layer, or the client/origin name for a per-origin one).
+    - ``human_identity``: who signed off (N11 — auditability, never
+      anonymous).
+    - ``timestamp``: when.
+    - ``evidence``: short free-text summary of what was shown (candidates
+      considered and discarded, ranges checked, etc).
+    - ``motivating_titles``: the raw title(s) that earned this NIE,
+      ``;``-joined — what a future audit replays first.
+    """
+
+    cpe: str
+    origin: str
+    human_identity: str
+    timestamp: str
+    evidence: str = ""
+    motivating_titles: str = ""
+
+
+def load_nie_records(path: Path | str) -> list[NIERecord]:
+    """Read a custom-dictionary CSV (header = :data:`NIE_FIELDS`).
+
+    A malformed CPE (failing the ABNF validator) is dropped, never
+    silently trusted — the "L'LLM proposa, el codi valida" invariant
+    holds for every dictionary layer, not only the NVD one. Missing
+    optional columns default to ``""``.
+    """
+    path = Path(path)
+    records: list[NIERecord] = []
+    with open(path, newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            cpe = (row.get("cpe") or "").strip()
+            if not cpe or not validate_formatted_string(cpe).ok:
+                continue
+            records.append(NIERecord(
+                cpe=cpe,
+                origin=row.get("origin") or "",
+                human_identity=row.get("human_identity") or "",
+                timestamp=row.get("timestamp") or "",
+                evidence=row.get("evidence") or "",
+                motivating_titles=row.get("motivating_titles") or ""))
+    return records
+
+
+def write_nie_record(path: Path | str, record: NIERecord) -> None:
+    """Append one NIE to a custom-dictionary CSV, creating it (with a
+    header) if it does not exist yet.
+
+    WP2 only needs the schema and the reader above; WP5 (the human loop)
+    is the caller that actually mints NIEs at review time — kept here,
+    not duplicated, so the write side never drifts from :data:`NIE_FIELDS`.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    is_new = not path.exists()
+    with open(path, "a", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=NIE_FIELDS)
+        if is_new:
+            writer.writeheader()
+        writer.writerow({f: getattr(record, f) for f in NIE_FIELDS})
+
+
+def _entries_from_nie(records: "Iterable[NIERecord]") -> list[DictEntry]:
+    """NIE records -> :class:`DictEntry` rows, the shape ``from_entries``
+    (and therefore the whole lookup stack) already knows how to index."""
+    entries = []
+    for i, rec in enumerate(records):
+        title = (rec.motivating_titles.split(";")[0].strip()
+                if rec.motivating_titles else rec.cpe)
+        entries.append(DictEntry(cpe_name=rec.cpe,
+                                 cpe_name_id=f"nie:{rec.origin}:{i}",
+                                 title=title, deprecated=False))
+    return entries
+
+
 def _entry_from_product(p: dict) -> dict:
     titles = p.get("titles", [])
     title = next((t["title"] for t in titles if t.get("lang") == "en"),
@@ -688,6 +786,13 @@ class Lookup:
     resolution: PairResolution | None = None
     source: str = "miss"   # pair | alias | dice | union | api | miss
     ranges: list = field(default_factory=list)  # VersionRange of the pair
+    # Which BOOK answered (WP2, .ideas/reader-league-active-learning-v2.md
+    # §3): "nvd" | "motherhacker" | "<origin>", or "" when nothing in any
+    # layer matched. Orthogonal to ``source`` (the lookup *mechanism*
+    # inside one book — pair/alias/dice/union/api). Never a new M rule:
+    # every layer feeds the same candidate list into the same
+    # classify()/decide() cascade; this column only records provenance.
+    dictionary_source: str = ""
 
 
 # -------------------------------------------------------------- lookup
@@ -727,48 +832,80 @@ class LocalDictionary:
     dice_hits: int = 0
 
     @classmethod
+    def from_entries(cls, entries: Iterable[DictEntry],
+                     build_index: bool = True) -> "LocalDictionary":
+        """Build indexes directly from entries — no snapshot file.
+
+        Shared with :meth:`load` (the file-backed constructor) precisely
+        so a custom layer — a handful of NIE rows (WP2) — gets the exact
+        same lookup machinery (pair index, vendor aliases, clean+Dice) as
+        the 1.77M-row NVD snapshot: never a smaller reimplementation.
+        """
+        d = cls()
+        parts: dict[tuple[str, str], set[str]] = {}
+        live: dict[tuple[str, str], int] = {}
+        vendor_cpes: dict[str, int] = {}
+        for entry in entries:
+            comps = split_formatted_string(entry.cpe_name)
+            if len(comps) != 13:
+                continue  # counted as invalid at build time
+            vendor, product = comps[3], comps[4]
+            pair = (vendor, product)
+            bucket = d.by_pair.setdefault(pair, [])
+            if not bucket:  # first sighting of this pair
+                d.vendor_reps.setdefault(vendor, []).append(entry)
+                d.product_reps.setdefault(product, []).append(entry)
+                parts[pair] = set()
+                live[pair] = 0
+            bucket.append(entry)
+            parts[pair].add(comps[2])
+            if not entry.deprecated:
+                live[pair] += 1
+            vendor_cpes[vendor] = vendor_cpes.get(vendor, 0) + 1
+            d.size += 1
+        d.aliases = VendorAliases.build(vendor_cpes)
+        if build_index:
+            for pair, pair_entries in d.by_pair.items():
+                d.index.add(pair[0], pair[1],
+                            tuple(sorted(parts[pair])), len(pair_entries),
+                            all_deprecated=live[pair] == 0)
+        return d
+
+    @classmethod
     def load(cls, path: Path | str = DEFAULT_SNAPSHOT,
              build_index: bool = True,
              ranges_path: Path | str | None = None) -> "LocalDictionary":
         path = Path(path)
         opener = gzip.open if path.suffix == ".gz" else open
-        d = cls()
-        parts: dict[tuple[str, str], set[str]] = {}
-        live: dict[tuple[str, str], int] = {}
-        vendor_cpes: dict[str, int] = {}
-        with opener(path, "rt", encoding="utf-8") as f:
-            for line in f:
-                raw = json.loads(line)
-                entry = DictEntry(cpe_name=raw["cpeName"],
-                                  cpe_name_id=raw["cpeNameId"],
-                                  title=raw["title"],
-                                  deprecated=raw["deprecated"])
-                comps = split_formatted_string(entry.cpe_name)
-                if len(comps) != 13:
-                    continue  # counted as invalid at build time
-                vendor, product = comps[3], comps[4]
-                pair = (vendor, product)
-                bucket = d.by_pair.setdefault(pair, [])
-                if not bucket:  # first sighting of this pair
-                    d.vendor_reps.setdefault(vendor, []).append(entry)
-                    d.product_reps.setdefault(product, []).append(entry)
-                    parts[pair] = set()
-                    live[pair] = 0
-                bucket.append(entry)
-                parts[pair].add(comps[2])
-                if not entry.deprecated:
-                    live[pair] += 1
-                vendor_cpes[vendor] = vendor_cpes.get(vendor, 0) + 1
-                d.size += 1
-        d.aliases = VendorAliases.build(vendor_cpes)
+
+        def _iter_entries() -> Iterable[DictEntry]:
+            with opener(path, "rt", encoding="utf-8") as f:
+                for line in f:
+                    raw = json.loads(line)
+                    yield DictEntry(cpe_name=raw["cpeName"],
+                                    cpe_name_id=raw["cpeNameId"],
+                                    title=raw["title"],
+                                    deprecated=raw["deprecated"])
+
+        d = cls.from_entries(_iter_entries(), build_index=build_index)
         if ranges_path is not None and Path(ranges_path).exists():
             d.ranges = load_ranges(ranges_path)
-        if build_index:
-            for pair, entries in d.by_pair.items():
-                d.index.add(pair[0], pair[1],
-                            tuple(sorted(parts[pair])), len(entries),
-                            all_deprecated=live[pair] == 0)
         return d
+
+    @classmethod
+    def from_nie(cls, records: "Iterable[NIERecord]",
+                build_index: bool = True) -> "LocalDictionary":
+        """Build a custom (MotherHacker or per-origin) layer from NIEs.
+
+        WP2 (.ideas/reader-league-active-learning-v2.md §3, §6.3): a NIE
+        is a CPE a human and the notary minted together because it does
+        not exist in any official dictionary. Loading it through the
+        same :meth:`from_entries` path means a title resolves against a
+        NIE by the same exact-pair/alias/clean+Dice cascade as against
+        the NVD — the only thing that differs is which book answered.
+        """
+        return cls.from_entries(_entries_from_nie(records),
+                                build_index=build_index)
 
     # ------------------------------------------------- canonical lookup
 
@@ -928,6 +1065,86 @@ class HybridDictionary:
 
     def keyword(self, keywords: str) -> list[DictEntry]:
         return self.client.keyword(keywords)
+
+
+class LayeredDictionary:
+    """Three-layer dictionary: NVD -> MotherHacker -> per-origin custom.
+
+    WP2 (.ideas/reader-league-active-learning-v2.md §3): the lookup
+    order is fixed. The first layer that returns candidates answers, and
+    ``Lookup.dictionary_source`` names which one it was (``nvd`` |
+    ``motherhacker`` | ``<origin>``). This is the ONLY thing layering
+    changes — every layer feeds the exact same candidate shape into the
+    exact same ``classify()``/``decide()`` cascade (:mod:`cpegen.matcher`),
+    so no new M rule is possible here by construction.
+
+    With ``motherhacker=None`` and ``origin=None`` (the default) this
+    wraps ``base`` transparently: same candidates, same resolution, same
+    ``source``, and ``dictionary_source`` is the only new signal — the
+    no-regression contract WP2 is measured against (empty custom layers
+    -> identical results and M metrics as NVD-only).
+    """
+
+    def __init__(self, base, motherhacker: "LocalDictionary | None" = None,
+                origin: "LocalDictionary | None" = None,
+                origin_name: str = ""):
+        self.base = base
+        self.motherhacker = motherhacker
+        self.origin = origin
+        self.origin_name = origin_name or "origin"
+
+    def _layers(self):
+        yield "nvd", self.base
+        if self.motherhacker is not None:
+            yield "motherhacker", self.motherhacker
+        if self.origin is not None:
+            yield self.origin_name, self.origin
+
+    def lookup(self, vendor: str | None, product: str | None,
+              title: str = "") -> Lookup:
+        first: Lookup | None = None
+        for name, layer in self._layers():
+            lk = lookup_for(layer, vendor, product, title=title)
+            if first is None:
+                first = lk  # the base layer's Lookup, kept even on a miss
+            if lk.candidates:
+                lk.dictionary_source = name
+                return lk
+        assert first is not None  # _layers() always yields "nvd" first
+        first.dictionary_source = ""
+        return first
+
+    def candidates_for(self, vendor: str | None,
+                       product: str | None) -> list[DictEntry]:
+        for _, layer in self._layers():
+            hits = layer.candidates_for(vendor, product)
+            if hits:
+                return hits
+        return []
+
+    def keyword(self, keywords: str) -> list[DictEntry]:
+        # Free-text title search stays on the base (NVD/API) layer: the
+        # custom layers are small NIE tables, not a corpus worth scanning.
+        fn = getattr(self.base, "keyword", None)
+        return fn(keywords) if fn else []
+
+
+def layered_dictionary(base, motherhacker_path: Path | str | None = None,
+                       custom_path: Path | str | None = None,
+                       origin: str = "") -> LayeredDictionary:
+    """Wrap ``base`` with the optional MotherHacker/origin custom layers.
+
+    Both paths are ``None`` by default: the call is then a transparent
+    pass-through (WP2 no-regression contract). Passing one or both loads
+    that CSV of NIEs (:func:`load_nie_records`) into a
+    :class:`LocalDictionary` layer via :meth:`LocalDictionary.from_nie`.
+    """
+    mh = (LocalDictionary.from_nie(load_nie_records(motherhacker_path))
+         if motherhacker_path else None)
+    og = (LocalDictionary.from_nie(load_nie_records(custom_path))
+         if custom_path else None)
+    return LayeredDictionary(base, motherhacker=mh, origin=og,
+                             origin_name=origin)
 
 
 def lookup_for(client, vendor: str | None, product: str | None,

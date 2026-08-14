@@ -64,6 +64,11 @@ class RowResult:
     needs_review: bool = False
     review_reason: str = ""
     version_source: str = ""  # dict | range | outside | unknown
+    # --- dictionary layers (WP2, 2026-08-13) ---
+    # Which book the match came from: nvd | motherhacker | <origin>, or ""
+    # on a miss. Never a new M rule (docs/reader-league-implementation-
+    # plan.md WP2): only the provenance column changes.
+    dictionary_source: str = ""
 
 
 def build_wfn(ext: Extraction) -> WFN | None:
@@ -155,6 +160,7 @@ def apply_match(row: RowResult, match, wfn: WFN, lk: Lookup) -> RowResult:
     row.review_reason = match.review_reason
     row.needs_review = match.needs_review
     row.version_source = match.version_source
+    row.dictionary_source = lk.dictionary_source
 
     effective = canonicalize(wfn, lk.resolution)
     canonical = effective.bind()
@@ -240,6 +246,7 @@ def evaluate(rows: list[RowResult], gold: list[GoldRecord]) -> Report:
             report.cpe_exact += 1
         if row.rule:
             report.rule_counts[row.rule] += 1
+        report.dictionary_source_counts[row.dictionary_source or ""] += 1
     return report
 
 
@@ -248,6 +255,9 @@ def run(input_path: Path, output_dir: Path, provider_name: str | None = None,
         limit: int | None = None, cache_path: Path | None = None,
         agent_mode: str = "off", max_turns: int = 8,
         dictionary_path: Path | None = None,
+        motherhacker_dict_path: Path | None = None,
+        custom_dict_path: Path | None = None,
+        origin: str = "",
         extract_mode: str = "single",
         resume: bool = False,
         progress=None) -> tuple[list[RowResult], Report | None]:
@@ -264,6 +274,12 @@ def run(input_path: Path, output_dir: Path, provider_name: str | None = None,
     if dictionary_path is not None:
         from .dictionary import HybridDictionary, LocalDictionary
         nvd = HybridDictionary(LocalDictionary.load(dictionary_path), nvd)
+    # WP2: always layer NVD -> MotherHacker -> origin, even with both
+    # custom paths omitted — that no-op case is the transparent
+    # pass-through the no-regression contract is measured against.
+    from .dictionary import layered_dictionary
+    nvd = layered_dictionary(nvd, motherhacker_dict_path, custom_dict_path,
+                             origin)
     toolbox = ToolBox(nvd=nvd)
     agent_provider = (get_agent_provider(provider_name, model=model)
                       if agent_mode in ("escalate", "all") else None)
@@ -352,10 +368,11 @@ def reclassify_results(results_path: Path, output_dir: Path, nvd,
     transitions: dict[str, int] = {}
     sources: dict[str, int] = {}
     decisions: dict[str, int] = {}
+    dict_sources: dict[str, int] = {}
     stats = {"rows": len(rows), "reclassified": 0, "unchanged_invalid": 0,
              "cpe_mismatch": 0, "canonicalized": 0, "needs_review": 0,
              "transitions": transitions, "lookup_sources": sources,
-             "decisions": decisions}
+             "decisions": decisions, "dictionary_sources": dict_sources}
     out_path = output_dir / "results.csv"
     with open(out_path, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
@@ -409,6 +426,8 @@ def reclassify_results(results_path: Path, output_dir: Path, nvd,
             sources[lk.source] = sources.get(lk.source, 0) + 1
             decisions[out.decision or "(none)"] = \
                 decisions.get(out.decision or "(none)", 0) + 1
+            dict_key = out.dictionary_source or "(miss)"
+            dict_sources[dict_key] = dict_sources.get(dict_key, 0) + 1
             row.update({
                 "cpe": out.cpe, "rule": out.rule, "rule_name": out.rule_name,
                 "match_similarity": str(out.match_similarity),
@@ -422,6 +441,7 @@ def reclassify_results(results_path: Path, output_dir: Path, nvd,
                 "needs_review": str(out.needs_review),
                 "review_reason": out.review_reason,
                 "version_source": out.version_source,
+                "dictionary_source": out.dictionary_source,
             })
             stats["reclassified"] += 1
             writer.writerow(row)

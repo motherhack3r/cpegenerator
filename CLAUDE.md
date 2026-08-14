@@ -53,7 +53,15 @@ sostre al `qwen3-8b` (91% M1x). Decisió de run massiu: **cascada**
 ja executada (280.901 → 90.066 títols únics; cascada estimada ≈ 1 dia de
 GPU). Fase 8 (fine-tune de domini) anotada com a proposta no prioritzada.
 
-Següent: run del RAW al PC amb la cascada (ordres exactes a
-`docs/raw-run-playbook.md`), `vulns` sobre els M1x (el regal del calabrès),
-segona tanda amb `v_SoftwareProduct` (570k) i rèplica al laptop — registre
-complet de decisions a `ROADMAP.md` (Fase 7).
+2026-08-13 — **Fase 9.1 (canonicalització) tancada, G1 obert**: clean+Dice al
+matcher (M1x ×1,58 sobre el pilot 10k), rangs de versió, `search_dictionary`
+de l'agent unificat amb el pipeline. **Fase 9.2 (capes de diccionari)
+implementada**: `LayeredDictionary` (NVD → MotherHacker → origen), columna
+`dictionary_source`, esquema NIE del diccionari custom (`docs/dataset-
+catalog.md` §4b) — 287 tests verds offline, no-regressió provada amb capes
+buides. Registre complet a `ROADMAP.md` (Fase 9, secció Decisions).
+
+Següent: WP3 (golds per origen) i WP4 (equip de lectors), o el run del RAW al
+PC amb la cascada (ordres exactes a `docs/raw-run-playbook.md`) — ajornat
+post-publicació. `docs/reader-league-implementation-plan.md` és l'operativa
+vigent de la Fase 9.

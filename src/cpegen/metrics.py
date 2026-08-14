@@ -137,6 +137,10 @@ class Report:
     cpe_valid: int = 0
     rule_counts: Counter = field(default_factory=Counter)
     extraction_errors: int = 0
+    # WP2: which dictionary layer (nvd | motherhacker | <origin> | miss)
+    # answered each row. Reported alongside M1-M3, never folded into it —
+    # the M scale stays uniform whichever layers were consulted.
+    dictionary_source_counts: Counter = field(default_factory=Counter)
 
     def add_entities(self, gold: GoldRecord, predicted: dict) -> None:
         """Update MUC categories for one title."""
@@ -201,6 +205,18 @@ class Report:
                      f"{100 * hi / total:.1f}%** (base 2023: "
                      f"{BASELINE_HIGH_CONFIDENCE}% sobre inventari brut)")
         lines.append("")
+        if self.dictionary_source_counts:
+            lines.append("## Procedència del diccionari (WP2)")
+            lines.append("")
+            lines.append("| Capa | Count | % |")
+            lines.append("|---|---:|---:|")
+            dtotal = sum(self.dictionary_source_counts.values()) or 1
+            for source, cnt in sorted(self.dictionary_source_counts.items(),
+                                      key=lambda x: -x[1]):
+                label = source or "(miss)"
+                lines.append(f"| {label} | {cnt} | "
+                             f"{100 * cnt / dtotal:.1f}% |")
+            lines.append("")
         lines.append("> Nota: la base 2023 es va mesurar sobre ~526k títols bruts "
                      "d'SCCM; el gold set són títols nets estil NVD. Les xifres són "
                      "orientatives fins que el benchmark corri sobre títols bruts "

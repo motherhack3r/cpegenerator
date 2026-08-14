@@ -1,7 +1,9 @@
 """Tests for gold-set parsing, extraction parsing and the offline pipeline."""
 
 import json
+from dataclasses import asdict
 
+from cpegen.dictionary import LocalDictionary, layered_dictionary
 from cpegen.extractor import MockProvider, _parse_response, extract
 from cpegen.goldset import parse_annotation
 from cpegen.pipeline import build_wfn, process_title
@@ -70,6 +72,54 @@ def test_process_title_offline(tmp_path):
     assert row.valid
     assert row.cpe == "cpe:2.3:a:in2code:femanager:5.5.1:*:*:*:*:typo3:*:*"
     assert row.rule  # classified even with no candidates (M3 catch-all)
+
+
+def test_process_title_dictionary_source_no_regression(tmp_path):
+    # WP2 no-regression contract: wrapping the same dictionary client in
+    # a LayeredDictionary with no custom layers must not change ANY
+    # field except the new dictionary_source column.
+    title = "in2code femanager 5.5.1 for typo3"
+    bare = NVDClient(cache_path=tmp_path / "cache_bare.json", offline=True)
+    layered = layered_dictionary(
+        NVDClient(cache_path=tmp_path / "cache_layered.json", offline=True))
+
+    row_bare = process_title(title, MockProvider(), bare)
+    row_layered = process_title(title, MockProvider(), layered)
+
+    d_bare = asdict(row_bare)
+    d_layered = asdict(row_layered)
+    del d_bare["dictionary_source"]
+    del d_layered["dictionary_source"]
+    assert d_bare == d_layered
+    # No dictionary at all -> nothing could have answered.
+    assert row_layered.dictionary_source == ""
+    assert row_layered.rule  # still classified (M3/M4 catch-all)
+
+
+def test_process_title_dictionary_source_nvd_on_hit(tmp_path):
+    entries = [{
+        "cpe": {"cpeName": "cpe:2.3:a:in2code:femanager:5.5.1:*:*:*:*:typo3:*:*",
+                "cpeNameId": "id-1",
+                "titles": [{"title": "in2code femanager 5.5.1 for TYPO3",
+                           "lang": "en"}],
+                "deprecated": False}}]
+    snapshot = tmp_path / "dict.jsonl.gz"
+    from cpegen.dictionary import build_snapshot
+
+    def fetch(start, size):
+        return {"totalResults": len(entries), "resultsPerPage": len(entries),
+                "products": entries if start == 0 else []}
+
+    build_snapshot(snapshot, fetch=fetch)
+    local = LocalDictionary.load(snapshot)
+    nvd = NVDClient(cache_path=tmp_path / "cache.json", offline=True)
+    from cpegen.dictionary import HybridDictionary
+
+    layered = layered_dictionary(HybridDictionary(local, nvd))
+    row = process_title("in2code femanager 5.5.1 for typo3", MockProvider(),
+                        layered)
+    assert row.rule == "M1"
+    assert row.dictionary_source == "nvd"
 
 
 def test_nvd_cache_roundtrip(tmp_path):
