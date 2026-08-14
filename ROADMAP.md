@@ -201,6 +201,24 @@ evidència, títols motivadors).
 **Mesura**: mètriques M inalterades + desglossament per `dictionary_source`
 (línia experimental E-oficial/E-comunitat/E-custom del
 `docs/dataset-catalog.md` §4).
+**✅ Implementat (2026-08-13)**: `LayeredDictionary`
+(`src/cpegen/dictionary.py`) consulta NVD → MotherHacker → origen, la
+primera capa amb candidats respon i `Lookup.dictionary_source` en queda
+la traça (`""` en un miss total). Les capes custom es carreguen de CSVs
+de registres **NIE** (`cpe, origin, human_identity, timestamp, evidence,
+motivating_titles` — `NIE_FIELDS`) amb `LocalDictionary.from_nie`, que
+reutilitza exactament la mateixa maquinària de lookup (índex de parells,
+àlies, clean+Dice) que el snapshot NVD de 1,77M files — mai una
+reimplementació més petita. `RowResult.dictionary_source` i
+`Report.dictionary_source_counts` (secció nova a `report.md`) el
+propaguen a `run`/`reclassify`; flags noves `--motherhacker-dict`/
+`--custom-dict`/`--origin` a totes dues comandes. **Cap regla M nova**:
+les tres capes alimenten el mateix `classify()`/`decide()`.
+**No-regressió provada**: amb les dues capes buides, `LayeredDictionary`
+és un pass-through transparent (`test_layered_dictionary_no_regression_
+with_empty_layers`, `test_process_title_dictionary_source_no_regression`
+— mateixos candidats/resolució/`source`, l'única diferència és la
+columna nova). 287 tests verds offline (276 + 11).
 
 **9.3 — Golds per origen (espec #5–#6)**
 Mostres estratificades del RAW de cada origen d'arrencada (`rawTFM`, `rawPC`):
@@ -210,6 +228,22 @@ arch/locale, no-software) + pre-anotació (Claude); anotació i congelació
 mètriques + PROVENANCE versionades; mètriques sempre per origen, mai agregades
 per defecte.
 **Mesura**: dos golds congelats donats d'alta a `docs/dataset-catalog.md` (§5).
+**✅ Pre-anotació implementada (2026-08-13)**: `src/cpegen/title_features.py`
+(mòdul compartit — parèntesis, tokens arch/locale, vendor a la taula d'àlies,
+família versionada, longitud, tokens numèrics, Dice directe > 0,85 — reusat
+tal qual per WP4/9.7, no reimplementat) + `src/cpegen/sampling.py`
+(`cpegen sample`, comanda nova). Disseny en dos costos: `is_hard()` classifica
+tota la població (90.066 títols rawTFM) amb només els 4 senyals sense
+diccionari; el diccionari (`LocalDictionary.resolve`) només es consulta per
+als ~100 títols mostrejats, com a suggeriment mai com a resposta final.
+Cues generades amb seed 20260813: `gold-rawTFM_queue.csv` (70+30 sobre
+90.066, 94,9 % classificats "durs") i `gold-rawPC_queue.csv` (52+30 sobre 82
+— població petita, no arriba als 70 aleatoris nominals). Totes dues a
+`data/gold/queues/` (gitignored — deriven d'inventaris reals), amb
+`.provenance.json` bessó versionat (només agregats, cap títol). Estat: dos
+golds **pending-freeze**, no congelats — la congelació requereix la sessió
+d'anotació real de Humbert (2–4 h), pas encara pendent. 308 tests verds
+offline (287 + 21).
 
 **9.4 — Benchmark de tres braços per origen (espec #7)**
 single / per-field / single+hints sobre `gold-rawTFM` i `gold-rawPC`: decideix
@@ -278,6 +312,11 @@ cap dependència nova al runtime (Neo4j/KGCS només curació; stdlib + requests)
 | 2026-08-13 | **`part` ambigu marca, no bloqueja**: un parell multi-`part` sense evidència al títol es queda amb el `part` de més volum i la fila surt `flagged` + `part_ambiguous`; només la família versionada sense evidència és regla dura de bloqueig | Bloquejar-lo perdria justament l'inventari d'infraestructura que la decisió del 2026-08-12 volia rescatar (cas FortiOS→`o`). "Mai en silenci" es compleix amb la marca; "mai automàtic" només cal on el risc és assignar l'any equivocat amb alta confiança |
 | 2026-08-13 | **La taula d'àlies de vendor es materialitza des del snapshot i valida cada regla contra ell**: variants coexistents per clau `clean()` (135 al snapshot del 2026-07-02), renoms llavor del TFM i retallat de sufixos jurídics només s'accepten si el vendor destí existeix; els que no, es descarten i es reporten | Playbook §10.3 + accionables 1–2 de l'inventari de neteja. Va aparèixer sol el primer contraexemple: el TFM mapava ASUSTek→`ASUSTEK`, que no existeix a l'NVD (la seva grafia és `asus`), i `Internet Testing Systems`→`its` no existeix en absolut. Una taula d'àlies cega hauria introduït dos renoms que no resolen a res |
 | 2026-08-13 | El pre-filtre de l'índex invertit ha de ser **admissible** (fita superior demostrable, no heurística), i qualsevol tall de cobertura es compta i es reporta (`SCORE_CAP`, `PairIndex.capped`) | El playbook (§10.1) avisava que caldria validar el recall del pre-filtre, amb el cas `energrymetrix` com a prova. Una fita demostrable ho converteix en propietat testejable (test contra força bruta) en comptes d'una comprovació puntual; i un tall reportat no es pot confondre mai amb cobertura completa |
+| 2026-08-13 | WP2 implementat com `LayeredDictionary` (`src/cpegen/dictionary.py`): **sempre** embolcalla el diccionari base (`pipeline.run`/`cmd_reclassify` la construeixen incondicionalment via `layered_dictionary()`, amb les capes custom a `None` per defecte) enlloc de fer-ho només quan hi ha capes custom | Garanteix que `dictionary_source` sigui una columna sempre present (mai condicional a quins flags s'han passat) i que el cas "cap capa custom" sigui exactament el mateix camí de codi que es prova al no-regression test — no una branca separada que podria divergir sense que cap test ho detectés |
+| 2026-08-13 | Les capes custom (MotherHacker/origen) es carreguen amb `LocalDictionary.from_nie`, que reutilitza `from_entries` — el mateix constructor intern que indexa el snapshot NVD de 1,77M files — enlloc d'una estructura de lookup més senzilla per a poques desenes de NIEs | Una taula de NIEs petita mereix el mateix clean+Dice/àlies/marge que l'NVD: un títol que gairebé encaixa amb un NIE (errata, ordre de paraules) ha de poder-hi resoldre igual que amb l'NVD, no només per CPE exacte. Compleix "codi compartit, no còpia" (mateix principi que WP1 pas 4, agent/notari) |
+| 2026-08-13 | `dictionary_source` és `""` (no `"nvd"`) quan cap capa troba candidats, encara que la NVD sigui la que s'ha consultat primer | La columna respon "d'on ha sortit el match" (espec §3); en un miss no hi ha match d'on hagi sortit res. Distingeix una fila M4 real (`dictionary_source=""`) d'un match trobat (`nvd`/`motherhacker`/`<origen>`) sense necessitat de mirar també `rule` |
+| 2026-08-13 | `is_hard()` (mostreig WP3) classifica sobre **només 4 senyals sense diccionari** (família versionada, tokens driver/OEM, no-ASCII, arch/locale); els altres 3 senyals de `title_features` (vendor a l'àlies, Dice directe > 0,85) només es calculen per als ~100 títols mostrejats, no per tota la població | Carregar el diccionari de 89 MB per classificar 90.066 títols és massa lent (WP1: ~11 files/s, ~2,3 h); separar el cost en dos estadis manté el mostreig instantani i reserva el diccionari per on aporta valor (el suggeriment de pre-anotació) |
+| 2026-08-13 | `annotated_title` de la cua d'anotació es deixa **en blanc**, mai auto-omplert amb el `suggested_vendor`/`suggested_product` del diccionari en format bracket | La grafia canònica del diccionari sovint no és una subcadena literal del títol cru (la canonicalització la canvia a propòsit); auto-embracketar plantaria un "ground truth" equivocat al gold congelat en comptes de donar-li a Humbert un punt de partida per confirmar o corregir |
 | 2026-08-12 | **Gate de publicació = pòster complet**: el repo es fa públic quan les sis escenes de `docs/media/poster-reader-league.html` són certes al codi (Fase 9.1–9.6 + LICENSE), no abans; pla operatiu, gates G1–G4 i checklist a `docs/reader-league-implementation-plan.md` | Triat amb l'Humbert sobre l'alternativa "nucli + roadmap públic": publicar amb la promesa a mig fer ensenyaria un pòster que menteix; publicar amb el pòster complet fa que la promesa i el codi coincideixin el dia 1. El criteri de tall del pla: una tasca entra només si fa certa una escena o és bloquejant legal/qualitat |
 | 2026-08-12 | El **regal del calabrès s'ajorna post-publicació**: run RAW en cascada, `vulns` sobre els M1x, segona tanda `v_SoftwareProduct` (570k) i rèplica al laptop queden fora del camí de publicació; el mostreig de `gold-rawTFM` passa a fer-se sobre els 90.066 títols preparats (no cal el run) | Triat amb l'Humbert: focus total de GPU i atenció al pla de publicació. Cap pèrdua: les extraccions es reclassifiquen a posteriori, i el run conserva el doble servei (primera collita de traces per a 9.7) quan es reprengui — l'ordre relatiu post-9.1 es manté. Matisa la decisió del mateix dia sobre l'ordre Fase 7↔9 |
 | 2026-08-12 | Es pleguen les fases velles fora del camí de publicació: **Fase 1 ajornada a eventual paper** (braç A, NER 2023 sobre gold-1k) i **Fase 5 tancada per subsumpció** (coberta pel pilot 10k + Fase 7 pas 4 + Fase 9) | Triat amb l'Humbert: els braços B/C de la Fase 1 ja van quedar decidits per la sentència gold-1k i l'agent; muntar l'entorn del NER 2023 no fa certa cap escena del pòster i la línia base 2023 ja es compara via distribució M (4,9%). La Fase 5 no tenia contingut propi restant |

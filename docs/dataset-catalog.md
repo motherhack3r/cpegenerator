@@ -48,24 +48,45 @@ gold per origen planificats (§3).
 | `data/inventory/sccm/` | sccm-2022 | font RAW | Inventari corporatiu — **mai es versiona ni es publica** | Zips datats; el `titles.csv` derivat porta `metrics.json` |
 | `data/inventory/private/` | pc | font RAW | Inventari personal (purgat de l'historial 2026-08-10) | gitignored |
 | `data/cache/` | nvd | cache | Regenerable de l'API/KGCS | `cpe_dictionary.jsonl.gz` + meta amb font i frescor |
+| `data/gold/queues/gold-rawTFM_queue.csv` | sccm-2022 | gold-mesura (cua pre-anotada, pendent de congelació) | Deriva de `out/raw_summary/titles.csv` (inventari corporatiu) — títols reals | `.provenance.json` bessó (versionat, sense títols) amb origen/seed/comptatges |
+| `data/gold/queues/gold-rawPC_queue.csv` | pc | gold-mesura (cua pre-anotada, pendent de congelació) | Deriva de `data/inventory/private/inventory.csv` — inventari personal real | `.provenance.json` bessó (versionat, sense títols) amb origen/seed/comptatges |
 
 ---
 
-## 3. Gold per origen (planificats — espec a `.ideas/reader-league-active-learning-v2.md`)
+## 3. Gold per origen (espec a `.ideas/reader-league-active-learning-v2.md`)
 
 Cada **origen** tindrà la seva parella de conjunts, tots dos **fora de git**
 (deriven d'inventaris reals); a git només hi aniran mètriques + `PROVENANCE.md`:
 
 | Conjunt | Origen | Rol | Estat |
 |---|---|---|---|
-| `gold-rawTFM` | sccm-2022 | gold-mesura (congelat, ~100, estratificat) | pendent (pla d'execució #5–6) |
-| `gold-rawPC` | pc | gold-mesura (congelat, ~100, estratificat) | pendent |
-| `train-rawTFM` | sccm-2022 | entrenament (creix amb el bucle de validació humana) | pendent |
-| `train-rawPC` | pc | entrenament | pendent |
+| `gold-rawTFM` | sccm-2022 | gold-mesura (congelat, ~100, estratificat) | **pending-freeze** — cua pre-anotada generada 2026-08-13 (`cpegen sample`, seed 20260813, 70 aleatoris + 30 durs sobre 90.066 títols, 24 % amb suggeriment de diccionari); pendent l'anotació i congelació de Humbert (2–4 h) |
+| `gold-rawPC` | pc | gold-mesura (congelat, ~100, estratificat) | **pending-freeze** — cua pre-anotada generada 2026-08-13 (seed 20260813, 52 aleatoris + 30 durs sobre 82 títols — població petita, sense arribar al nominal 70 aleatoris); pendent l'anotació i congelació de Humbert |
+| `train-rawTFM` | sccm-2022 | entrenament (creix amb el bucle de validació humana) | pendent (WP6) |
+| `train-rawPC` | pc | entrenament | pendent (WP6) |
 
 Regles ja decidides: mesura i entrenament **mai es barregen** (el d'entrenament
 s'esbiaixa cap als casos difícils per construcció); mètriques **per origen**, mai
 agregades per defecte; tota validació humana registra identitat.
+
+**Pre-anotació (2026-08-13, WP3)**: `src/cpegen/title_features.py` (mòdul
+compartit — parèntesis, tokens arch/locale, vendor a la taula d'àlies, família
+versionada, longitud, tokens numèrics, Dice directe > 0,85, espec §8.1) +
+`src/cpegen/sampling.py` (`cpegen sample`). El mostreig fa servir només els 4
+senyals sense diccionari per classificar "dur" sobre tota la població (carregar
+el diccionari de 89 MB per 90k+ títols no és viable); el diccionari només es
+consulta per als ~100 títols mostrejats, com a suggeriment (`suggested_*`,
+`dice`, `margin`, `decision`) — mai com a resposta final. `annotated_title`
+queda en blanc deliberadament (format RASA-bracket que ja parseja
+`cpegen.goldset`): la grafia canònica del diccionari sovint no és una
+subcadena literal del títol cru, i auto-omplir-la plantaria un "ground truth"
+equivocat en comptes d'accelerar l'humà. **Troballa a registrar**: la fracció
+de "dur" sobre dades reals és molt més alta que sobre NVD net — 55/82 (67 %) a
+rawPC, 85.467/90.066 (94,9 %) a rawTFM — dominada per `versioned_family` (la
+majoria de títols de software reals acaben en número de versió). El mostreig
+estratificat manté el ~30/~70 fix igualment; és una observació sobre com de
+ampli resulta el criteri de "dur" en inventaris reals, no un defecte del
+mostreig.
 
 ---
 
@@ -86,6 +107,41 @@ Les mètriques M1–M4 no canvien entre experiments (mateixa vara); la diferènc
 es llegeix de les transicions de regla i del desglossament per
 `dictionary_source`. Això permet respondre amb números la pregunta de negoci:
 *quant val cada capa de diccionari per a un origen donat*.
+
+---
+
+## 4b. Diccionaris custom (NIE) — esquema del fitxer
+
+**✅ Implementat 2026-08-13** (`src/cpegen/dictionary.py`, WP2). Tant la capa
+MotherHacker com la de cada origen són el mateix format: un CSV pla de
+registres **NIE** (§6.3 de l'espec — "carnet per a software estranger al
+registre oficial"), carregat amb `load_nie_records`/`LocalDictionary.from_nie`.
+
+| Columna | Contingut |
+|---|---|
+| `cpe` | Cadena CPE 2.3 completa, ja vàlida ABNF (fila descartada si no ho és) |
+| `origin` | `motherhacker` per a la capa comunitat, o el nom de l'origen (`rawTFM`, `ClientA`...) per a una capa custom |
+| `human_identity` | Qui va signar l'alta (N11 — mai anònim) |
+| `timestamp` | Quan |
+| `evidence` | Resum lliure del que es va mostrar (candidats descartats, rangs comprovats...) |
+| `motivating_titles` | Títol(s) que van motivar l'alta, separats per `;` |
+
+Ruta suggerida (sense convenció fixada encara al repo): `data/dictionaries/
+custom_motherhacker.csv` per a la capa comunitat, `data/dictionaries/
+custom_<origen>.csv` per a cada origen — **fora de git** com qualsevol dada
+d'inventari real, amb el mateix criteri que §2b. El lookup dels títols contra
+un NIE passa per la mateixa maquinària clean+Dice/àlies que el snapshot NVD
+(`LocalDictionary.from_entries`), no una comparació exacta de CPE.
+
+Ordre de consulta fix: **NVD → MotherHacker → origen**; la primera capa amb
+candidats respon i la columna `dictionary_source` en queda la traça. Amb totes
+dues capes custom absents (o buides), el comportament és idèntic al d'un
+diccionari NVD sol — contracte de no-regressió provat a
+`tests/test_dictionary.py` i `tests/test_pipeline.py`.
+
+L'escriptura de NIEs nous (la cerimònia humà+notari) és feina de WP5
+(`cpegen review`, pendent); `write_nie_record` ja existeix com a funció de
+suport perquè WP5 no hagi de definir el format des de zero.
 
 ---
 

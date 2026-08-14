@@ -1,0 +1,16 @@
+{
+  "origin": "rawTFM",
+  "source": "out/raw_summary/titles.csv",
+  "seed": 20260813,
+  "n_random_requested": 70,
+  "n_hard_requested": 30,
+  "n_random_drawn": 70,
+  "n_hard_drawn": 30,
+  "population": 90066,
+  "hard_population": 85467,
+  "dictionary": "data/cache/cpe_dictionary.jsonl.gz",
+  "queue": "data/gold/queues/gold-rawTFM_queue.csv",
+  "generated": "2026-08-13",
+  "generated_by": "cpegen sample (WP3)",
+  "note": "hard_population is 94.9% of the population (85467/90066) on real SCCM titles - is_hard() is dominated by versioned_family, and most real software titles end in a version number. The nominal 'hard' criteria are not a minority class on real data; noted here rather than silently, per project convention of no hidden truncation."
+}

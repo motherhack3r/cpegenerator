@@ -1,0 +1,16 @@
+{
+  "origin": "rawPC",
+  "source": "data/inventory/private/inventory.csv",
+  "seed": 20260813,
+  "n_random_requested": 70,
+  "n_hard_requested": 30,
+  "n_random_drawn": 52,
+  "n_hard_drawn": 30,
+  "population": 82,
+  "hard_population": 55,
+  "dictionary": "data/cache/cpe_dictionary.jsonl.gz",
+  "queue": "data/gold/queues/gold-rawPC_queue.csv",
+  "generated": "2026-08-13",
+  "generated_by": "cpegen sample (WP3)",
+  "note": "population < n_random+n_hard nominal target (82 titles): random draw capped at 52, all 30 hard drawn. Queue CSV itself is out of git (real inventory) - see .gitignore."
+}

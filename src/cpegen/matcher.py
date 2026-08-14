@@ -51,6 +51,13 @@ WEAK_DICE = 0.85         # [MIN_DICE, WEAK_DICE): weak candidate, never auto
 MARGIN_AUTO = 0.10       # margin over the runner-up pair to auto-accept
 MARGIN_REVIEW = 0.05     # below this margin: human review is mandatory
 
+# WP3 (docs/reader-league-implementation-plan.md, spec §8.1): the
+# "direct_dice_ge_085" title_features signal — is the RAW title already
+# near-verbatim in the dictionary, with no margin/family adjudication?
+# Distinct from WEAK_DICE: that band feeds the notary's decide() cascade,
+# this one is a plain stratification/trace signal on its own.
+DIRECT_DICE_THRESHOLD = 0.85
+
 # Classification -> human meaning (docs/match-rules.md)
 RULE_NAMES = {
     "M1": "Perfect match",

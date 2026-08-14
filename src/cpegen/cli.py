@@ -55,6 +55,11 @@ def cmd_run(args: argparse.Namespace) -> int:
         agent_mode=agent_mode,
         max_turns=getattr(args, "max_turns", 8),
         dictionary_path=Path(args.dict) if getattr(args, "dict", None) else None,
+        motherhacker_dict_path=Path(args.motherhacker_dict)
+        if getattr(args, "motherhacker_dict", None) else None,
+        custom_dict_path=Path(args.custom_dict)
+        if getattr(args, "custom_dict", None) else None,
+        origin=getattr(args, "origin", "") or "",
         resume=getattr(args, "resume", False),
         progress=progress,
     )
@@ -271,6 +276,47 @@ def cmd_titles(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sample(args: argparse.Namespace) -> int:
+    import json as _json
+
+    from .dictionary import LocalDictionary
+    from .sampling import (
+        build_queue_rows,
+        read_titles,
+        sample_stratified,
+        write_queue_csv,
+    )
+
+    titles = read_titles(Path(args.input))
+    sample = sample_stratified(titles, seed=args.seed,
+                               n_random=args.n_random, n_hard=args.n_hard)
+    dictionary = (LocalDictionary.load(Path(args.dict)) if args.dict else None)
+    rows = build_queue_rows(sample, args.origin, dictionary=dictionary)
+    out_path = Path(args.output)
+    write_queue_csv(rows, out_path)
+
+    provenance = {
+        "origin": args.origin, "source": str(args.input),
+        "seed": args.seed, "n_random_requested": args.n_random,
+        "n_hard_requested": args.n_hard,
+        "n_random_drawn": len(sample.random_titles),
+        "n_hard_drawn": len(sample.hard_titles),
+        "population": sample.population,
+        "hard_population": sample.hard_population,
+        "dictionary": str(args.dict) if args.dict else None,
+        "queue": str(out_path),
+    }
+    prov_path = out_path.with_suffix(out_path.suffix + ".provenance.json")
+    prov_path.write_text(_json.dumps(provenance, indent=2) + "\n",
+                         encoding="utf-8")
+    print(f"Sample {args.origin}: {len(sample.random_titles)} random + "
+          f"{len(sample.hard_titles)} hard "
+          f"(population {sample.population}, {sample.hard_population} hard) "
+          f"-> {out_path}")
+    print(f"Provenance -> {prov_path}")
+    return 0
+
+
 def cmd_escalate(args: argparse.Namespace) -> int:
     from .cascade import escalate_results
 
@@ -296,7 +342,7 @@ def cmd_escalate(args: argparse.Namespace) -> int:
 
 
 def cmd_reclassify(args: argparse.Namespace) -> int:
-    from .dictionary import HybridDictionary, LocalDictionary
+    from .dictionary import HybridDictionary, LocalDictionary, layered_dictionary
     from .nvd import NVDClient
     from .pipeline import reclassify_results
 
@@ -312,6 +358,13 @@ def cmd_reclassify(args: argparse.Namespace) -> int:
                                        ranges_path=Path(args.ranges)
                                        if args.ranges else None), nvd)
               if args.dict else nvd)
+    # WP2: layer MotherHacker/origin custom dictionaries on top, even when
+    # neither is given (transparent pass-through — no-regression contract).
+    lookup = layered_dictionary(
+        lookup,
+        Path(args.motherhacker_dict) if args.motherhacker_dict else None,
+        Path(args.custom_dict) if args.custom_dict else None,
+        args.origin or "")
     stats = reclassify_results(Path(args.input), Path(args.output), lookup,
                                progress=progress)
     print(file=sys.stderr)
@@ -324,6 +377,10 @@ def cmd_reclassify(args: argparse.Namespace) -> int:
         print("  lookup: " + "  ".join(
             f"{k}={v}" for k, v in sorted(stats["lookup_sources"].items(),
                                           key=lambda x: -x[1])))
+    if stats.get("dictionary_sources"):
+        print("  dictionary: " + "  ".join(
+            f"{k}={v}" for k, v in sorted(
+                stats["dictionary_sources"].items(), key=lambda x: -x[1])))
     if stats.get("decisions"):
         print("  bands: " + "  ".join(
             f"{k}={v}" for k, v in sorted(stats["decisions"].items(),
@@ -379,6 +436,18 @@ def _add_common_run_args(p: argparse.ArgumentParser, default_output: str) -> Non
     p.add_argument("--dict", default=None,
                    help="local CPE dictionary snapshot (see 'cpegen dict "
                         "--build'); NVD API is then only hit on misses")
+    p.add_argument("--motherhacker-dict", default=None,
+                   dest="motherhacker_dict",
+                   help="MotherHacker community custom-dictionary CSV "
+                        "(NIE records; WP2). Consulted after the NVD "
+                        "layer on a miss")
+    p.add_argument("--custom-dict", default=None, dest="custom_dict",
+                   help="per-origin custom-dictionary CSV (NIE records; "
+                        "WP2). Consulted last, after NVD and MotherHacker")
+    p.add_argument("--origin", default="",
+                   help="name of the inventory origin owning --custom-dict "
+                        "(reported as dictionary_source, e.g. rawTFM); "
+                        "ignored without --custom-dict")
     p.add_argument("--resume", action="store_true",
                    help="skip titles already present in the output "
                         "results.csv (long runs survive interruptions)")
@@ -551,6 +620,28 @@ def main(argv: list[str] | None = None) -> int:
                        help="keep KB/hotfix/language-pack noise")
     p_tit.set_defaults(func=cmd_titles)
 
+    p_smp = sub.add_parser(
+        "sample",
+        help="WP3: stratified annotation queue (~n-random + ~n-hard) from "
+             "a titles CSV, pre-annotated with the dictionary's clean+Dice "
+             "suggestion — no LLM, deterministic (spec #5, title_features)")
+    p_smp.add_argument("--input", required=True,
+                       help="titles CSV (cpegen titles/inventory output)")
+    p_smp.add_argument("--output", required=True,
+                       help="output queue CSV (annotation-ready)")
+    p_smp.add_argument("--origin", required=True,
+                       help="origin name for this queue (rawTFM, rawPC...)")
+    p_smp.add_argument("--seed", type=int, default=20260813,
+                       help="RNG seed for the stratified draw (default "
+                            "20260813, WP3)")
+    p_smp.add_argument("--n-random", type=int, default=70, dest="n_random")
+    p_smp.add_argument("--n-hard", type=int, default=30, dest="n_hard")
+    p_smp.add_argument("--dict", default=None,
+                       help="local CPE dictionary snapshot for the "
+                            "pre-annotation suggestion (optional; without "
+                            "it the queue still has features, no hints)")
+    p_smp.set_defaults(func=cmd_sample)
+
     p_esc = sub.add_parser(
         "escalate",
         help="cascade: re-run the non-M1x tail of a results.csv with a "
@@ -581,6 +672,16 @@ def main(argv: list[str] | None = None) -> int:
     p_rec.add_argument("--ranges", default=None,
                        help="version-range sidecar (see 'cpegen dict "
                             "--build-ranges'); enables version_source")
+    p_rec.add_argument("--motherhacker-dict", default=None,
+                       dest="motherhacker_dict",
+                       help="MotherHacker community custom-dictionary CSV "
+                            "(NIE records; WP2)")
+    p_rec.add_argument("--custom-dict", default=None, dest="custom_dict",
+                       help="per-origin custom-dictionary CSV (NIE "
+                            "records; WP2)")
+    p_rec.add_argument("--origin", default="",
+                       help="name of the origin owning --custom-dict "
+                            "(reported as dictionary_source)")
     p_rec.add_argument("--offline", action="store_true")
     p_rec.add_argument("--cache", default=None)
     p_rec.set_defaults(func=cmd_reclassify)
