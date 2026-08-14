@@ -269,6 +269,20 @@ def handle_terms(terms: TermsIndex | None, field_name: str, q: str,
     return {"ok": True, "results": match_terms(items, q)}
 
 
+#: The three candidate categories `handle_dictcheck` can classify a filled
+#: (vendor, product) pair into, from least to most novel (design
+#: 2026-08-14, feedback "indicar si el CPE és un candidat a nou producte i
+#: versió, o nova versió, o altres candidats"). This is a **heuristic**,
+#: approved deliberately over extending the sidecar with per-pair version
+#: data (which would touch `dictionary.py`/`build_terms_sidecar` and grow
+#: the sidecar): the typeahead sidecar only ever indexed vendor/product,
+#: never version, so "new version" is inferred from "the pair is already
+#: known" rather than verified against an actual version list.
+CANDIDATE_NEW_VERSION = "new_version"
+CANDIDATE_NEW_PRODUCT_VERSION = "new_product_version"
+CANDIDATE_OTHER = "other"
+
+
 def handle_dictcheck(terms: TermsIndex | None, components: dict) -> dict:
     """Pure handler behind ``GET /api/dictcheck`` — portal v2 point 4
     (design 2026-08-14): per-field "does this value exist in the official
@@ -282,6 +296,21 @@ def handle_dictcheck(terms: TermsIndex | None, components: dict) -> dict:
     human+notary ceremony as a NIE, WP5/9.6). This endpoint only computes
     the stamp; it never writes anything.
 
+    When both vendor and product are filled, ``category`` classifies the
+    kind of candidate (heuristic — see :data:`CANDIDATE_NEW_VERSION`
+    et al.; this review UI only ever sees titles the pipeline could not
+    auto-resolve, so an already-known pair is treated as *at least* a new
+    version candidate, never a silent "nothing to see here"):
+
+    - the pair is already known -> :data:`CANDIDATE_NEW_VERSION` (the
+      product line exists; if this exact version isn't already
+      catalogued, it's a new version of it — not verified, inferred);
+    - the vendor is known but not with this product ->
+      :data:`CANDIDATE_NEW_PRODUCT_VERSION` (a new product line from a
+      known vendor, so every version of it is new too);
+    - the vendor itself isn't recognized -> :data:`CANDIDATE_OTHER`
+      (new vendor, a rename, or a typo — needs the most scrutiny).
+
     ``None`` fields mean "nothing to check" (blank/ANY/NA, or no sidecar
     loaded at all) — never conflated with a confirmed "not found".
     """
@@ -292,27 +321,33 @@ def handle_dictcheck(terms: TermsIndex | None, components: dict) -> dict:
     vendor, product = value("vendor"), value("product")
     if terms is None:
         return {"ok": True, "vendor_known": None, "product_known": None,
-                "pair_known": None, "candidate": None}
+                "pair_known": None, "candidate": None, "category": None}
 
     # vendor_known / product_known are independent, global "does this
     # string exist anywhere in the dictionary" checks; pair_known is the
     # vendor-scoped one — a CPE is fundamentally about the (vendor,
-    # product) pair, not either field in isolation, so it (not the two
-    # independent checks) drives the overall candidate verdict.
+    # product) pair, not either field in isolation.
     vendor_known = (vendor in terms.vendor_set) if vendor else None
     product_known = (product in terms.product_set) if product else None
     pair_known = (vendor in terms.pair_sets
                  and product in terms.pair_sets[vendor]) \
         if (vendor and product) else None
 
-    if pair_known is not None:
-        candidate = not pair_known
+    if vendor and product:
+        if pair_known:
+            category = CANDIDATE_NEW_VERSION
+        elif vendor_known:
+            category = CANDIDATE_NEW_PRODUCT_VERSION
+        else:
+            category = CANDIDATE_OTHER
+        candidate = True  # every filled pair is at least a version candidate
     else:
+        category = None
         knowns = [k for k in (vendor_known, product_known) if k is not None]
         candidate = (not all(knowns)) if knowns else None
     return {"ok": True, "vendor_known": vendor_known,
             "product_known": product_known, "pair_known": pair_known,
-            "candidate": candidate}
+            "candidate": candidate, "category": category}
 
 
 @dataclass

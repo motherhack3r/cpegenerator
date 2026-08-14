@@ -12,3 +12,4 @@ docs/deliveries/*.zip
 .ideas/
 data/inventory/private/
 data/gold/queues/*.csv
+data/gold/queues/*.history.jsonl

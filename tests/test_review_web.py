@@ -16,6 +16,9 @@ import pytest
 
 from cpegen import goldset
 from cpegen.review_web import (
+    CANDIDATE_NEW_PRODUCT_VERSION,
+    CANDIDATE_NEW_VERSION,
+    CANDIDATE_OTHER,
     CSV_FIELDS,
     ENTITY_RE,
     IN_PROGRESS,
@@ -604,29 +607,46 @@ def test_handle_progress_passes_through_extra_marks(tmp_path):
 def test_handle_dictcheck_degrades_cleanly_without_index():
     out = handle_dictcheck(None, {"vendor": "microsoft", "product": "windows"})
     assert out == {"ok": True, "vendor_known": None, "product_known": None,
-                   "pair_known": None, "candidate": None}
+                   "pair_known": None, "candidate": None, "category": None}
 
 
-def test_handle_dictcheck_known_pair_matches(tmp_path):
+def test_handle_dictcheck_known_pair_is_a_new_version_candidate(tmp_path):
+    # this review UI only ever sees titles the pipeline couldn't
+    # auto-resolve, so even a known pair is at least a version candidate
+    # (heuristic approved 2026-08-14 over extending the sidecar with
+    # per-pair version data)
     terms = TermsIndex.load(make_terms_sidecar(tmp_path))
     out = handle_dictcheck(terms, {"vendor": "microsoft", "product": "windows"})
     assert out["ok"] is True
     assert out["vendor_known"] is True
     assert out["product_known"] is True
     assert out["pair_known"] is True
-    assert out["candidate"] is False
+    assert out["candidate"] is True
+    assert out["category"] == CANDIDATE_NEW_VERSION
 
 
-def test_handle_dictcheck_unknown_vendor_is_a_candidate(tmp_path):
+def test_handle_dictcheck_known_vendor_unknown_product_is_new_product_version(tmp_path):
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    out = handle_dictcheck(terms, {"vendor": "microsoft", "product": "flightsim"})
+    assert out["vendor_known"] is True
+    assert out["pair_known"] is False
+    assert out["candidate"] is True
+    assert out["category"] == CANDIDATE_NEW_PRODUCT_VERSION
+
+
+def test_handle_dictcheck_unknown_vendor_is_other_candidate(tmp_path):
     terms = TermsIndex.load(make_terms_sidecar(tmp_path))
     out = handle_dictcheck(terms, {"vendor": "acme-corp", "product": "widget"})
     assert out["vendor_known"] is False
     assert out["pair_known"] is False
     assert out["candidate"] is True
+    assert out["category"] == CANDIDATE_OTHER
 
 
-def test_handle_dictcheck_known_names_but_new_pairing_is_a_candidate(tmp_path):
-    # both names exist in the dictionary individually, but never together
+def test_handle_dictcheck_known_names_but_new_pairing_is_new_product_version(tmp_path):
+    # both names exist in the dictionary individually, but never together —
+    # from THIS vendor's perspective the product is new, so it categorizes
+    # as new_product_version, not new_version (that needs the pair itself)
     terms = TermsIndex.load(make_terms_sidecar(tmp_path))
     out = handle_dictcheck(terms, {"vendor": "microsoft", "product": "ecostruxure"})
     assert out["vendor_known"] is True
@@ -635,13 +655,14 @@ def test_handle_dictcheck_known_names_but_new_pairing_is_a_candidate(tmp_path):
     assert out["product_known"] is True
     assert out["pair_known"] is False
     assert out["candidate"] is True
+    assert out["category"] == CANDIDATE_NEW_PRODUCT_VERSION
 
 
 def test_handle_dictcheck_blank_and_wildcard_fields_are_not_checked(tmp_path):
     terms = TermsIndex.load(make_terms_sidecar(tmp_path))
     out = handle_dictcheck(terms, {"vendor": "*", "product": "-"})
     assert out == {"ok": True, "vendor_known": None, "product_known": None,
-                   "pair_known": None, "candidate": None}
+                   "pair_known": None, "candidate": None, "category": None}
 
 
 def test_handle_dictcheck_vendor_only_no_pair_verdict(tmp_path):
@@ -651,6 +672,7 @@ def test_handle_dictcheck_vendor_only_no_pair_verdict(tmp_path):
     assert out["product_known"] is None
     assert out["pair_known"] is None
     assert out["candidate"] is False  # the one checked field is known
+    assert out["category"] is None  # needs both fields to categorize
 
 
 def test_ui_asset_has_full_component_button_set_and_dictcheck_panel():
@@ -659,4 +681,13 @@ def test_ui_asset_has_full_component_button_set_and_dictcheck_panel():
                 "target_sw", "target_hw", "other"):
         assert f'"{attr}"' in html or f"'{attr}'" in html, attr
     assert "/api/dictcheck" in html
-    assert "NEW CANDIDATE" in html or "new candidate" in html.lower()
+    assert "new candidate" in html.lower()
+
+
+def test_ui_asset_has_all_three_dictcheck_candidate_categories():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    for category in ("new_version", "new_product_version", "other"):
+        assert category in html, category
+    for label in ("NEW VERSION candidate", "NEW PRODUCT AND VERSION candidate",
+                 "OTHER candidate"):
+        assert label in html, label
