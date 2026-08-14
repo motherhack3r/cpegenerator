@@ -112,6 +112,14 @@ h1{font-family:var(--disp);font-weight:700;font-size:22px;color:var(--blue-dark)
 .cfield span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-light);margin-bottom:2px}
 .cfield input{width:100%;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--ink)}
 .cfield input:focus{outline:2px solid var(--blue-pale);border-color:var(--blue)}
+.cfield select{width:100%;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--ink);background:#fff}
+.cfield select:focus{outline:2px solid var(--blue-pale);border-color:var(--blue)}
+.ta-wrap{position:relative}
+.ta-list{position:absolute;top:100%;left:0;right:0;z-index:20;background:#fff;border:1px solid var(--line);
+  border-radius:8px;margin-top:4px;max-height:220px;overflow-y:auto;box-shadow:0 6px 18px rgba(22,35,46,.14);display:none}
+.ta-item{padding:6px 10px;font-family:var(--mono);font-size:11.5px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;color:var(--ink)}
+.ta-item:hover,.ta-item.active{background:var(--blue-pale)}
+.ta-count{color:var(--grey-light);font-size:10px}
 #bindout{margin-top:10px;font-size:12.5px}
 .cpeok{font-family:var(--disp);font-weight:700;color:var(--green);border:2px solid var(--green);border-radius:6px;padding:2px 8px;background:var(--green-pale);font-size:11px;letter-spacing:.08em}
 .cpeko{font-family:var(--disp);font-weight:700;color:var(--red);border:2px solid var(--red);border-radius:6px;padding:2px 8px;background:var(--red-pale);font-size:11px;letter-spacing:.08em}
@@ -280,7 +288,7 @@ function render(){
         <button class="cbtn primary" id="bindbtn">Bind &amp; validate</button>
       </div>
       <div class="cgrid">
-        ${CPE_ATTRS.map(a=>`<label class="cfield"><span>${a}</span><input data-attr="${a}" value="${escapeHtml((WORK[CUR].compvals&&WORK[CUR].compvals[a])||defaultComp(a,row))}"></label>`).join("")}
+        ${CPE_ATTRS.map(a=>cfieldHtml(a,row)).join("")}
       </div>
       <div id="bindout">${row.cpe?`<span class="cpeok">VALID \u2713</span> <code class="cpestr">${escapeHtml(row.cpe)}</code>`:""}</div>
     </div>
@@ -302,10 +310,26 @@ function render(){
 }
 
 const CPE_ATTRS=["part","vendor","product","version","update","edition","language","sw_edition","target_sw","target_hw","other"];
+const PART_VALUES=["*","a","o","h","-"];
+const TA_FIELDS=["vendor","product"]; // official component search (typeahead)
 function defaultComp(a,row){
   if(a==="part") return row.suggested_part||"*";
   if(a==="target_sw"){ const m=row.title.toLowerCase().match(/\bfor ([a-z0-9._+-]+)\s*$/); if(m) return m[1]; }
   return "*";
+}
+function cfieldHtml(a,row){
+  const val=escapeHtml((WORK[CUR].compvals&&WORK[CUR].compvals[a])||defaultComp(a,row));
+  if(a==="part"){
+    return `<label class="cfield"><span>part</span><select data-attr="part">`+
+      PART_VALUES.map(p=>`<option value="${p}"${p===val?" selected":""}>${p}</option>`).join("")+
+      `</select></label>`;
+  }
+  if(TA_FIELDS.includes(a)){
+    return `<label class="cfield"><span>${a}</span><div class="ta-wrap">`+
+      `<input data-attr="${a}" data-ta="${a}" autocomplete="off" value="${val}">`+
+      `<div class="ta-list" id="ta-${a}"></div></div></label>`;
+  }
+  return `<label class="cfield"><span>${a}</span><input data-attr="${a}" value="${val}"></label>`;
 }
 function spanText(cls){
   const {tks,marks}=WORK[CUR]; const segs=[]; let cur=[];
@@ -315,7 +339,7 @@ function spanText(cls){
 }
 function readComponents(){
   const out={};
-  document.querySelectorAll(".cgrid input").forEach(i=>{ out[i.dataset.attr]=i.value.trim(); });
+  document.querySelectorAll(".cgrid input, .cgrid select").forEach(i=>{ out[i.dataset.attr]=i.value.trim(); });
   return out;
 }
 function collectComponents(){
@@ -383,6 +407,78 @@ function gotoNextPending(){
   CUR=Math.min(CUR+1, n-1); render();
 }
 
+// Official component search (typeahead) — assists vendor/product, never
+// restricts: free text always stays a valid value (design 2026-08-14).
+let TA_TIMER=null, TA_ACTIVE=-1, TA_ITEMS=[], TA_FIELD=null;
+
+function taClose(field){
+  const list=document.getElementById("ta-"+field);
+  if(list){ list.innerHTML=""; list.style.display="none"; }
+  if(TA_FIELD===field){ TA_ACTIVE=-1; TA_ITEMS=[]; TA_FIELD=null; }
+}
+
+function taRender(field, items){
+  TA_ITEMS=items; TA_FIELD=field;
+  const list=document.getElementById("ta-"+field);
+  if(!list) return;
+  if(!items.length){ list.style.display="none"; list.innerHTML=""; return; }
+  list.innerHTML=items.map((it,i)=>
+    `<div class="ta-item${i===TA_ACTIVE?" active":""}" data-i="${i}">`+
+    `<span>${escapeHtml(it.value)}</span><span class="ta-count">${it.count}</span></div>`
+  ).join("");
+  list.style.display="block";
+  list.querySelectorAll(".ta-item").forEach(el=>{
+    el.onmousedown=(e)=>{ e.preventDefault(); taPick(field, +el.dataset.i); };
+  });
+}
+
+function taPick(field, i){
+  const it=TA_ITEMS[i]; if(!it) return;
+  const input=document.querySelector(`.cgrid input[data-attr="${field}"]`);
+  if(input) input.value=it.value;
+  taClose(field);
+  WORK[CUR].compvals=readComponents();
+}
+
+async function taQuery(field){
+  const input=document.querySelector(`.cgrid input[data-attr="${field}"]`);
+  if(!input) return;
+  const q=input.value.trim();
+  let url=`/api/terms?field=${field}&q=${encodeURIComponent(q)}`;
+  if(field==="product"){
+    const vi=document.querySelector('.cgrid input[data-attr="vendor"]');
+    if(vi && vi.value.trim()) url+=`&vendor=${encodeURIComponent(vi.value.trim())}`;
+  }
+  const res=await api(url);
+  if(res.ok) taRender(field, res.results||[]);
+}
+
+function taBind(field){
+  const input=document.querySelector(`.cgrid input[data-attr="${field}"]`);
+  if(!input) return;
+  input.addEventListener("input",()=>{
+    clearTimeout(TA_TIMER);
+    TA_TIMER=setTimeout(()=>taQuery(field), 150);
+  });
+  input.addEventListener("focus",()=>taQuery(field));
+  input.addEventListener("keydown",(e)=>{
+    if(TA_FIELD!==field || !TA_ITEMS.length){
+      if(e.key==="Escape") taClose(field);
+      return;
+    }
+    if(e.key==="ArrowDown"){
+      e.preventDefault(); TA_ACTIVE=Math.min(TA_ACTIVE+1, TA_ITEMS.length-1); taRender(field, TA_ITEMS);
+    } else if(e.key==="ArrowUp"){
+      e.preventDefault(); TA_ACTIVE=Math.max(TA_ACTIVE-1, 0); taRender(field, TA_ITEMS);
+    } else if(e.key==="Enter" && TA_ACTIVE>=0){
+      e.preventDefault(); e.stopPropagation(); taPick(field, TA_ACTIVE);
+    } else if(e.key==="Escape"){
+      taClose(field);
+    }
+  });
+  input.addEventListener("blur",()=>setTimeout(()=>taClose(field), 120));
+}
+
 function bindCard(){
   document.querySelectorAll(".ebtn").forEach(b=>b.onclick=()=>{
     const cls=b.dataset.e;
@@ -428,6 +524,8 @@ function bindCard(){
     else out.innerHTML=`<span class="cpeko">REJECTED \u2715</span>${(res.errors||[]).map(e=>`<div class="cpeerr">${escapeHtml(e)}</div>`).join("")}`;
   };
   document.querySelectorAll(".cgrid input").forEach(i=>i.addEventListener("input",()=>{WORK[CUR].compvals=readComponents();}));
+  document.querySelectorAll(".cgrid select").forEach(i=>i.addEventListener("change",()=>{WORK[CUR].compvals=readComponents();}));
+  TA_FIELDS.forEach(taBind);
   document.getElementById("save").onclick=()=>submit("annotated");
   document.getElementById("nosw").onclick=()=>submit("not_software");
   document.getElementById("skip").onclick=()=>submit("skipped");
@@ -436,7 +534,7 @@ function bindCard(){
 }
 
 document.addEventListener("keydown", e=>{
-  if(e.target.tagName==="INPUT") { if(e.key==="Enter"){e.preventDefault(); submit("annotated");} return; }
+  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT") { if(e.key==="Enter"){e.preventDefault(); submit("annotated");} return; }
   const k=e.key.toLowerCase();
   if(k==="v"||k==="p"||k==="b") assign(k);
   else if(k==="x") assign("");

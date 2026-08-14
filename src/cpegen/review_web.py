@@ -27,6 +27,7 @@ asset is self-contained (web fonts degrade to system fallbacks offline).
 from __future__ import annotations
 
 import csv
+import gzip
 import json
 import os
 import re
@@ -34,7 +35,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
+from .dictionary import DEFAULT_SNAPSHOT, DEFAULT_TERMS, build_terms_sidecar
+from .matcher import clean
 from .sampling import QUEUE_FIELDS
 from .validator import validate_formatted_string
 from .wfn import WFN, Logical, normalize_raw
@@ -53,6 +57,13 @@ UI_ASSET = Path(__file__).with_name("review_ui.html")
 ENTITY_RE = re.compile(r"\[([^\]]+)\]\((cpe_vendor|cpe_product|cpe_version)\)")
 
 VERDICTS = ("annotated", "not_software", "skipped")
+
+# The five closed values of the ``part`` component (WFN grammar, §5.3.2 of
+# the ABNF reference) — the builder UI renders these as a <select>, never
+# free text (design 2026-08-14, point 3).
+PART_VALUES = ("*", "a", "o", "h", "-")
+
+TERMS_LIMIT = 20  # results returned per /api/terms query
 
 
 class VerdictError(ValueError):
@@ -102,6 +113,115 @@ def components_present(components: dict | None) -> bool:
         return False
     return any(str(components.get(a, "") or "").strip() not in ("", "*")
                for a in CPE_ATTRS if a not in ("part", "target_sw"))
+
+
+# -- official component search (typeahead) ----------------------------------
+#
+# Governance, not just UX (design 2026-08-14): a vendor/product picked from
+# the dictionary instead of hand-typed avoids an invented spelling, which
+# means fewer accidental NIEs and a cleaner gold set. Assists, never
+# restricts — free text always stays valid (point 4 of the design note).
+
+
+@dataclass
+class TermsIndex:
+    """In-memory view of the ``cpegen dict --export-terms`` sidecar.
+
+    ``vendors`` and ``products`` are ``(value, cpe_count)`` pairs, each
+    pre-sorted by descending count (ties broken alphabetically) so a
+    cascade match can just filter-and-take without re-sorting.
+    ``products`` is the vendor-agnostic aggregate (counts summed across
+    every vendor that ships that product) — used when no vendor is
+    selected yet, or the typed vendor doesn't match a known one.
+    ``pairs`` narrows to one vendor's own products (Query B of the KGCS
+    playbook: rank by that pair's own CPE volume, not the global one).
+    """
+
+    vendors: list[tuple[str, int]] = field(default_factory=list)
+    pairs: dict[str, list[tuple[str, int]]] = field(default_factory=dict)
+    products: list[tuple[str, int]] = field(default_factory=list)
+
+    @classmethod
+    def load(cls, path: Path | str) -> "TermsIndex":
+        path = Path(path)
+        with gzip.open(path, "rt", encoding="utf-8") as fh:
+            data = json.load(fh)
+        vendors = [(v, n) for v, n in data.get("vendors", [])]
+        pairs = {vendor: [(p, n) for p, n in products]
+                 for vendor, products in data.get("pairs", {}).items()}
+        agg: dict[str, int] = {}
+        for products in pairs.values():
+            for p, n in products:
+                agg[p] = agg.get(p, 0) + n
+        merged = sorted(agg.items(), key=lambda kv: (-kv[1], kv[0]))
+        return cls(vendors=vendors, pairs=pairs, products=merged)
+
+
+def load_or_build_terms(terms_path: Path | str = DEFAULT_TERMS,
+                        dictionary_path: Path | str = DEFAULT_SNAPSHOT
+                        ) -> TermsIndex | None:
+    """Load the typeahead sidecar, building it once from the snapshot if
+    it's missing but the snapshot exists; ``None`` when neither is there
+    (clean degradation to plain inputs, design point 5)."""
+    terms_path = Path(terms_path)
+    dictionary_path = Path(dictionary_path)
+    if not terms_path.exists():
+        if not dictionary_path.exists():
+            return None
+        print(f"cpegen review: no terms sidecar at {terms_path}; building "
+              f"from {dictionary_path} (run 'cpegen dict --export-terms' "
+              f"ahead of time to skip this at startup)...")
+        build_terms_sidecar(dictionary_path, terms_path)
+    try:
+        return TermsIndex.load(terms_path)
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"cpegen review: could not load terms sidecar {terms_path} "
+              f"({exc}); the builder falls back to plain inputs.")
+        return None
+
+
+def match_terms(items: list[tuple[str, int]], q: str,
+                limit: int = TERMS_LIMIT) -> list[dict]:
+    """Cascade match: prefix literal -> substring -> ``clean()`` match.
+
+    ``items`` must already be sorted by descending count; each bucket
+    keeps that relative order. A value is placed in only the first bucket
+    it qualifies for, so nothing is shown twice.
+    """
+    q = (q or "").strip()
+    if not q:
+        return [{"value": v, "count": n} for v, n in items[:limit]]
+    ql = q.lower()
+    qc = clean(q)
+    prefix, substring, cleaned = [], [], []
+    for v, n in items:
+        vl = v.lower()
+        if vl.startswith(ql):
+            prefix.append((v, n))
+        elif ql in vl:
+            substring.append((v, n))
+        elif qc and qc in clean(v):
+            cleaned.append((v, n))
+    ranked = prefix + substring + cleaned
+    return [{"value": v, "count": n} for v, n in ranked[:limit]]
+
+
+def handle_terms(terms: TermsIndex | None, field_name: str, q: str,
+                 vendor: str = "") -> dict:
+    """Pure handler behind ``GET /api/terms`` — no sockets required."""
+    if field_name not in ("vendor", "product"):
+        return {"ok": False, "error": f"unknown field {field_name!r}; "
+                                       f"expected 'vendor' or 'product'"}
+    if terms is None:
+        return {"ok": True, "results": []}
+    if field_name == "vendor":
+        items = terms.vendors
+    else:
+        vendor = (vendor or "").strip()
+        items = terms.pairs.get(vendor) if vendor else None
+        if items is None:
+            items = terms.products
+    return {"ok": True, "results": match_terms(items, q)}
 
 
 @dataclass
@@ -234,6 +354,7 @@ def handle_verdict(state: ReviewState, payload: dict) -> dict:
 
 class _Handler(BaseHTTPRequestHandler):
     state: ReviewState  # set by serve()
+    terms: "TermsIndex | None" = None  # set by serve(); None degrades cleanly
 
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -248,10 +369,20 @@ class _Handler(BaseHTTPRequestHandler):
                    "application/json; charset=utf-8")
 
     def do_GET(self) -> None:  # noqa: N802 (http.server API)
-        if self.path in ("/", "/index.html"):
+        parsed = urlsplit(self.path)
+        if parsed.path in ("/", "/index.html"):
             self._send(200, UI_ASSET.read_bytes(), "text/html; charset=utf-8")
-        elif self.path == "/api/state":
+        elif parsed.path == "/api/state":
             self._send_json(handle_state(self.state))
+        elif parsed.path == "/api/terms":
+            qs = parse_qs(parsed.query)
+            result = handle_terms(
+                self.terms,
+                field_name=(qs.get("field") or [""])[0],
+                q=(qs.get("q") or [""])[0],
+                vendor=(qs.get("vendor") or [""])[0],
+            )
+            self._send_json(result, 200 if result["ok"] else 400)
         else:
             self._send_json({"ok": False, "error": "not found"}, 404)
 
@@ -276,11 +407,15 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def serve(queue_path: Path | str, identity: str, port: int = 8765,
-          output_path: Path | str | None = None) -> None:
+          output_path: Path | str | None = None,
+          terms_path: Path | str | None = None,
+          dictionary_path: Path | str | None = None) -> None:
     """Blocking server loop; Ctrl+C stops it (all verdicts already saved)."""
     state = ReviewState.load(queue_path, identity=identity,
                              output_path=output_path)
-    handler = type("BoundHandler", (_Handler,), {"state": state})
+    terms = load_or_build_terms(
+        terms_path or DEFAULT_TERMS, dictionary_path or DEFAULT_SNAPSHOT)
+    handler = type("BoundHandler", (_Handler,), {"state": state, "terms": terms})
     server = ThreadingHTTPServer(("127.0.0.1", port), handler)
     p = state.progress()
     print(f"cpegen review — {state.queue_path}")
@@ -288,6 +423,13 @@ def serve(queue_path: Path | str, identity: str, port: int = 8765,
     print(f"  progress: {p['done']}/{p['total']} done "
           f"({p['annotated']} annotated, {p['not_software']} not-software, "
           f"{p['skipped']} skipped)")
+    if terms is None:
+        print(f"  terms:    none found — vendor/product fields are plain "
+              f"text (build with 'cpegen dict --export-terms')")
+    else:
+        print(f"  terms:    {len(terms.vendors)} vendors, "
+              f"{sum(len(v) for v in terms.pairs.values())} vendor:product "
+              f"pairs — typeahead enabled")
     print(f"  open:     http://127.0.0.1:{port}/   (Ctrl+C to stop; every "
           f"verdict is already on disk)")
     try:

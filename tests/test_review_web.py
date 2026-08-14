@@ -7,6 +7,8 @@ functions (handle_state / handle_verdict), never through sockets.
 from __future__ import annotations
 
 import csv
+import gzip
+import json
 import re
 from pathlib import Path
 
@@ -16,12 +18,17 @@ from cpegen import goldset
 from cpegen.review_web import (
     CSV_FIELDS,
     ENTITY_RE,
+    PART_VALUES,
     UI_ASSET,
     ReviewState,
+    TermsIndex,
     VerdictError,
     bind_components,
     handle_state,
+    handle_terms,
     handle_verdict,
+    load_or_build_terms,
+    match_terms,
 )
 from cpegen.sampling import QUEUE_FIELDS
 
@@ -223,3 +230,136 @@ def test_legacy_queue_without_cpe_column_loads_and_upgrades(tmp_path):
     state.apply_verdict(0, "skipped", "")
     with open(q, newline="", encoding="utf-8") as fh:
         assert csv.DictReader(fh).fieldnames == list(CSV_FIELDS)
+
+
+# -- official component search (typeahead, design 2026-08-14) --------------
+
+
+def make_terms_sidecar(tmp_path: Path) -> Path:
+    """A tiny synthetic sidecar — never the real 1.77M-row snapshot."""
+    path = tmp_path / "cpe_terms.json.gz"
+    payload = {
+        "vendors": [
+            ["microsoft", 500], ["rockwellautomation", 20],
+            ["schneider-electric", 2767], ["schneider_electric", 38],
+        ],
+        "pairs": {
+            "microsoft": [["windows", 300], ["visual_c\\+\\+", 120],
+                          ["office", 80]],
+            "rockwellautomation": [["factorytalk_view", 20]],
+            "schneider-electric": [["ecostruxure", 2767]],
+            "schneider_electric": [["modicon", 38]],
+        },
+    }
+    with gzip.open(path, "wt", encoding="utf-8") as fh:
+        json.dump(payload, fh)
+    return path
+
+
+def test_terms_index_load_aggregates_products_across_vendors(tmp_path):
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    assert dict(terms.vendors)["microsoft"] == 500
+    assert dict(terms.pairs["microsoft"]) == {
+        "windows": 300, "visual_c\\+\\+": 120, "office": 80}
+    # global product list aggregates across every vendor
+    assert dict(terms.products)["windows"] == 300
+
+
+def test_match_terms_cascade_prefix_then_substring_then_clean(tmp_path):
+    items = [("microsoft", 500), ("rockwellautomation", 20),
+             ("schneider-electric", 2767)]
+    # prefix hit
+    assert [r["value"] for r in match_terms(items, "micro")] == ["microsoft"]
+    # substring hit (not a prefix)
+    assert [r["value"] for r in match_terms(items, "soft")] == ["microsoft"]
+    # clean() hit: "rockwell automation" -> matches rockwellautomation only
+    # once separators are stripped, and would not match as a substring
+    out = match_terms(items, "rockwell automation")
+    assert [r["value"] for r in out] == ["rockwellautomation"]
+
+
+def test_match_terms_empty_query_returns_top_by_count():
+    items = [("a", 3), ("b", 9), ("c", 1)]  # pre-sorted by the sidecar
+    assert [r["value"] for r in match_terms(items, "")] == ["a", "b", "c"]
+
+
+def test_handle_terms_vendor_field(tmp_path):
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    out = handle_terms(terms, "vendor", "schneider")
+    assert out["ok"] is True
+    values = [r["value"] for r in out["results"]]
+    # both coexisting variants surface (§2.1 of the design note)
+    assert "schneider-electric" in values and "schneider_electric" in values
+
+
+def test_handle_terms_product_filtered_by_chosen_vendor(tmp_path):
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    out = handle_terms(terms, "product", "", vendor="microsoft")
+    assert [r["value"] for r in out["results"]] == [
+        "windows", "visual_c\\+\\+", "office"]  # microsoft's own ranking
+    # an unrecognized vendor falls back to the global (vendor-agnostic) list
+    out_unknown = handle_terms(terms, "product", "windows", vendor="acme")
+    assert [r["value"] for r in out_unknown["results"]] == ["windows"]
+
+
+def test_handle_terms_unknown_field_errors(tmp_path):
+    terms = TermsIndex.load(make_terms_sidecar(tmp_path))
+    out = handle_terms(terms, "bogus", "x")
+    assert out["ok"] is False and "field" in out["error"]
+
+
+def test_handle_terms_degrades_cleanly_without_index():
+    out = handle_terms(None, "vendor", "any")
+    assert out == {"ok": True, "results": []}
+
+
+def test_load_or_build_terms_none_without_sidecar_or_snapshot(tmp_path):
+    terms = load_or_build_terms(tmp_path / "missing_terms.json.gz",
+                                tmp_path / "missing_snapshot.jsonl.gz")
+    assert terms is None
+
+
+def make_dictionary_snapshot(tmp_path: Path) -> Path:
+    """A minimal but real ``LocalDictionary``-loadable snapshot."""
+    path = tmp_path / "cpe_dictionary.jsonl.gz"
+    entries = [
+        {"cpeName": "cpe:2.3:a:7-zip:7-zip:25.00:*:*:*:*:*:*:*",
+         "cpeNameId": "id-1", "title": "7-Zip 25.00", "deprecated": False},
+        {"cpeName": "cpe:2.3:a:microsoft:windows:11:*:*:*:*:*:*:*",
+         "cpeNameId": "id-2", "title": "Microsoft Windows 11",
+         "deprecated": False},
+    ]
+    with gzip.open(path, "wt", encoding="utf-8") as fh:
+        for e in entries:
+            fh.write(json.dumps(e) + "\n")
+    return path
+
+
+def test_load_or_build_terms_auto_builds_from_snapshot(tmp_path, capsys):
+    snapshot = make_dictionary_snapshot(tmp_path)
+    terms_path = tmp_path / "cpe_terms.json.gz"
+    assert not terms_path.exists()
+    terms = load_or_build_terms(terms_path, snapshot)
+    assert terms is not None
+    assert terms_path.exists()  # built and left on disk for next time
+    assert dict(terms.vendors) == {"7-zip": 1, "microsoft": 1}
+    assert dict(terms.pairs["microsoft"]) == {"windows": 1}
+    out = capsys.readouterr()
+    assert "building" in out.out
+
+
+def test_part_values_closed_set():
+    assert PART_VALUES == ("*", "a", "o", "h", "-")
+
+
+def test_ui_asset_has_part_dropdown_and_typeahead_wiring():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    # part renders as a <select>, never a free-text input (design point 3)
+    assert 'data-attr="part"' in html
+    assert re.search(r'<select data-attr="part">', html)
+    assert 'PART_VALUES=["*","a","o","h","-"]' in html.replace(" ", "")
+    # vendor/product get the typeahead wrapper + the terms endpoint is wired
+    assert 'data-ta="${a}"' in html
+    assert '"ta-wrap"' in html
+    assert "/api/terms" in html
+    assert "TA_FIELDS" in html

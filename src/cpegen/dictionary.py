@@ -68,6 +68,7 @@ from .wfn import bind_component, normalize_raw, split_formatted_string
 
 DEFAULT_SNAPSHOT = Path("data/cache/cpe_dictionary.jsonl.gz")
 DEFAULT_RANGES = Path("data/cache/cpe_ranges.jsonl.gz")
+DEFAULT_TERMS = Path("data/cache/cpe_terms.json.gz")
 PAGE_SIZE = 10_000          # API maximum for the CPE Products endpoint
 CANDIDATE_CAP = 2_000       # same cap as NVDClient pagination
 SCORE_CAP = 4_000           # max pairs exactly scored per query (see search)
@@ -536,6 +537,48 @@ def build_snapshot(out_path: Path = DEFAULT_SNAPSHOT,
     meta_path.write_text(json.dumps(meta), encoding="utf-8")
     part_path.unlink()
     return meta
+
+
+def build_terms_sidecar(dictionary_path: Path | str = DEFAULT_SNAPSHOT,
+                        out_path: Path | str = DEFAULT_TERMS) -> dict:
+    """Compact vendor/product term list for the ``cpegen review`` typeahead.
+
+    Governance, not just UX (decision 2026-08-14, typeahead design note):
+    every vendor/product picked from the dictionary instead of hand-typed
+    avoids an invented spelling -> fewer accidental NIEs, cleaner gold.
+
+    Derived from the snapshot's ``by_pair`` index (never a smaller
+    reimplementation): vendors with their total CPE count (24.5k in the
+    2026-07-02 snapshot), and vendor -> [(product, count)] pairs (151k).
+    Deliberately NOT the ``PairIndex``/alias machinery — the typeahead only
+    needs literal prefix/substring/clean() matching, not Dice search, and
+    building it this way skips ~48s of index construction the review server
+    would otherwise pay at every startup.
+
+    Written gzip-compressed JSON (a few MB from the 1.77M-row snapshot,
+    loads in milliseconds) so the review server never has to hold the full
+    snapshot (~900MB) in memory just to power a typeahead.
+    """
+    d = LocalDictionary.load(dictionary_path, build_index=False)
+    vendor_counts: dict[str, int] = {}
+    pairs: dict[str, dict[str, int]] = {}
+    for (vendor, product), entries in d.by_pair.items():
+        n = len(entries)
+        vendor_counts[vendor] = vendor_counts.get(vendor, 0) + n
+        bucket = pairs.setdefault(vendor, {})
+        bucket[product] = bucket.get(product, 0) + n
+    vendors_sorted = sorted(vendor_counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    pairs_sorted = {
+        vendor: sorted(products.items(), key=lambda kv: (-kv[1], kv[0]))
+        for vendor, products in pairs.items()
+    }
+    payload = {"vendors": vendors_sorted, "pairs": pairs_sorted}
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(out_path, "wt", encoding="utf-8") as fh:
+        json.dump(payload, fh, ensure_ascii=False)
+    return {"vendors": len(vendors_sorted),
+            "pairs": sum(len(v) for v in pairs_sorted.values())}
 
 
 # -------------------------------------------------- canonicalizing index

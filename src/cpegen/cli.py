@@ -154,6 +154,18 @@ def cmd_dict(args: argparse.Namespace) -> int:
         print(f"Snapshot ({source}): {meta['fetched']} entries "
               f"({meta['invalid']} failed ABNF, kept+counted) -> {path}")
         return 0
+    if args.export_terms:
+        from .dictionary import DEFAULT_TERMS, build_terms_sidecar
+
+        terms_path = Path(args.terms or DEFAULT_TERMS)
+        if not path.exists():
+            print(f"No snapshot at {path}. Build one first with: "
+                  f"cpegen dict --build")
+            return 1
+        stats = build_terms_sidecar(path, terms_path)
+        print(f"Terms sidecar: {stats['vendors']} vendors, "
+              f"{stats['pairs']} vendor:product pairs -> {terms_path}")
+        return 0
     if not path.exists():
         print(f"No snapshot at {path}. Build one with: "
               f"cpegen dict --build   (needs network; NVD_API_KEY "
@@ -323,7 +335,9 @@ def cmd_review(args: argparse.Namespace) -> int:
     try:
         serve(queue_path=Path(args.queue), identity=args.identity,
               port=args.port,
-              output_path=Path(args.output) if args.output else None)
+              output_path=Path(args.output) if args.output else None,
+              terms_path=Path(args.terms) if args.terms else None,
+              dictionary_path=Path(args.dict) if args.dict else None)
     except VerdictError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -550,6 +564,13 @@ def main(argv: list[str] | None = None) -> int:
                        help="materialize the vendor alias table to CSV "
                             "(coexisting canonical variants + validated "
                             "seed renames)")
+    p_dic.add_argument("--export-terms", action="store_true", dest="export_terms",
+                       help="build the compact vendor/product typeahead "
+                            "sidecar for 'cpegen review' (data/cache/"
+                            "cpe_terms.json.gz) from the snapshot")
+    p_dic.add_argument("--terms", default=None,
+                       help="typeahead sidecar path (default: "
+                            "data/cache/cpe_terms.json.gz)")
     p_dic.set_defaults(func=cmd_dict)
 
     p_tier = sub.add_parser(
@@ -670,6 +691,14 @@ def main(argv: list[str] | None = None) -> int:
     p_rev.add_argument("--output", default=None,
                        help="write verdicts to a separate CSV instead of "
                             "updating the queue in place")
+    p_rev.add_argument("--terms", default=None,
+                       help="typeahead sidecar (default: data/cache/"
+                            "cpe_terms.json.gz; auto-built from --dict if "
+                            "missing)")
+    p_rev.add_argument("--dict", default=None,
+                       help="dictionary snapshot to auto-build the "
+                            "typeahead sidecar from (default: data/cache/"
+                            "cpe_dictionary.jsonl.gz)")
     p_rev.set_defaults(func=cmd_review)
 
     p_esc = sub.add_parser(
