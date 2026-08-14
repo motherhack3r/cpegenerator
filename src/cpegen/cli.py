@@ -317,6 +317,19 @@ def cmd_sample(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_review(args: argparse.Namespace) -> int:
+    from .review_web import VerdictError, serve
+
+    try:
+        serve(queue_path=Path(args.queue), identity=args.identity,
+              port=args.port,
+              output_path=Path(args.output) if args.output else None)
+    except VerdictError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_escalate(args: argparse.Namespace) -> int:
     from .cascade import escalate_results
 
@@ -641,6 +654,23 @@ def main(argv: list[str] | None = None) -> int:
                             "pre-annotation suggestion (optional; without "
                             "it the queue still has features, no hints)")
     p_smp.set_defaults(func=cmd_sample)
+
+    p_rev = sub.add_parser(
+        "review",
+        help="WP3/Fase A: local web UI (stdlib http.server, 127.0.0.1) to "
+             "annotate a 'cpegen sample' queue CSV - same columns in and "
+             "out, RASA-bracket gold format, identity + timestamp on every "
+             "verdict, incremental atomic saves (decision 2026-08-14)")
+    p_rev.add_argument("--queue", required=True,
+                       help="annotation queue CSV (cpegen sample output)")
+    p_rev.add_argument("--identity", required=True,
+                       help="reviewer identity recorded on every verdict "
+                            "(spec 6.4)")
+    p_rev.add_argument("--port", type=int, default=8765)
+    p_rev.add_argument("--output", default=None,
+                       help="write verdicts to a separate CSV instead of "
+                            "updating the queue in place")
+    p_rev.set_defaults(func=cmd_review)
 
     p_esc = sub.add_parser(
         "escalate",

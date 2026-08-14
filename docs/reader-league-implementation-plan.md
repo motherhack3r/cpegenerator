@@ -107,6 +107,11 @@ desglossament per `dictionary_source` al reporting.
   d'àlies, família versionada, longitud, tokens numèrics, Dice directe >
   0.85 — espec §8.1): són exactament les mateixes de la traça (WP4) i del
   futur router (9.7). S'escriuen i es testegen **un cop**, aquí.
+- **Eina d'anotació** (2026-08-14): `cpegen review` — UI web local (stdlib
+  `http.server`, 127.0.0.1) sobre la cua CSV, amb identitat obligatòria i desat
+  atòmic incremental. Ergonomia, mai autoritat: mateixos formats in/out, DoD
+  intacte. Fase B (WP5) reutilitza el mòdul; Fase C (plataforma multiusuari)
+  és post-publicació, fora del gate.
 - Pre-anotació (Claude) → anotació i congelació (~100 c/u, **Humbert, 2–4 h**)
   → alta a `docs/dataset-catalog.md` (§5). Fora de git; mètriques + PROVENANCE
   versionades.
