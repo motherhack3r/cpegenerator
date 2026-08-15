@@ -291,9 +291,7 @@ títols, criteri lexicogràfic (CPE exacte → menys recursos → més ràpid),
 comptabilitat completa i traça obligatòria. Doble servei MotherHacker: taller
 de divulgació per a institut/comunitat (tercera peça de la sèrie).
 
-**Publicació (bloquejants administratius)**: afegir LICENSE **Apache-2.0** +
-actualitzar la secció de llicència del README (decisió 2026-08-12; el README
-diu "not yet decided"). El repo es manté privat fins que 9.1–9.3 i el run RAW
+**Publicació (bloquejants administratius)**: **✅ fets (2026-08-14, WP0, `e244ac6`)**: LICENSE amb el text complet Apache-2.0 i seccions de llicència actualitzades a README i README_ca. El repo es manté privat fins que 9.1–9.3 i el run RAW
 estiguin nets; el canvi de visibilitat és una decisió separada de l'Humbert.
 
 **Què NO fem** (espec §11): no substituïm la passada ràpida per l'equip; cap

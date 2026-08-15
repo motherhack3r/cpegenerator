@@ -131,19 +131,28 @@ tool-use agent loop (deterministic tools; everything the agent submits is
 re-validated and re-classified by code), `cpegen bench` runs the model ×
 mode benchmark matrix, and `cpegen titles` / `run --resume` /
 `cpegen escalate` implement the cascade for mass runs
-(`docs/raw-run-playbook.md`).
+(`docs/raw-run-playbook.md`). `cpegen review` starts a local web portal
+(stdlib only, 127.0.0.1) for human curation: annotate entity spans on raw
+titles, build full CPE 2.3 names in an 11-component editor with official
+vendor/product search, edit the WFN directly — every string bound and
+validated by the same deterministic code as the pipeline — and add
+human-validated candidates the official dictionary does not know to the
+MotherHacker community dictionary or a per-client custom dictionary.
 
 ## What's in the repo — and what isn't
 
 **In**: the pipeline (`src/cpegen/`), the offline test suite (`tests/`),
 gold sets of 100 and 1,000 annotated titles (`data/gold/`, derived from
 public NVD/CVE data), 2023 model predictions for comparison
-(`data/predictions/`), and versioned benchmark archives with per-row
-results and `PROVENANCE.md` for every run (`data/benchmarks/`).
+(`data/predictions/`), versioned benchmark archives with per-row
+results and `PROVENANCE.md` for every run (`data/benchmarks/`), and the
+MotherHacker community dictionary of human-validated CPE records
+(`data/dictionaries/motherhacker.csv`).
 
 **Not in**: corporate inventories and SCCM exports (never tracked), curated
 large datasets and caches (`data/curated/`, `data/cache/`, `out/` —
-regenerable, gitignored), and binary models. `data/inventory/` ships a small
+regenerable, gitignored), per-client custom dictionaries
+(`data/dictionaries/custom/`, private), and binary models. `data/inventory/` ships a small
 **synthetic** sample so the examples and the replay flow work out of the box.
 
 ## Where to go next
