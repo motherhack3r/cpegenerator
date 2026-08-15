@@ -37,7 +37,28 @@ NIE ceremony, WP5/9.6); this is informational only and never persisted.
 Title spans for the other 7 CPE components (update/edition/language/
 sw_edition/target_sw/target_hw/other) feed the builder the same way but
 never the RASA-bracket ``annotated_title`` — the frozen vendor/product/
-version gold format used by :mod:`cpegen.goldset` is untouched.
+version gold format used by :mod:`cpegen.goldset` is untouched. A title
+word can carry more than one span at once (feedback 2026-08-15, "Apple
+Mobile Device Support": the word "Apple" is both the vendor AND part of
+the product name) — the client keeps a *set* of marks per token instead
+of one, and ``bracketString`` (client-side) appends any gold mark beyond
+a token's first as its own bracket segment so ``parse_annotation`` (a
+flat scan for ``[text](label)`` anywhere in the string, never by
+position) still recovers it; a row with no overlap emits byte-identical
+output to before. Purely a client-side rendering/encoding change — no
+new server endpoint, no CSV/format change.
+
+A fifth action (design 2026-08-15, "candidats s'haurien de poder
+incloure's al custom dictionary"): once a row has a notary-validated CPE
+(``row["cpe"]``), ``POST /api/nie`` mints it into a custom-dictionary CSV
+via the existing WP2 ``NIERecord``/``write_nie_record`` (reused, not
+reimplemented — this endpoint is the WP5 human-loop caller the
+``dictionary.py`` module docstring already named but never had). The
+target is free text defaulting to "MotherHacker" (the fixed community
+CSV); anything else is slugified into its own per-client custom CSV
+under :data:`DEFAULT_CUSTOM_DICT_DIR` — same NIE schema, a different
+book, exactly the layering :class:`cpegen.dictionary.LayeredDictionary`
+already expects.
 
 The server binds 127.0.0.1 only. No network is ever required: the HTML
 asset is self-contained (web fonts degrade to system fallbacks offline).
@@ -56,7 +77,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from .dictionary import DEFAULT_SNAPSHOT, DEFAULT_TERMS, build_terms_sidecar
+from .dictionary import (
+    DEFAULT_SNAPSHOT,
+    DEFAULT_TERMS,
+    NIERecord,
+    build_terms_sidecar,
+    write_nie_record,
+)
 from .matcher import clean
 from .sampling import QUEUE_FIELDS
 from .validator import validate_formatted_string
@@ -350,6 +377,98 @@ def handle_dictcheck(terms: TermsIndex | None, components: dict) -> dict:
             "candidate": candidate, "category": category}
 
 
+# -- custom-dictionary inclusion (NIE ceremony, WP5, design 2026-08-15) ----
+#
+# "Els items marcats com a 'candidats' s'haurien de poder incloure al
+# custom dictionary (per defecte MotherHacker)": once a row has a
+# notary-validated CPE, a reviewer can mint it into a custom-dictionary
+# CSV via the WP2 machinery in `dictionary.py` (`NIERecord`,
+# `write_nie_record`) — never a second kind of dictionary or a parallel
+# write path, exactly the NIE schema `LayeredDictionary`/`layered_dictionary`
+# already consume.
+
+#: MotherHacker is the community layer (open-source, R+I+D) — a single,
+#: fixed CSV, never one-per-reviewer. Overridable via `cpegen review
+#: --motherhacker-dict` for an alternate location (tests, a second machine).
+DEFAULT_MOTHERHACKER_DICT = Path("data/dictionaries/motherhacker.csv")
+#: Per-client custom dictionaries (HDATA layer) each get their own CSV
+#: under this directory, named after the (slugified) target the reviewer
+#: typed. Overridable via `--custom-dict-dir`.
+DEFAULT_CUSTOM_DICT_DIR = Path("data/dictionaries/custom")
+
+_MOTHERHACKER_ALIASES = {"motherhacker", "mother_hacker", "mh"}
+_SLUG_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _slug(name: str) -> str:
+    """Free-text target name -> a filesystem-safe, lowercase slug.
+
+    Blank input (or input that slugifies to nothing, e.g. all punctuation)
+    falls back to "motherhacker" — never a blank/hidden filename.
+    """
+    s = _SLUG_RE.sub("_", (name or "").strip().lower()).strip("_")
+    return s or "motherhacker"
+
+
+def nie_target(name: str, motherhacker_path: Path,
+               custom_dir: Path) -> tuple[Path, str]:
+    """Free-text target -> ``(csv_path, origin_label)``.
+
+    "MotherHacker" (any casing, or blank — the UI's own default) resolves
+    to the fixed community CSV with ``origin="motherhacker"`` (the exact
+    string :meth:`cpegen.dictionary.LayeredDictionary._layers` already
+    special-cases). Any other name is slugified into its own per-client
+    CSV under ``custom_dir``, with the slug itself as the origin label —
+    this is what a later ``cpegen reclassify --custom-dict ... --origin
+    <slug>`` would point back at.
+    """
+    slug = _slug(name)
+    if slug in _MOTHERHACKER_ALIASES:
+        return motherhacker_path, "motherhacker"
+    return custom_dir / f"{slug}.csv", slug
+
+
+def handle_nie_add(state: "ReviewState", motherhacker_path: Path,
+                   custom_dir: Path, payload: dict) -> dict:
+    """Pure handler behind ``POST /api/nie`` — mints one NIE from the
+    row's already notary-validated CPE (``row["cpe"]``, set by
+    :func:`bind_components`/``apply_verdict``).
+
+    Refuses when the row has no bound CPE yet ("candidate" here means the
+    vendor/product fields diverge from the official dictionary, per
+    :func:`handle_dictcheck` — it does NOT mean the row is ready to mint;
+    the ABNF grammar gate holds for every dictionary layer, not only the
+    NVD one, so a NIE always needs a validated formatted string first).
+    Re-validates ``row["cpe"]`` defensively (it should already be valid —
+    only ``bind_components`` ever sets it — but a NIE is a governance
+    write, never a place to trust stale state).
+    """
+    try:
+        index = int(payload.get("index", -1))
+    except (TypeError, ValueError):
+        index = -1
+    if not 0 <= index < len(state.rows):
+        return {"ok": False, "error": f"row index out of range: {index}"}
+    row = state.rows[index]
+    cpe = (row.get("cpe") or "").strip()
+    if not cpe:
+        return {"ok": False, "error": "row has no notary-validated CPE yet "
+                                       "— bind it in step 3 first"}
+    result = validate_formatted_string(cpe)
+    if not result.ok:
+        return {"ok": False, "error": "stored CPE no longer validates: "
+                                       + "; ".join(result.errors)}
+    target_path, origin = nie_target(str(payload.get("target", "") or ""),
+                                     motherhacker_path, custom_dir)
+    record = NIERecord(
+        cpe=cpe, origin=origin, human_identity=state.identity,
+        timestamp=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        evidence=str(payload.get("evidence", "") or "").strip(),
+        motivating_titles=row.get("title", ""))
+    write_nie_record(target_path, record)
+    return {"ok": True, "cpe": cpe, "origin": origin, "path": str(target_path)}
+
+
 @dataclass
 class ReviewState:
     """The queue rows plus the incremental-save bookkeeping."""
@@ -625,6 +744,8 @@ def handle_unbind(cpe: str) -> dict:
 class _Handler(BaseHTTPRequestHandler):
     state: ReviewState  # set by serve()
     terms: "TermsIndex | None" = None  # set by serve(); None degrades cleanly
+    motherhacker_dict_path: Path = DEFAULT_MOTHERHACKER_DICT  # set by serve()
+    custom_dict_dir: Path = DEFAULT_CUSTOM_DICT_DIR  # set by serve()
 
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -673,7 +794,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path not in ("/api/verdict", "/api/bind", "/api/progress",
-                             "/api/unbind"):
+                             "/api/unbind", "/api/nie"):
             self._send_json({"ok": False, "error": "not found"}, 404)
             return
         length = int(self.headers.get("Content-Length") or 0)
@@ -692,6 +813,11 @@ class _Handler(BaseHTTPRequestHandler):
             result = handle_progress(self.state, payload)
             self._send_json(result, 200 if result["ok"] else 422)
             return
+        if self.path == "/api/nie":
+            result = handle_nie_add(self.state, self.motherhacker_dict_path,
+                                    self.custom_dict_dir, payload)
+            self._send_json(result, 200 if result["ok"] else 422)
+            return
         result = handle_verdict(self.state, payload)
         self._send_json(result, 200 if result["ok"] else 422)
 
@@ -702,13 +828,20 @@ class _Handler(BaseHTTPRequestHandler):
 def serve(queue_path: Path | str, identity: str, port: int = 8765,
           output_path: Path | str | None = None,
           terms_path: Path | str | None = None,
-          dictionary_path: Path | str | None = None) -> None:
+          dictionary_path: Path | str | None = None,
+          motherhacker_dict: Path | str | None = None,
+          custom_dict_dir: Path | str | None = None) -> None:
     """Blocking server loop; Ctrl+C stops it (all verdicts already saved)."""
     state = ReviewState.load(queue_path, identity=identity,
                              output_path=output_path)
     terms = load_or_build_terms(
         terms_path or DEFAULT_TERMS, dictionary_path or DEFAULT_SNAPSHOT)
-    handler = type("BoundHandler", (_Handler,), {"state": state, "terms": terms})
+    mh_path = Path(motherhacker_dict) if motherhacker_dict else DEFAULT_MOTHERHACKER_DICT
+    cd_dir = Path(custom_dict_dir) if custom_dict_dir else DEFAULT_CUSTOM_DICT_DIR
+    handler = type("BoundHandler", (_Handler,), {
+        "state": state, "terms": terms,
+        "motherhacker_dict_path": mh_path, "custom_dict_dir": cd_dir,
+    })
     server = ThreadingHTTPServer(("127.0.0.1", port), handler)
     p = state.progress()
     print(f"cpegen review — {state.queue_path}")
@@ -723,6 +856,7 @@ def serve(queue_path: Path | str, identity: str, port: int = 8765,
         print(f"  terms:    {len(terms.vendors)} vendors, "
               f"{sum(len(v) for v in terms.pairs.values())} vendor:product "
               f"pairs — typeahead enabled")
+    print(f"  dicts:    MotherHacker -> {mh_path}  |  custom -> {cd_dir}/<target>.csv")
     print(f"  open:     http://127.0.0.1:{port}/   (Ctrl+C to stop; every "
           f"verdict is already on disk)")
     try:

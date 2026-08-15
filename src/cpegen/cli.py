@@ -337,7 +337,11 @@ def cmd_review(args: argparse.Namespace) -> int:
               port=args.port,
               output_path=Path(args.output) if args.output else None,
               terms_path=Path(args.terms) if args.terms else None,
-              dictionary_path=Path(args.dict) if args.dict else None)
+              dictionary_path=Path(args.dict) if args.dict else None,
+              motherhacker_dict=Path(args.motherhacker_dict)
+              if args.motherhacker_dict else None,
+              custom_dict_dir=Path(args.custom_dict_dir)
+              if args.custom_dict_dir else None)
     except VerdictError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -699,6 +703,19 @@ def main(argv: list[str] | None = None) -> int:
                        help="dictionary snapshot to auto-build the "
                             "typeahead sidecar from (default: data/cache/"
                             "cpe_dictionary.jsonl.gz)")
+    p_rev.add_argument("--motherhacker-dict", default=None,
+                       dest="motherhacker_dict",
+                       help="MotherHacker community custom-dictionary CSV "
+                            "that the 'Add to dictionary' action (point 4, "
+                            "target 'MotherHacker') writes NIE candidates "
+                            "to (WP5; default data/dictionaries/"
+                            "motherhacker.csv)")
+    p_rev.add_argument("--custom-dict-dir", default=None,
+                       dest="custom_dict_dir",
+                       help="directory for per-client custom-dictionary "
+                            "CSVs minted by the 'Add to dictionary' action "
+                            "when given a target other than 'MotherHacker' "
+                            "(WP5; default data/dictionaries/custom/)")
     p_rev.set_defaults(func=cmd_review)
 
     p_esc = sub.add_parser(

@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from cpegen import goldset
+from cpegen.dictionary import load_nie_records
 from cpegen.review_web import (
     CANDIDATE_NEW_PRODUCT_VERSION,
     CANDIDATE_NEW_VERSION,
@@ -31,6 +32,7 @@ from cpegen.review_web import (
     bind_components,
     handle_dictcheck,
     handle_history,
+    handle_nie_add,
     handle_progress,
     handle_state,
     handle_terms,
@@ -38,6 +40,7 @@ from cpegen.review_web import (
     handle_verdict,
     load_or_build_terms,
     match_terms,
+    nie_target,
 )
 from cpegen.sampling import QUEUE_FIELDS
 
@@ -691,3 +694,150 @@ def test_ui_asset_has_all_three_dictcheck_candidate_categories():
     for label in ("NEW VERSION candidate", "NEW PRODUCT AND VERSION candidate",
                  "OTHER candidate"):
         assert label in html, label
+
+
+# -- title-span overlap (design 2026-08-15, "Apple Mobile Device Support") -
+#
+# The overlap fix ("una mateixa paraula per anotar diferents elements") is
+# entirely client-side JS (marks-as-array, toggle paint, bracketString's
+# primary+secondary pass) — no CSV/draft wire format changes, so it's
+# covered here as UI-asset content assertions (mirroring the existing
+# test_ui_asset_has_* pattern) plus a round-trip check that a title with
+# two overlapping v/p spans still parses correctly through the unchanged,
+# frozen goldset contract — the whole point of the design (append a
+# second bracket segment rather than touch the bracket grammar).
+
+
+def test_ui_asset_marks_are_multi_valued_for_overlapping_spans():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    assert "tagdots" in html
+    assert ".includes(cls)" in html
+
+
+def test_overlapping_vendor_and_product_brackets_both_parse():
+    # what bracketString (client) now emits for a token tagged both vendor
+    # AND product ("Apple" in "Apple Mobile Device Support") — the primary
+    # pass brackets it as vendor, a secondary pass appends a standalone
+    # product bracket that repeats the word. parse_annotation must recover
+    # both regardless: it only ever scans for [text](label), never by
+    # position — exactly what makes the overlap fix possible without
+    # touching the frozen bracket grammar.
+    annotated = ("[Apple](cpe_vendor) Mobile Device Support 11.3 "
+                "[Apple Mobile Device Support](cpe_product)")
+    record = goldset.parse_annotation(
+        "Apple Mobile Device Support 11.3", annotated)
+    assert record.vendor == "apple"
+    assert record.product == "apple mobile device support"
+
+
+def test_apply_verdict_accepts_overlapping_bracket_segments(tmp_path):
+    # the server side never needed a change for overlap — apply_verdict
+    # already just extracts entities via ENTITY_RE.findall, so a bracket
+    # string with the same word appearing in two segments works unchanged.
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    row = state.apply_verdict(
+        0, "annotated",
+        "[Apple](cpe_vendor) Mobile Device Support 11.3 "
+        "[Apple Mobile Device Support](cpe_product) [11.3](cpe_version)",
+        components={"part": "a", "vendor": "apple",
+                    "product": "apple_mobile_device_support", "version": "11.3"})
+    assert row["cpe"] == \
+        "cpe:2.3:a:apple:apple_mobile_device_support:11.3:*:*:*:*:*:*:*"
+
+
+# -- custom-dictionary inclusion (NIE ceremony, WP5, design 2026-08-15) ----
+#
+# "Els items marcats com a 'candidats' s'haurien de poder incloure al
+# custom dictionary (per defecte MotherHacker)": reuses WP2's NIERecord/
+# write_nie_record unchanged (`test_dictionary.py` already covers that
+# machinery) — these tests only cover the new endpoint/target-resolution
+# glue this feature adds on top.
+
+
+def test_nie_target_defaults_and_aliases_resolve_to_motherhacker(tmp_path):
+    mh = tmp_path / "motherhacker.csv"
+    custom = tmp_path / "custom"
+    for name in ("", "MotherHacker", "motherhacker", "mh", "  Mother Hacker  "):
+        path, origin = nie_target(name, mh, custom)
+        assert path == mh, name
+        assert origin == "motherhacker", name
+
+
+def test_nie_target_slugifies_a_client_name_into_its_own_custom_csv(tmp_path):
+    mh = tmp_path / "motherhacker.csv"
+    custom = tmp_path / "custom"
+    path, origin = nie_target("Acme Corp!", mh, custom)
+    assert path == custom / "acme_corp.csv"
+    assert origin == "acme_corp"
+
+
+def test_handle_nie_add_requires_a_notary_validated_cpe(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    out = handle_nie_add(state, tmp_path / "motherhacker.csv",
+                         tmp_path / "custom", {"index": 0})
+    assert out["ok"] is False
+    assert "notary-validated" in out["error"]
+
+
+def test_handle_nie_add_bad_index(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    out = handle_nie_add(state, tmp_path / "motherhacker.csv",
+                         tmp_path / "custom", {"index": 99})
+    assert out["ok"] is False
+    assert "index" in out["error"]
+
+
+def test_handle_nie_add_writes_to_motherhacker_by_default(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="laia")
+    state.apply_verdict(
+        0, "annotated", "[7-Zip](cpe_vendor) [7-Zip](cpe_product)",
+        components={"part": "a", "vendor": "7-Zip", "product": "7-Zip",
+                    "version": "25.00"})
+    mh = tmp_path / "dicts" / "motherhacker.csv"
+    out = handle_nie_add(state, mh, tmp_path / "dicts" / "custom",
+                         {"index": 0, "evidence": "no NVD match found"})
+    assert out["ok"] is True
+    assert out["origin"] == "motherhacker"
+    records = load_nie_records(mh)
+    assert len(records) == 1
+    assert records[0].cpe == "cpe:2.3:a:7-zip:7-zip:25.00:*:*:*:*:*:*:*"
+    assert records[0].human_identity == "laia"
+    assert records[0].origin == "motherhacker"
+    assert records[0].evidence == "no NVD match found"
+    assert "7-Zip" in records[0].motivating_titles
+
+
+def test_handle_nie_add_writes_to_a_named_client_custom_dict(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    state.apply_verdict(
+        0, "annotated", "[Steam](cpe_vendor) [Steam](cpe_product)",
+        components={"part": "a", "vendor": "steam", "product": "steam",
+                    "version": "2.10"})
+    mh = tmp_path / "dicts" / "motherhacker.csv"
+    custom = tmp_path / "dicts" / "custom"
+    out = handle_nie_add(state, mh, custom, {"index": 0, "target": "Acme Corp"})
+    assert out["ok"] is True
+    assert out["origin"] == "acme_corp"
+    assert not mh.exists()  # never touches the community dict for a client target
+    records = load_nie_records(custom / "acme_corp.csv")
+    assert len(records) == 1
+    assert records[0].origin == "acme_corp"
+
+
+def test_handle_nie_add_rejects_a_stale_invalid_stored_cpe(tmp_path):
+    # defensive re-validation: only bind_components/apply_verdict ever set
+    # row["cpe"], so this should not happen in practice — but a NIE is a
+    # governance write, never a place to trust state without checking it.
+    state = ReviewState.load(make_queue(tmp_path), identity="humbert")
+    state.rows[0]["cpe"] = "not-a-cpe-at-all"
+    out = handle_nie_add(state, tmp_path / "motherhacker.csv",
+                         tmp_path / "custom", {"index": 0})
+    assert out["ok"] is False
+    assert "no longer validates" in out["error"]
+
+
+def test_ui_asset_wires_the_add_to_dictionary_action():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    assert "/api/nie" in html
+    assert "nietarget" in html
+    assert "MotherHacker" in html

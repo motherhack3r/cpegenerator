@@ -13,3 +13,8 @@ docs/deliveries/*.zip
 data/inventory/private/
 data/gold/queues/*.csv
 data/gold/queues/*.history.jsonl
+# per-client custom dictionaries (HDATA layer, private client inventory —
+# design 2026-08-15, "Add to dictionary" point 4). The MotherHacker
+# community dictionary (data/dictionaries/motherhacker.csv) is the
+# opposite: R+I+D/open-source, meant to be tracked.
+data/dictionaries/custom/

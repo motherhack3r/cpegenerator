@@ -76,12 +76,21 @@ details.lvl[open] .lvl-body{padding-top:14px}
 
 .titlebox{border:1px solid var(--line);border-radius:10px;padding:18px 20px;background:#fff;margin-bottom:8px}
 .titlelabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--grey-light);margin-bottom:8px}
-#title{font-family:var(--mono);font-size:19px;font-weight:600;line-height:1.9;user-select:text;cursor:text;word-break:break-all}
-#title .tk{padding:3px 1px;border-radius:4px}
+#title{font-family:var(--mono);font-size:19px;font-weight:600;line-height:2.15;user-select:text;cursor:text;word-break:break-all}
+#title .tk{position:relative;padding:3px 1px;border-radius:4px}
 #title .tk.v{background:var(--blue-pale);color:var(--blue-dark);outline:1.5px solid var(--blue)}
 #title .tk.p{background:var(--blue-dark);color:#fff}
 #title .tk.b{background:var(--green-pale);color:var(--green);outline:1.5px solid var(--green)}
 #title .tk.x{background:var(--amber-pale);color:var(--amber);outline:1.5px dashed var(--amber)}
+/* a word can carry more than one tag at once (2026-08-15, "Apple Mobile
+   Device Support" — vendor AND part of product); the background above
+   shows the first tag applied, these stacked dots show every tag */
+#title .tk .tagdots{position:absolute;left:2px;right:2px;bottom:-5px;display:flex;gap:2px;height:3px}
+#title .tk .tagdots i{flex:1;min-width:3px;border-radius:1px;display:block}
+#title .tk .tagdots i.dot-v{background:var(--blue)}
+#title .tk .tagdots i.dot-p{background:var(--blue-dark)}
+#title .tk .tagdots i.dot-b{background:var(--green)}
+#title .tk .tagdots i.dot-x{background:var(--amber)}
 .hint{font-size:12px;color:var(--grey-light);margin-bottom:14px}
 .hint kbd{font-family:var(--mono);font-size:10.5px;background:var(--blue-pale);color:var(--blue-dark);border-radius:3px;padding:1px 5px}
 
@@ -153,6 +162,14 @@ details.lvl[open] .lvl-body{padding-top:14px}
 .dcand.info{color:var(--blue-dark);background:var(--blue-pale);border-color:var(--blue)}
 .dcand.warn{color:var(--amber);background:var(--amber-pale);border-color:var(--amber)}
 .dcand.bad{color:var(--red);background:var(--red-pale);border-color:var(--red)}
+/* "Add to dictionary" — mint the row's candidate CPE as a NIE (point 4,
+   design 2026-08-15): target defaults to the MotherHacker community
+   dictionary; any other text mints a per-client custom dictionary CSV */
+.nieform{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.nieform label{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-light);display:flex;align-items:center;gap:6px}
+.nieform input{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--ink);background:#fff;width:150px}
+.nieform input:focus{outline:2px solid var(--blue-pale);border-color:var(--blue)}
+.niedone{font-family:var(--mono);font-size:11.5px;color:var(--green)}
 
 /* right sidebar */
 .side{display:flex;flex-direction:column;gap:14px}
@@ -230,6 +247,21 @@ const ENTITY_BUTTONS=[
 ];
 function tkClass(cls){ return GOLD.has(cls) ? cls : (cls ? "x" : ""); }
 
+// A title word can carry more than one span at once (feedback 2026-08-15:
+// "Apple Mobile Device Support" — "Apple" is both the vendor AND part of
+// the product name). `marks[k]` is therefore an ARRAY of active codes, not
+// a single string; the background color still reflects the first one
+// applied (`tokenClasses`), and any further ones show as small colored
+// dots stacked under the word (`tokenDotsHtml`) so nothing is silently
+// hidden. Click the same entity button on an already-tagged word again to
+// untag just that one mark (`paint` toggles, see below).
+function tokenClasses(marks){ return marks && marks.length ? tkClass(marks[0]) : ""; }
+function tokenDotsHtml(marks){
+  if(!marks || marks.length<2) return "";
+  return `<span class="tagdots">${marks.map(c=>`<i class="dot-${GOLD.has(c)?c:"x"}"></i>`).join("")}</span>`;
+}
+function tokenInnerHtml(t, marks){ return escapeHtml(t)+tokenDotsHtml(marks); }
+
 // per-row working state: token marks (spans), builder components, the
 // editable WFN/formatted-string field. Kept in memory across navigation
 // within the session; a "Save draft" writes it all to the server as
@@ -256,9 +288,11 @@ function parseBrackets(s){
 
 function initWork(i){
   const row=STATE.rows[i]; const tks=tokens(row.title);
-  const marks=new Array(tks.length).fill("");
+  const marks=tks.map(()=>[]);  // one array of active codes per token
   // seed spans from an existing annotated_title — real annotation AND a
-  // saved draft use the same RASA-bracket column, so this resumes both
+  // saved draft use the same RASA-bracket column, so this resumes both.
+  // ADD (never overwrite): with overlap (2026-08-15) the same token can
+  // legitimately be found by more than one bracket entity.
   for(const ent of parseBrackets(row.annotated_title||"")){
     const words=ent.text.trim().split(/\s+/); if(!words.length) continue;
     outer: for(let a=0;a<tks.length;a++){
@@ -270,7 +304,8 @@ function initWork(i){
         b=j; w++; j++;
       }
       if(w===words.length){
-        for(let k=a;k<=b;k++) if(tks[k].trim()) marks[k]=CLASSOF[ent.label];
+        const cls=CLASSOF[ent.label];
+        for(let k=a;k<=b;k++) if(tks[k].trim() && !marks[k].includes(cls)) marks[k].push(cls);
         break;
       }
     }
@@ -289,30 +324,59 @@ function initWork(i){
     wfnText=row.cpe;
   }
   // overlay the non-gold spans (update/edition/... — never in
-  // annotated_title, so they're not covered by the seeding loop above)
-  Object.entries(extraMarks).forEach(([k,cls])=>{
-    const idx=+k; if(idx>=0 && idx<marks.length && !marks[idx]) marks[idx]=cls;
+  // annotated_title, so they're not covered by the seeding loop above).
+  // Accepts both the pre-overlap draft shape ({idx: "code"}) and the
+  // current one ({idx: ["code", ...]}) so an already-saved in-progress
+  // row from before this feature still resumes correctly.
+  Object.entries(extraMarks).forEach(([k,vals])=>{
+    const idx=+k; if(!(idx>=0 && idx<marks.length)) return;
+    (Array.isArray(vals)?vals:[vals]).forEach(c=>{
+      if(c && !marks[idx].includes(c)) marks[idx].push(c);
+    });
   });
   WORK[i]={tks, marks, compvals, wfnText};
+}
+
+function classRuns(tks, marks, cls){
+  // maximal contiguous runs of tokens carrying `cls` — bridges a single
+  // whitespace separator between two same-class words (so "Mobile Device
+  // Support" stays one run, not three), exactly like the pre-overlap
+  // version did for its one-mark-per-token array.
+  const runs=[]; let k=0;
+  while(k<tks.length){
+    if(!(tks[k].trim() && marks[k].includes(cls))){ k++; continue; }
+    const start=k, seg=[];
+    while(k<tks.length && (marks[k].includes(cls)
+          || (!tks[k].trim() && k+1<tks.length && marks[k+1].includes(cls)))){
+      seg.push(tks[k]); k++;
+    }
+    runs.push({start, text: seg.join("").trim()});
+  }
+  return runs;
 }
 
 function bracketString(i){
   // only v/p/b ever become brackets — this is what apply_verdict writes to
   // annotated_title and what goldset.parse_annotation reads back, so the
   // gold NER format is untouched by the extra component buttons.
-  const {tks,marks}=WORK[i]; const parts=[]; let k=0;
-  while(k<tks.length){
-    const cls=marks[k];
-    if(!tks[k].trim() || !GOLD.has(cls)){ parts.push(tks[k]); k++; continue; }
-    const seg=[];
-    while(k<tks.length && (marks[k]===cls || (!tks[k].trim() && k+1<tks.length && marks[k+1]===cls))){
-      seg.push(tks[k]); k++;
-    }
-    parts.push(`[${seg.join("").trim()}](${LABELS[cls]})`);
-    // trailing whitespace of the segment
-    const tail=seg.join("").match(/\s+$/); if(tail) parts.push(tail[0]);
+  //
+  // Each gold class is reconstructed independently from EVERY token that
+  // carries it, regardless of what other classes the same token also
+  // carries (2026-08-15, "Apple Mobile Device Support": "Apple" is both
+  // vendor and part of the product span, so the product bracket must
+  // include it too, not just the words where product happens to be the
+  // only mark). goldset.parse_annotation only ever scans the whole string
+  // for [text](label) — never by position — so per-class segments need no
+  // interleaving with the untagged words between them; they are sorted by
+  // starting position purely for readability when a human opens the CSV.
+  const {tks,marks}=WORK[i];
+  const segs=[];
+  for(const cls of ["v","p","b"]){
+    classRuns(tks, marks, cls).forEach(r=>
+      segs.push({start:r.start, text:`[${r.text}](${LABELS[cls]})`}));
   }
-  return parts.join("").replace(/\s+/g," ").trim();
+  segs.sort((a,b)=>a.start-b.start);
+  return segs.map(s=>s.text).join(" ");
 }
 
 function renderList(){
@@ -377,7 +441,7 @@ function render(){
         <div class="titlebox">
           <div class="titlelabel">raw title</div>
           <div id="title">${tks.map((t,k)=>t.trim()
-            ? `<span class="tk ${tkClass(marks[k])}" data-k="${k}">${escapeHtml(t)}</span>`
+            ? `<span class="tk ${tokenClasses(marks[k])}" data-k="${k}">${tokenInnerHtml(t, marks[k])}</span>`
             : escapeHtml(t)).join("")}</div>
         </div>
         <div class="hint">Click a word (or drag across several) then press
@@ -386,7 +450,11 @@ function render(){
           <kbd>S</kbd> skip · <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> navigate.
           Or arm an entity button first and click words to paint them.
           Vendor/Product/Version feed the frozen gold annotation; the other
-          component buttons below only fill the builder (step 2).</div>
+          component buttons below only fill the builder (step 2). A word can
+          carry more than one tag at once (e.g. vendor AND product, like
+          "Apple" in "Apple Mobile Device Support") — press/click the same
+          entity on an already-tagged word again to untag just that one;
+          extra tags show as small dots under the word.</div>
         <div class="entbtns">
           ${ENTITY_BUTTONS.map(eb=>`<button class="ebtn ${eb.gold?eb.key:"x"}" data-e="${eb.key}">${eb.label}</button>`).join("")}
           <button class="ebtn clear" data-e="">Clear word</button>
@@ -421,7 +489,7 @@ function render(){
 
     <div class="lvl" id="lvl4">
       <div class="lvl-head">4 &middot; Dictionary match
-        <span class="lvl-sub">per-field stamp against the official (NVD) dictionary — unmatched fields are new candidates</span>
+        <span class="lvl-sub">per-field stamp against the official (NVD) dictionary — candidates can be minted into a custom dictionary</span>
       </div>
       <div class="lvl-body" id="dictcheck"><div class="side-empty">checking…</div></div>
     </div>
@@ -487,8 +555,11 @@ function cfieldHtml(a,row){
   return `<label class="cfield"><span>${a}</span><input data-attr="${a}" value="${val}"></label>`;
 }
 function spanText(cls){
+  // overlap-aware (2026-08-15): picks up a token for this class regardless
+  // of what OTHER classes also mark it, so e.g. a word tagged both vendor
+  // and product still contributes to both fields' prefill text.
   const {tks,marks}=WORK[CUR]; const segs=[]; let cur=[];
-  tks.forEach((t,k)=>{ if(t.trim()&&marks[k]===cls) cur.push(t.trim()); else if(cur.length){segs.push(cur.join(" ")); cur=[];} });
+  tks.forEach((t,k)=>{ if(t.trim()&&marks[k].includes(cls)) cur.push(t.trim()); else if(cur.length){segs.push(cur.join(" ")); cur=[];} });
   if(cur.length) segs.push(cur.join(" "));
   return segs.join(" ");
 }
@@ -506,11 +577,22 @@ function updatePreview(){
   document.getElementById("preview").value=bracketString(CUR);
 }
 
-function paint(k, cls){
+// Toggles a mark on a token by default (click the same entity on an
+// already-tagged word again to remove just that tag — needed once a word
+// can hold several tags at once). Pass {add:true} for programmatic callers
+// (resume-from-suggestion) that must never accidentally remove a tag.
+function paint(k, cls, opts){
   const w=WORK[CUR]; if(!w.tks[k] || !w.tks[k].trim()) return;
-  w.marks[k]=cls;
+  if(cls===""){
+    w.marks[k]=[];  // "Clear word": wipe every tag on this token
+  } else if(opts && opts.add){
+    if(!w.marks[k].includes(cls)) w.marks[k].push(cls);
+  } else {
+    const arr=w.marks[k]; const pos=arr.indexOf(cls);
+    if(pos>=0) arr.splice(pos,1); else arr.push(cls);
+  }
   const el=document.querySelector(`#title .tk[data-k="${k}"]`);
-  if(el) el.className="tk "+tkClass(cls);
+  if(el){ el.className="tk "+tokenClasses(w.marks[k]); el.innerHTML=tokenInnerHtml(w.tks[k], w.marks[k]); }
   updatePreview();
 }
 
@@ -587,20 +669,38 @@ async function unbindFromWfn(){
 // dictionary or a client's custom dictionary can validate it for
 // inclusion (the same human+notary ceremony as a NIE). Purely
 // informational/live — never persisted, never blocks anything.
+// The "Add to dictionary" mint form (design 2026-08-15) is independent of
+// whether the typeahead sidecar is loaded at all: dictcheck only tells you
+// WHETHER a row looks like a candidate, but a reviewer can decide to mint
+// a NIE for any row that already has a notary-validated CPE (row.cpe, set
+// by step 3 + a real "annotated" verdict — never a draft or preview bind,
+// same gate `handle_nie_add` re-checks server-side).
+function nieFormHtml(){
+  if(!STATE.rows[CUR].cpe){
+    return `<div class="side-empty">Save this row with a verdict (step below) before including its CPE in a dictionary — a draft or preview bind isn't enough.</div>`;
+  }
+  return `<div class="nieform">`
+    + `<label>target <input id="nietarget" value="MotherHacker" autocomplete="off"></label>`
+    + `<button class="cbtn primary" id="nieadd">Add to dictionary</button>`
+    + `<span id="nieout"></span></div>`;
+}
+
 async function checkDictMatch(){
   const box=document.getElementById("dictcheck");
   if(!box) return;
   const comps=WORK[CUR].compvals||readComponents();
   const vendor=(comps.vendor||"").trim(), product=(comps.product||"").trim();
   if(!vendor && !product){
-    box.innerHTML=`<div class="side-empty">Fill vendor/product in the builder to check the official dictionary.</div>`;
+    box.innerHTML=`<div class="side-empty">Fill vendor/product in the builder to check the official dictionary.</div>${nieFormHtml()}`;
+    bindNieForm();
     return;
   }
   const url=`/api/dictcheck?vendor=${encodeURIComponent(vendor)}&product=${encodeURIComponent(product)}`;
   const res=await api(url);
-  if(!res.ok){ box.innerHTML=""; return; }
+  if(!res.ok){ box.innerHTML=nieFormHtml(); bindNieForm(); return; }
   if(res.vendor_known===null && res.product_known===null){
-    box.innerHTML=`<div class="side-empty">No dictionary sidecar loaded — run 'cpegen dict --export-terms'.</div>`;
+    box.innerHTML=`<div class="side-empty">No dictionary sidecar loaded — run 'cpegen dict --export-terms'.</div>${nieFormHtml()}`;
+    bindNieForm();
     return;
   }
   const badge=(known,label)=>{
@@ -623,7 +723,31 @@ async function checkDictMatch(){
     const c=CATEGORY_COPY[res.category];
     overall=`<div class="dcand ${c.cls}"><b>${c.label}</b> — ${c.text} Only a MotherHacker community dictionary or a client's custom dictionary can validate it for inclusion.</div>`;
   }
-  box.innerHTML=`<div class="dchips">${badge(res.vendor_known,"vendor")}${badge(res.product_known,"product")}</div>${overall}`;
+  box.innerHTML=`<div class="dchips">${badge(res.vendor_known,"vendor")}${badge(res.product_known,"product")}</div>${overall}${nieFormHtml()}`;
+  bindNieForm();
+}
+
+// "Add to dictionary" — mints the row's already-bound CPE (row.cpe) as a
+// NIE into the target custom dictionary (POST /api/nie). Free-text target,
+// "MotherHacker" by default (design 2026-08-15): the server slugifies
+// anything else into its own per-client custom-dictionary CSV. Re-bound
+// after every checkDictMatch() re-render, since that replaces box.innerHTML.
+function bindNieForm(){
+  const btn=document.getElementById("nieadd");
+  if(!btn) return;
+  btn.onclick=async ()=>{
+    const targetEl=document.getElementById("nietarget");
+    const target=(targetEl&&targetEl.value||"MotherHacker").trim();
+    const out=document.getElementById("nieout");
+    btn.disabled=true;
+    const res=await api("/api/nie",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({index:CUR, target})});
+    btn.disabled=false;
+    if(!out) return;
+    out.innerHTML=res.ok
+      ? `<span class="niedone">added to <b>${escapeHtml(res.origin)}</b> ✓</span>`
+      : `<span class="cpeerr">${escapeHtml(res.error||"could not add")}</span>`;
+  };
 }
 
 let WFN_TIMER=null;
@@ -740,10 +864,16 @@ async function submit(verdict){
 }
 
 function extraMarksOf(i){
-  // the non-gold span marks (update/edition/...) as {token_index: code} —
-  // v/p/b are excluded, they're already fully covered by annotated_title
+  // the non-gold span marks (update/edition/...) as {token_index: [codes]}
+  // — v/p/b are excluded, they're already fully covered by annotated_title.
+  // Array-valued (2026-08-15) since a token can carry several extra tags
+  // at once; initWork() also accepts the older single-string shape when
+  // resuming a draft saved before this change.
   const {marks}=WORK[i]; const out={};
-  marks.forEach((cls,k)=>{ if(cls && !GOLD.has(cls)) out[k]=cls; });
+  marks.forEach((arr,k)=>{
+    const extra=arr.filter(c=>!GOLD.has(c));
+    if(extra.length) out[k]=extra;
+  });
   return out;
 }
 
@@ -815,7 +945,7 @@ function bindCard(){
           if(low[j]!==words[m].toLowerCase()) break;
           b=j; m++; j++;
         }
-        if(m===words.length){ for(let k=a;k<=b;k++) if(low[k]) paint(k, cls); break; }
+        if(m===words.length){ for(let k=a;k<=b;k++) if(low[k]) paint(k, cls, {add:true}); break; }
       }
     });
   };
