@@ -136,7 +136,14 @@ Altres punts d'entrada: `run --agent` escala la cua no resolta a un bucle
 d'agent tool-use (eines deterministes; tot el que l'agent sotmet es revalida
 i reclassifica amb codi), `cpegen bench` executa la matriu de benchmark
 model × mode, i `cpegen titles` / `run --resume` / `cpegen escalate`
-implementen la cascada per a runs massius (`docs/raw-run-playbook.md`).
+implementen la cascada per a runs massius (`docs/raw-run-playbook.md`). `cpegen review` engega un portal web local
+(només stdlib, 127.0.0.1) per a la curació humana: anotar spans d'entitats
+sobre títols crus, construir noms CPE 2.3 complets en un editor d'11
+components amb cercador de vendors/products oficials, editar el WFN
+directament — cada cadena vinculada i validada pel mateix codi determinista
+del pipeline — i donar d'alta candidats validats per humans que el
+diccionari oficial no coneix al diccionari comunitari MotherHacker o a un
+diccionari custom per client.
 
 ## Què hi ha al repo — i què no
 
@@ -144,11 +151,14 @@ implementen la cascada per a runs massius (`docs/raw-run-playbook.md`).
 (`tests/`), gold sets de 100 i 1.000 títols anotats (`data/gold/`, derivats
 de dades públiques NVD/CVE), les prediccions dels models 2023 per comparar
 (`data/predictions/`) i arxius de benchmark versionats amb resultats
-per-fila i `PROVENANCE.md` de cada tirada (`data/benchmarks/`).
+per-fila i `PROVENANCE, i el
+diccionari comunitari MotherHacker de registres CPE validats per humans
+(`data/dictionaries/motherhacker.csv`).md` de cada tirada (`data/benchmarks/`).
 
 **No hi ha**: inventaris corporatius ni exports SCCM (mai versionats),
 datasets grans curats i caches (`data/curated/`, `data/cache/`, `out/` —
-regenerables, gitignored), ni models binaris. `data/inventory/` porta una
+regenerables, gitignored), ni els diccionaris custom per client
+(`data/dictionaries/custom/`, privats), ni models binaris. `data/inventory/` porta una
 mostra petita **sintètica** perquè els exemples i el flux replay funcionin
 sense res més.
 

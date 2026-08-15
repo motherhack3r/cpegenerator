@@ -1,0 +1,4 @@
+cpe,origin,human_identity,timestamp,evidence,motivating_titles
+cpe:2.3:a:gimp:gimp:2.10.28:*:*:*:*:*:*:*,motherhacker,humbert,2026-08-15T00:58:58+00:00,,GIMP 2.10.28
+cpe:2.3:a:intel:mpi_library:19.0:*:*:*:*:*:*:*,motherhacker,humbert,2026-08-15T00:59:07+00:00,,Intel MPI Library 19.0
+cpe:2.3:a:siemens:simatic_wincc_runtime_advanced:16.0:upd4:*:*:*:*:*:*,motherhacker,humbert,2026-08-15T01:00:17+00:00,,SIMATIC WinCC Runtime Advanced V16.0 UPD4
