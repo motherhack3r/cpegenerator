@@ -897,7 +897,74 @@ def test_title_tokens_match_the_client_split_and_ngrams_index_into_it():
     grams = title_ngrams(tks, max_n=2)
     assert grams[0] == ("7-Zip 25.00", 0, 2)          # longest first
     assert ("(x64)", 4, 4) in grams
-    assert all("".join(tks[a:b + 1]).split() == text.split() for text, a, b in grams)
+    # every n-gram text is contained in the token span it points at
+    # (hyphen parts like "Zip" point at their whole token "7-Zip")
+    assert all(text in "".join(tks[a:b + 1]).replace("  ", " ") for text, a, b in grams)
+    assert ("Zip", 0, 0) in grams and ("7", 0, 0) not in grams  # parts need >= 2 chars
+
+
+def test_vendor_title_scan_sees_inside_hyphenated_tokens(tmp_path):
+    path = tmp_path / "t.json.gz"
+    with gzip.open(path, "wt", encoding="utf-8") as fh:
+        json.dump({"vendors": [["ni", 900]], "pairs": {"ni": [["labview", 900]]}}, fh)
+    ctx = AssistContext("vendor", "NI-DAQmx DAQ Assistant (64-bit) 18.5.0",
+                        terms=TermsIndex.load(path))
+    cands = helper_vendor_title_scan(ctx)
+    assert [(c["value"], c["span"]) for c in cands] == [("ni", [0, 0])]
+
+
+def test_vendor_reverse_lookup_skips_generic_single_words(tmp_path):
+    path = tmp_path / "t.json.gz"
+    pairs = {f"v{i}": [["assistant", 10 - i]] for i in range(5)}
+    pairs["adobe"] = [["acrobat_reader_dc", 300]]
+    pairs["valve"] = [["steam", 50]]
+    with gzip.open(path, "wt", encoding="utf-8") as fh:
+        json.dump({"vendors": [[v, 1] for v in pairs], "pairs": pairs}, fh)
+    terms = TermsIndex.load(path)
+    # "Assistant" owned by 5 vendors -> ambiguous, no candidates at all
+    assert helper_vendor_reverse_lookup(AssistContext("vendor", "DAQ Assistant 1.0", terms=terms)) == []
+    # a specific single-word product still resolves
+    assert [c["value"] for c in helper_vendor_reverse_lookup(
+        AssistContext("vendor", "Steam 2.10", terms=terms))] == ["valve"]
+    # multi-word n-grams are always kept
+    assert [c["value"] for c in helper_vendor_reverse_lookup(
+        AssistContext("vendor", "Acrobat Reader DC 21", terms=terms))] == ["adobe"]
+
+
+def test_llm_assist_uses_chat_with_its_own_budget_and_explains_reasoning_death():
+    seen = {}
+
+    class Hybrid:  # a chat-capable provider that burns the budget thinking
+        name = "hybrid"
+        last_usage = {"in": 600, "out": 300, "reasoning": 298}
+
+        def chat(self, system, user, max_tokens=300):
+            seen["max_tokens"] = max_tokens
+            seen["user"] = user
+            return ""
+
+        def complete(self, title):
+            raise AssertionError("the portal must call chat() with its own budget")
+
+    llm = LLMAssist(Hybrid(), max_tokens=1500)
+    ent = llm.entities("NI-DAQmx DAQ Assistant 18.5.0")
+    assert seen["max_tokens"] == 1500 and "NI-DAQmx" in seen["user"]
+    assert "298 tokens reasoning" in ent["error"] and "CPEGEN_ASSIST_MAX_TOKENS" in ent["error"]
+    assert LLMAssist(Hybrid()).max_tokens == LLMAssist.DEFAULT_MAX_TOKENS
+
+    class Good:
+        name = "good"
+
+        def chat(self, system, user, max_tokens=300):
+            return '{"vendor": "ni", "product": "daqmx", "version": "18.5.0", "confidence": 0.8}'
+
+    assert LLMAssist(Good()).entities("x")["vendor"] == "ni"
+
+    class Down:
+        def chat(self, system, user, max_tokens=300):
+            raise ConnectionError("refused")
+
+    assert "provider failed" in LLMAssist(Down()).entities("x")["error"]
 
 
 def test_raw_term_unescapes_dictionary_spelling_for_the_builder():

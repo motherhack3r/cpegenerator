@@ -526,6 +526,14 @@ def title_ngrams(tokens: list[str], max_n: int = MAX_NGRAM
             chunk = words[i:i + n]
             text = " ".join(t for _, t in chunk)
             out.append((text, chunk[0][0], chunk[-1][0]))
+    # hyphen/slash-joined words ("NI-DAQmx", "TCP/IP") also offer their
+    # parts, still pointing at the whole token as the span — the vendor
+    # "ni" lives inside "NI-DAQmx" (feedback 2026-08-21, live title)
+    for k, t in words:
+        if "-" in t or "/" in t:
+            for part in re.split(r"[-/]", t):
+                if len(part) >= 2:
+                    out.append((part, k, k))
     return out
 
 
@@ -634,6 +642,13 @@ def helper_vendor_title_scan(ctx: AssistContext) -> list[dict]:
                        SOURCE_TITLE, "vendor")
 
 
+#: A one-word product name owned by more than this many vendors is a
+#: generic word ("assistant", "server", "client"), not evidence for any
+#: of them — skipped (feedback 2026-08-21: "Assistant" lit up five
+#: unrelated vendors). Multi-word n-grams are specific enough to keep.
+REVERSE_MAX_OWNERS = 3
+
+
 def helper_vendor_reverse_lookup(ctx: AssistContext) -> list[dict]:
     """Title n-grams vs the aggregated products -> the vendors that own
     them (``TermsIndex.pairs`` inverted). Finds the vendor when only the
@@ -643,7 +658,10 @@ def helper_vendor_reverse_lookup(ctx: AssistContext) -> list[dict]:
     owners = terms_lookups(ctx.terms)["owners"]
     out, seen = [], {}
     for text, a, b in title_ngrams(ctx.tokens):
-        for vendor, n in owners.get(term_key(text), ()):
+        hits = owners.get(term_key(text), ())
+        if len(text.split()) == 1 and len(hits) > REVERSE_MAX_OWNERS:
+            continue  # generic single word: ambiguous, not evidence
+        for vendor, n in hits:
             if vendor in seen:
                 continue
             seen[vendor] = True
@@ -808,10 +826,19 @@ class LLMAssist:
     """
 
     ENTITY_KEYS = ("vendor", "product", "version", "update", "target_sw")
+    #: Output budget for the portal's call. The benchmark providers default
+    #: to 300 tokens (cost discipline); a hybrid-reasoning model that
+    #: ignores ``reasoning: off`` (seen live 2026-08-21 with qwen3-8b on LM
+    #: Studio: 298 reasoning tokens, no message, "no JSON") dies by length
+    #: there. The portal is interactive and one call per title, so it can
+    #: afford more. ``CPEGEN_ASSIST_MAX_TOKENS`` overrides.
+    DEFAULT_MAX_TOKENS = 1500
 
-    def __init__(self, provider=None):
+    def __init__(self, provider=None, max_tokens: int | None = None):
         self.provider = provider
         self.cache: dict[str, dict] = {}
+        self.max_tokens = max_tokens or int(
+            os.environ.get("CPEGEN_ASSIST_MAX_TOKENS", self.DEFAULT_MAX_TOKENS))
 
     @property
     def enabled(self) -> bool:
@@ -828,9 +855,26 @@ class LLMAssist:
             return None
         if title in self.cache:
             return self.cache[title]
-        from .extractor import extract
-        ext = extract(self.provider, title)
+        from .extractor import SYSTEM_PROMPT, _parse_response, extract
+        if hasattr(self.provider, "chat"):
+            # same prompt as `complete()`, bigger budget (see DEFAULT_MAX_TOKENS)
+            try:
+                text = self.provider.chat(SYSTEM_PROMPT, f"Title: {title!r}",
+                                          max_tokens=self.max_tokens)
+                ext = _parse_response(title, text)
+            except Exception as exc:  # transport/HTTP: surface, never crash the portal
+                ext = _parse_response(title, "")
+                ext.error = f"provider failed: {exc}"
+        else:
+            ext = extract(self.provider, title)
         if ext.error:
+            usage = getattr(self.provider, "last_usage", None) or {}
+            reasoning = usage.get("reasoning", 0)
+            if reasoning and "no JSON" in ext.error:
+                ext.error = (f"model spent {reasoning} tokens reasoning and "
+                             f"returned no JSON within {self.max_tokens} tokens "
+                             f"— raise CPEGEN_ASSIST_MAX_TOKENS, set "
+                             f"CPEGEN_REASONING=off, or pick an instruct model")
             ent = {"error": ext.error}
         else:
             ent = {k: getattr(ext, k) for k in self.ENTITY_KEYS}

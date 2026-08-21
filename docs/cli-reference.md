@@ -132,6 +132,12 @@ cpegen review --queue queue.csv --identity humbert --assist-provider lmstudio
 | `--output` | CSV separat per als veredictes (default: actualitza la cua in-place) |
 | `--assist-provider` | Activa el helper LLM del wizard "Advanced review" (`anthropic`/`openai`/`lmstudio`/`mock`/`replay`); default: off, només helpers locals |
 | `--assist-model` | Model per a `--assist-provider` (default del provider si s'omet) |
+
+Variables d'entorn del helper LLM: `CPEGEN_ASSIST_MAX_TOKENS` (default 1500;
+els models híbrids que ignoren `CPEGEN_REASONING=off` — vist amb qwen3-8b a
+LM Studio — cremen els 300 tokens del benchmark raonant i no retornen JSON),
+`CPEGEN_MODEL`/`LMSTUDIO_BASE_URL`/`CPEGEN_REASONING` com a la resta de
+proveïdors.
 | `--terms` | Sidecar del typeahead (default `data/cache/cpe_terms.json.gz`) |
 | `--dict` | Snapshot per construir el sidecar automàticament si falta |
 | `--motherhacker-dict` | CSV on escriu l'acció "Add to dictionary" per a MotherHacker |
