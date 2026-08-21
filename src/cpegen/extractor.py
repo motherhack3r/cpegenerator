@@ -22,6 +22,16 @@ from dataclasses import dataclass
 import requests
 
 DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5"
+
+
+def request_timeout(default: float) -> float:
+    """HTTP read timeout for one model call. ``CPEGEN_LLM_TIMEOUT`` overrides
+    the per-provider default (seen live 2026-08-21: a local qwen3-8b at
+    ~13 tok/s needs well over 120 s for a 1500-token budget)."""
+    try:
+        return float(os.environ.get("CPEGEN_LLM_TIMEOUT", "") or default)
+    except ValueError:
+        return default
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
 SYSTEM_PROMPT = """\
@@ -131,7 +141,7 @@ class AnthropicProvider:
                 "system": system,
                 "messages": [{"role": "user", "content": user}],
             },
-            timeout=60,
+            timeout=request_timeout(60),
         )
         resp.raise_for_status()
         data = resp.json()
@@ -181,7 +191,7 @@ class OpenAICompatProvider:
                 "content-type": "application/json",
             },
             json=payload,
-            timeout=120,
+            timeout=request_timeout(120),
         )
 
     def chat(self, system: str, user: str, max_tokens: int = 300) -> str:
@@ -260,7 +270,7 @@ class LMStudioProvider:
         if self.reasoning is not None:
             payload["reasoning"] = self.reasoning
         resp = requests.post(f"{self.base_url}/api/v1/chat",
-                             json=payload, timeout=120)
+                             json=payload, timeout=request_timeout(120))
         if resp.status_code == 400 and "reasoning" in payload:
             # Same quirk as the OpenAI-compat layer, seen live on
             # qwen3-4b-instruct-2507: models without a reasoning
@@ -270,7 +280,7 @@ class LMStudioProvider:
             self.reasoning = None
             payload.pop("reasoning")
             resp = requests.post(f"{self.base_url}/api/v1/chat",
-                                 json=payload, timeout=120)
+                                 json=payload, timeout=request_timeout(120))
         resp.raise_for_status()
         data = resp.json()
         stats = data.get("stats") or {}

@@ -1180,3 +1180,43 @@ def test_ui_asset_wires_the_advanced_review_wizard():
     # still self-contained
     external = re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
     assert external == [], external
+
+
+def test_llm_assist_does_not_memoise_transport_failures():
+    calls = []
+
+    class Flaky:
+        name = "flaky"
+
+        def __init__(self):
+            self.n = 0
+
+        def chat(self, system, user, max_tokens=300):
+            calls.append(1)
+            self.n += 1
+            if self.n == 1:
+                raise TimeoutError("Read timed out")
+            return '{"vendor": "sap", "product": "crystal reports", "version": "14.0", "confidence": 0.7}'
+
+    llm = LLMAssist(Flaky())
+    first = llm.entities("crystalreports 14.0")
+    assert "provider failed" in first["error"] and "crystalreports 14.0" not in llm.cache
+    second = llm.entities("crystalreports 14.0")
+    assert second["vendor"] == "sap" and len(calls) == 2
+    assert llm.entities("crystalreports 14.0") is second and len(calls) == 2  # now memoised
+
+
+def test_request_timeout_env_override(monkeypatch):
+    from cpegen.extractor import request_timeout
+    monkeypatch.delenv("CPEGEN_LLM_TIMEOUT", raising=False)
+    assert request_timeout(120) == 120
+    monkeypatch.setenv("CPEGEN_LLM_TIMEOUT", "600")
+    assert request_timeout(120) == 600.0
+    monkeypatch.setenv("CPEGEN_LLM_TIMEOUT", "nope")
+    assert request_timeout(60) == 60
+
+
+def test_ui_wizard_asks_local_helpers_before_the_llm():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    assert "use_llm:false" in html and "wizRepaintSources" in html
+    assert html.index("use_llm:false") < html.index("if(WIZ.llm) payload.llm_entities=WIZ.llm;")

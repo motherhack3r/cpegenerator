@@ -136,8 +136,11 @@ cpegen review --queue queue.csv --identity humbert --assist-provider lmstudio
 Variables d'entorn del helper LLM: `CPEGEN_ASSIST_MAX_TOKENS` (default 1500;
 els models híbrids que ignoren `CPEGEN_REASONING=off` — vist amb qwen3-8b a
 LM Studio — cremen els 300 tokens del benchmark raonant i no retornen JSON),
-`CPEGEN_MODEL`/`LMSTUDIO_BASE_URL`/`CPEGEN_REASONING` com a la resta de
-proveïdors.
+`CPEGEN_LLM_TIMEOUT` (segons de timeout HTTP per crida, default 120 per a
+LM Studio/OpenAI-compat, 60 per a Anthropic; un qwen3-8b local a ~13 tok/s
+necessita ~600 per a 1500 tokens), `CPEGEN_MODEL`/`LMSTUDIO_BASE_URL`/
+`CPEGEN_REASONING` com a la resta de proveïdors. El wizard demana primer els
+helpers locals (resposta immediata) i la proposta LLM s'afegeix quan arriba.
 | `--terms` | Sidecar del typeahead (default `data/cache/cpe_terms.json.gz`) |
 | `--dict` | Snapshot per construir el sidecar automàticament si falta |
 | `--motherhacker-dict` | CSV on escriu l'acció "Add to dictionary" per a MotherHacker |

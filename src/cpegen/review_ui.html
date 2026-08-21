@@ -1098,7 +1098,8 @@ function wizSourcesHtml(){
     let note="";
     if(src==="llm" && !list.length){
       if(!(meta.llm&&meta.llm.enabled)) note=`<div class="wiz-empty">no LLM assistant configured (start cpegen review with --assist-provider)</div>`;
-      else if(meta.llm.error) note=`<div class="wiz-empty">LLM error: ${escapeHtml(meta.llm.error)}</div>`;
+      else if(meta.llm.pending) note=`<div class="wiz-empty">asking ${escapeHtml(meta.llm.provider||"the model")}… (local candidates above are already usable; this fills in when it answers)</div>`;
+      else if(meta.llm.error) note=`<div class="wiz-empty">LLM error: ${escapeHtml(meta.llm.error)} — reopen the wizard to retry</div>`;
       else note=`<div class="wiz-empty">the LLM proposed nothing for this component</div>`;
     } else if(src==="dictionary" && step.attr==="version" && !list.length){
       return; // the dictionary never indexed versions (decision 2026-08-14): nothing to say here
@@ -1205,16 +1206,37 @@ function wizRefreshPicked(){
 }
 
 async function wizAssist(attr){
-  const payload={component:attr, title:STATE.rows[CUR].title, components:WIZ.values};
-  if(WIZ.llm) payload.llm_entities=WIZ.llm;   // one LLM call per title: reuse what a previous step cached
-  const res=await api("/api/assist",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  // Two phases, so a slow local model never blocks the deterministic
+  // helpers (feedback 2026-08-21: a 120 s LM Studio timeout froze the whole
+  // step on "asking the helpers…"): 1) use_llm:false -> title/dictionary/
+  // transform/web candidates render immediately; 2) a second call with the
+  // LLM, whose candidates are merged into the same list when they arrive.
+  // One LLM call per title: the entities a previous step cached are handed
+  // back, so phase 2 is instant after the first step.
+  const base={component:attr, title:STATE.rows[CUR].title, components:WIZ.values};
+  const post=(body)=>api("/api/assist",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const local=await post({...base, use_llm:false});
   if(!WIZ || wizStepDef().attr!==attr) return;  // stale: the reviewer moved on
-  if(!res.ok){ WIZ.cands[attr]=[]; WIZ.meta={terms:false, llm:{enabled:false}}; }
-  else {
-    WIZ.cands[attr]=res.candidates||[];
-    WIZ.meta={terms:res.terms, llm:res.llm||{enabled:false}};
+  if(!local.ok){ WIZ.cands[attr]=[]; WIZ.meta={terms:false, llm:{enabled:false}}; wizRepaintSources(); return; }
+  WIZ.cands[attr]=(local.candidates||[]).filter(c=>c.source!=="llm");
+  WIZ.meta={terms:local.terms, llm:{...(local.llm||{enabled:false}), pending:!!(local.llm&&local.llm.enabled)}};
+  wizRepaintSources();
+  if(!(local.llm&&local.llm.enabled)) return;
+  const payload={...base};
+  if(WIZ.llm) payload.llm_entities=WIZ.llm;
+  const res=await post(payload);
+  if(!WIZ || wizStepDef().attr!==attr) return;
+  if(res.ok){
+    WIZ.cands[attr]=WIZ.cands[attr].concat((res.candidates||[]).filter(c=>c.source==="llm"));
+    WIZ.meta.llm={...(res.llm||{enabled:true}), pending:false};
     if(res.llm_entities && Object.keys(res.llm_entities).length){ WIZ.llm=res.llm_entities; WORK[CUR].llm=res.llm_entities; }
+  } else {
+    WIZ.meta.llm={enabled:true, error:res.error||"assist call failed", pending:false};
   }
+  wizRepaintSources();
+}
+
+function wizRepaintSources(){
   const box=document.getElementById("wizsources");
   if(box){ box.innerHTML=wizSourcesHtml(); bindWizardCands(); }
 }

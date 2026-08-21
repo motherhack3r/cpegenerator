@@ -851,6 +851,9 @@ class LLMAssist:
         return getattr(self.provider, "name", None) or type(self.provider).__name__
 
     def entities(self, title: str) -> dict | None:
+        """Entities for ``title`` (``{"error": ...}`` when the model gave
+        nothing usable). Parsed answers — even parse failures — are memoised;
+        transport failures are not."""
         if not self.enabled:
             return None
         if title in self.cache:
@@ -863,8 +866,9 @@ class LLMAssist:
                                           max_tokens=self.max_tokens)
                 ext = _parse_response(title, text)
             except Exception as exc:  # transport/HTTP: surface, never crash the portal
-                ext = _parse_response(title, "")
-                ext.error = f"provider failed: {exc}"
+                # NOT memoised: a timeout or a model still loading must be
+                # retryable on the next wizard open, not frozen for the title
+                return {"error": f"provider failed: {exc}"}
         else:
             ext = extract(self.provider, title)
         if ext.error:
