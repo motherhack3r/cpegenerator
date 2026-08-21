@@ -341,7 +341,9 @@ def cmd_review(args: argparse.Namespace) -> int:
               motherhacker_dict=Path(args.motherhacker_dict)
               if args.motherhacker_dict else None,
               custom_dict_dir=Path(args.custom_dict_dir)
-              if args.custom_dict_dir else None)
+              if args.custom_dict_dir else None,
+              assist_provider=args.assist_provider,
+              assist_model=args.assist_model)
     except VerdictError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -716,6 +718,18 @@ def main(argv: list[str] | None = None) -> int:
                             "CSVs minted by the 'Add to dictionary' action "
                             "when given a target other than 'MotherHacker' "
                             "(WP5; default data/dictionaries/custom/)")
+    p_rev.add_argument("--assist-provider", default=None,
+                       dest="assist_provider",
+                       choices=["anthropic", "openai", "lmstudio", "mock",
+                                "replay"],
+                       help="enable the 'Advanced review' wizard's LLM "
+                            "helper with this extractor provider (one call "
+                            "per title, memoised; entities are revalidated "
+                            "by the notary and never auto-filled). Default: "
+                            "off - local helpers only (decision 2026-08-21)")
+    p_rev.add_argument("--assist-model", default=None, dest="assist_model",
+                       help="model name for --assist-provider (provider "
+                            "default when omitted)")
     p_rev.set_defaults(func=cmd_review)
 
     p_esc = sub.add_parser(

@@ -171,6 +171,46 @@ details.lvl[open] .lvl-body{padding-top:14px}
 .nieform input:focus{outline:2px solid var(--blue-pale);border-color:var(--blue)}
 .niedone{font-family:var(--mono);font-size:11.5px;color:var(--green)}
 
+/* "Advanced review" wizard (design 2026-08-21): vendor -> product -> version
+   step by step, each step fed by the /api/assist helper registry; the
+   remaining 8 components are plain fields on the last step. Lands in the
+   normal builder on finish/exit. Helpers propose; the notary validates. */
+.abtn.adv{background:#fff;color:var(--blue-dark);border-color:var(--blue-dark)} .abtn.adv:hover{background:var(--blue-pale)}
+.wiz-overlay{position:fixed;inset:0;background:rgba(22,35,46,.45);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.wiz{background:#fff;border-radius:14px;max-width:860px;width:100%;box-shadow:0 20px 60px rgba(22,35,46,.3);display:flex;flex-direction:column;gap:14px;padding:22px 26px}
+.wiz-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--blue-dark);padding-bottom:10px}
+.wiz-head h2{font-family:var(--disp);font-size:18px;color:var(--blue-dark)}
+.wiz-steps{display:flex;gap:6px;margin-left:auto}
+.wstep{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line);border-radius:20px;padding:3px 10px;color:var(--grey)}
+.wstep.cur{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff}
+.wstep.done{background:var(--green-pale);border-color:var(--green);color:var(--green)}
+.wiz-title{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink);background:var(--blue-paler);border:1px solid var(--line);border-radius:8px;padding:8px 12px;word-break:break-all}
+.wiz-title .hl{background:var(--blue-pale);outline:1.5px solid var(--blue);border-radius:3px;padding:1px 2px}
+.wiz-field{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center}
+.wiz-field label{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey-light);text-align:right}
+.wiz-field input{font-family:var(--mono);font-size:14px;border:1px solid var(--blue);border-radius:8px;padding:9px 12px;width:100%;color:var(--ink)}
+.wiz-field input:focus{outline:2px solid var(--blue-pale)}
+.wiz-src{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--blue-paler)}
+.wiz-src-head{font-family:var(--disp);font-weight:700;font-size:12px;color:var(--blue-dark);margin-bottom:6px;display:flex;gap:8px;align-items:center}
+.wsrc{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:1px 6px}
+.wsrc.title{background:var(--blue-pale);color:var(--blue-dark)}
+.wsrc.dictionary{background:var(--green-pale);color:var(--green)}
+.wsrc.llm{background:#F1ECFA;color:#5B3E96}
+.wsrc.web{background:var(--blue-paler);color:var(--grey);border:1px solid var(--line)}
+.wsrc.transform{background:var(--amber-pale);color:var(--amber)}
+.wcands{display:flex;flex-wrap:wrap;gap:6px}
+.wcand{font-family:var(--mono);font-size:12.5px;border:1.5px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--ink);text-align:left;max-width:100%}
+.wcand:hover{border-color:var(--blue);background:var(--blue-pale)}
+.wcand.picked{border-color:var(--green);background:var(--green-pale)}
+.wcand.invalid{border-color:var(--red);color:var(--red);text-decoration:line-through;cursor:not-allowed}
+.wcand small{display:block;font-family:var(--sans);font-size:10.5px;color:var(--grey-light);margin-top:2px}
+.wcand.link{text-decoration:none;display:inline-block}
+.wiz-empty{font-size:12px;color:var(--grey-light);font-style:italic}
+.wiz-rest{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.wiz-actions{display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding-top:12px}
+.wiz-actions .nav{margin-left:auto}
+.wiz-note{font-size:11.5px;color:var(--grey-light)}
+
 /* right sidebar */
 .side{display:flex;flex-direction:column;gap:14px}
 .side-block{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
@@ -312,13 +352,15 @@ function initWork(i){
   }
   // seed the builder + WFN field: an in-progress draft wins, else a
   // stored (final, notary-validated) cpe seeds the WFN field read-only-ish
-  let compvals=null, wfnText="", extraMarks={};
+  let compvals=null, wfnText="", extraMarks={}, llm=null;
   if(row.verdict==="in_progress" && row.draft){
     try{
       const draft=JSON.parse(row.draft);
       compvals=draft.components||null;
       wfnText=draft.cpe_text||"";
       extraMarks=draft.extra_marks||{};
+      // the wizard's cached LLM answer (2026-08-21): resumed, never re-asked
+      if(draft.llm_entities && Object.keys(draft.llm_entities).length) llm=draft.llm_entities;
     }catch(e){ /* corrupt draft: fall back to blank, never crash the UI */ }
   } else if(row.cpe){
     wfnText=row.cpe;
@@ -334,7 +376,7 @@ function initWork(i){
       if(c && !marks[idx].includes(c)) marks[idx].push(c);
     });
   });
-  WORK[i]={tks, marks, compvals, wfnText};
+  WORK[i]={tks, marks, compvals, wfnText, llm};
 }
 
 function classRuns(tks, marks, cls){
@@ -499,6 +541,7 @@ function render(){
       <button class="abtn draft" id="savedraft" title="Save partial work without marking this row done">Save draft</button>
       <button class="abtn nosw" id="nosw">Not software (N)</button>
       <button class="abtn skipb" id="skip">Skip (S)</button>
+      <button class="abtn adv" id="advreview" title="Step-by-step vendor → product → version with helper candidates (title / dictionary / LLM / web)">Advanced review</button>
       <div class="nav">
         <button class="nbtn" id="prev">&larr;</button>
         <button class="nbtn" id="next">&rarr;</button>
@@ -885,6 +928,7 @@ async function submitDraft(){
     components: readComponents(),
     cpe_text: document.getElementById("wfnfield").value,
     extra_marks: extraMarksOf(CUR),
+    llm_entities: WORK[CUR].llm||{},
   };
   const res=await api("/api/progress",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
   if(!res.ok){ flash(res.error, false); return; }
@@ -972,6 +1016,7 @@ function bindCard(){
   }
   TA_FIELDS.forEach(taBind);
   document.getElementById("save").onclick=()=>submit("annotated");
+  document.getElementById("advreview").onclick=()=>openWizard();
   document.getElementById("savedraft").onclick=()=>submitDraft();
   document.getElementById("nosw").onclick=()=>submit("not_software");
   document.getElementById("skip").onclick=()=>submit("skipped");
@@ -979,7 +1024,230 @@ function bindCard(){
   document.getElementById("next").onclick=()=>{CUR=Math.min(STATE.rows.length-1,CUR+1); render();};
 }
 
+
+// -- "Advanced review" wizard (design 2026-08-21) ------------------------
+// vendor -> product -> version, one step each, then the other 8 components
+// as plain fields. Every step asks POST /api/assist for candidates from the
+// per-component helper registry; the source of each candidate is labelled
+// (title / dictionary / llm / web / transform). Clicking a candidate fills
+// the field AND remembers its title span; free text is always valid. "web"
+// candidates are pre-built search links opened in a new tab (the server
+// never fetches the web); "transform" candidates are explicit one-click
+// rewrites (never silent). The LLM answer (when --assist-provider is on)
+// is one call per title, cached in WORK/the draft and reused by every
+// step; it is revalidated by the notary server-side and never auto-filled.
+// Finish or exit both land in the normal builder with the fields and the
+// title spans applied, then the usual bind/validate path runs.
+const WIZ_STEPS=[
+  {attr:"vendor", cls:"v", title:"Vendor", hint:"who makes it — pick a dictionary spelling when one matches"},
+  {attr:"product", cls:"p", title:"Product", hint:"the product name only — candidates are filtered by the vendor you chose"},
+  {attr:"version", cls:"b", title:"Version", hint:"version string only; service packs, builds and arch go to update / target_hw via the transforms"},
+  {attr:null, title:"Other components", hint:"the remaining 8 components as plain fields — * = ANY, - = NA"},
+];
+const WIZ_REST=["part","update","edition","language","sw_edition","target_sw","target_hw","other"];
+const SOURCE_ORDER=["title","dictionary","llm","transform","web"];
+const SOURCE_COPY={title:"found in the title", dictionary:"official dictionary (reverse lookup)",
+  llm:"LLM proposal — revalidated by the notary, never auto-filled", transform:"one-click transforms",
+  web:"search the web (opens a new tab — you judge, the server never fetches)"};
+let WIZ=null;
+
+function openWizard(){
+  const comps=readComponents();
+  WIZ={step:0, values:comps, spans:{}, picked:{}, llm:WORK[CUR].llm||null, cands:{}, meta:null};
+  renderWizard();
+}
+
+function wizStepDef(){ return WIZ_STEPS[WIZ.step]; }
+
+function wizSetValue(attr, value, span, pickedKey){
+  WIZ.values[attr]=value;
+  if(span) WIZ.spans[attr]=span; else delete WIZ.spans[attr];
+  WIZ.picked[attr]=pickedKey||null;
+}
+
+function wizTitleHtml(){
+  const {tks}=WORK[CUR];
+  const step=wizStepDef();
+  const span=step.attr ? WIZ.spans[step.attr] : null;
+  return tks.map((t,k)=>{
+    const hl=span && k>=span[0] && k<=span[1] && t.trim();
+    return hl ? `<span class="hl">${escapeHtml(t)}</span>` : escapeHtml(t);
+  }).join("");
+}
+
+function wizCandHtml(c, i){
+  const key=`${c.source}:${i}`;
+  if(c.source==="web"){
+    return `<a class="wcand link" href="${escapeHtml(c.url||"#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.value)} ↗<small>${escapeHtml(c.evidence||"")}</small></a>`;
+  }
+  const picked=WIZ.picked[wizStepDef().attr]===key;
+  const cls="wcand"+(picked?" picked":"")+(c.invalid?" invalid":"");
+  return `<button class="${cls}" data-i="${i}" ${c.invalid?"disabled":""}>${escapeHtml(c.value)}<small>${escapeHtml(c.evidence||"")}</small></button>`;
+}
+
+function wizSourcesHtml(){
+  const step=wizStepDef();
+  const cands=WIZ.cands[step.attr];
+  if(cands===undefined) return `<div class="wiz-empty">asking the helpers…</div>`;
+  const groups={};
+  cands.forEach((c,i)=>{ (groups[c.source]=groups[c.source]||[]).push([c,i]); });
+  const meta=WIZ.meta||{};
+  let html="";
+  SOURCE_ORDER.forEach(src=>{
+    const list=groups[src]||[];
+    let note="";
+    if(src==="llm" && !list.length){
+      if(!(meta.llm&&meta.llm.enabled)) note=`<div class="wiz-empty">no LLM assistant configured (start cpegen review with --assist-provider)</div>`;
+      else if(meta.llm.error) note=`<div class="wiz-empty">LLM error: ${escapeHtml(meta.llm.error)}</div>`;
+      else note=`<div class="wiz-empty">the LLM proposed nothing for this component</div>`;
+    } else if(src==="dictionary" && step.attr==="version" && !list.length){
+      return; // the dictionary never indexed versions (decision 2026-08-14): nothing to say here
+    } else if((src==="title"||src==="dictionary") && !list.length){
+      note=meta.terms===false
+        ? `<div class="wiz-empty">no dictionary sidecar loaded — run 'cpegen dict --export-terms'</div>`
+        : `<div class="wiz-empty">no match</div>`;
+    } else if(!list.length){
+      if(src==="transform") return; // nothing applicable: hide the group
+      note=`<div class="wiz-empty">—</div>`;
+    }
+    html+=`<div class="wiz-src"><div class="wiz-src-head"><span class="wsrc ${src}">${src}</span>${SOURCE_COPY[src]}</div>`+
+      `<div class="wcands">${list.map(([c,i])=>wizCandHtml(c,i)).join("")}</div>${note}</div>`;
+  });
+  return html;
+}
+
+function wizRestHtml(){
+  return `<div class="wiz-rest">${WIZ_REST.map(a=>{
+    const val=escapeHtml(WIZ.values[a]||(a==="part"?"*":"*"));
+    if(a==="part") return `<label class="cfield"><span>part</span><select data-wattr="part">`+
+      PART_VALUES.map(p=>`<option value="${p}"${p===val?" selected":""}>${p}</option>`).join("")+`</select></label>`;
+    return `<label class="cfield"><span>${a}</span><input data-wattr="${a}" value="${val}"></label>`;
+  }).join("")}</div>`;
+}
+
+function renderWizard(){
+  let ov=document.getElementById("wiz");
+  if(!ov){ ov=document.createElement("div"); ov.id="wiz"; ov.className="wiz-overlay"; document.body.appendChild(ov); }
+  const step=wizStepDef();
+  const last=WIZ.step===WIZ_STEPS.length-1;
+  ov.innerHTML=`<div class="wiz" role="dialog" aria-label="Advanced review">
+    <div class="wiz-head"><h2>Advanced review</h2>
+      <span class="wiz-note">${escapeHtml(step.hint)}</span>
+      <div class="wiz-steps">${WIZ_STEPS.map((s,i)=>`<span class="wstep${i===WIZ.step?" cur":i<WIZ.step?" done":""}">${i+1} ${s.title}</span>`).join("")}</div>
+    </div>
+    <div class="wiz-title" id="wiztitle">${wizTitleHtml()}</div>
+    ${step.attr ? `<div class="wiz-field"><label>${step.attr}</label><input id="wizinput" autocomplete="off" spellcheck="false" value="${escapeHtml(WIZ.values[step.attr]&&WIZ.values[step.attr]!=="*"?WIZ.values[step.attr]:"")}" placeholder="free text is always valid — or click a candidate below"></div>
+      <div id="wizsources">${wizSourcesHtml()}</div>` : wizRestHtml()}
+    <div class="wiz-actions">
+      <button class="abtn draft" id="wizexit" title="Apply what is filled so far to the builder and close">Exit to builder</button>
+      <span class="wiz-note">Esc = exit · helpers propose, the notary validates</span>
+      <div class="nav">
+        <button class="nbtn" id="wizback" ${WIZ.step===0?"disabled":""}>&larr; Back</button>
+        ${last ? `<button class="abtn save" id="wizfinish">Finish → builder</button>` : `<button class="abtn save" id="wiznext">Next &rarr;</button>`}
+      </div>
+    </div></div>`;
+  bindWizard();
+  if(step.attr && WIZ.cands[step.attr]===undefined) wizAssist(step.attr);
+}
+
+function wizReadStep(){
+  const step=wizStepDef();
+  if(step.attr){
+    const inp=document.getElementById("wizinput");
+    if(inp){
+      const v=inp.value.trim();
+      if(v!==(WIZ.values[step.attr]||"")){ wizSetValue(step.attr, v, null, null); }  // free text: no span claim
+    }
+  } else {
+    document.querySelectorAll("#wiz [data-wattr]").forEach(el=>{ WIZ.values[el.dataset.wattr]=el.value.trim(); });
+  }
+}
+
+function bindWizard(){
+  const step=wizStepDef();
+  document.getElementById("wizexit").onclick=()=>wizFinish();
+  const nx=document.getElementById("wiznext"); if(nx) nx.onclick=()=>{ wizReadStep(); WIZ.step++; delete WIZ.cands[wizStepDef().attr]; renderWizard(); };
+  const fn=document.getElementById("wizfinish"); if(fn) fn.onclick=()=>wizFinish();
+  const bk=document.getElementById("wizback"); if(bk) bk.onclick=()=>{ wizReadStep(); WIZ.step--; delete WIZ.cands[wizStepDef().attr]; renderWizard(); };
+  const inp=document.getElementById("wizinput");
+  if(inp){
+    inp.addEventListener("input",()=>{ wizSetValue(step.attr, inp.value.trim(), null, null); wizPaintTitle(); wizRefreshPicked(); });
+    inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); (nx||fn).click(); } });
+    setTimeout(()=>inp.focus(), 0);
+  }
+  bindWizardCands();
+  document.getElementById("wiz").onclick=(e)=>{ if(e.target.id==="wiz") wizFinish(); };
+}
+
+function bindWizardCands(){
+  const step=wizStepDef();
+  document.querySelectorAll("#wizsources .wcand:not(.link)").forEach(b=>b.onclick=()=>{
+    const c=WIZ.cands[step.attr][+b.dataset.i];
+    if(!c || c.invalid) return;
+    if(c.source==="transform" && c.apply){
+      Object.entries(c.apply).forEach(([attr,val])=>{ WIZ.values[attr]=val; });
+      if(c.apply[step.attr]!==undefined){ wizSetValue(step.attr, c.apply[step.attr], null, `${c.source}:${b.dataset.i}`); }
+      renderWizard(); return;
+    }
+    wizSetValue(step.attr, c.value, c.span||null, `${c.source}:${b.dataset.i}`);
+    const i2=document.getElementById("wizinput"); if(i2) i2.value=c.value;
+    wizPaintTitle(); wizRefreshPicked();
+  });
+}
+
+function wizPaintTitle(){ const t=document.getElementById("wiztitle"); if(t) t.innerHTML=wizTitleHtml(); }
+function wizRefreshPicked(){
+  const step=wizStepDef();
+  document.querySelectorAll("#wizsources .wcand:not(.link)").forEach(b=>{
+    const key=`${WIZ.cands[step.attr][+b.dataset.i].source}:${b.dataset.i}`;
+    b.classList.toggle("picked", WIZ.picked[step.attr]===key);
+  });
+}
+
+async function wizAssist(attr){
+  const payload={component:attr, title:STATE.rows[CUR].title, components:WIZ.values};
+  if(WIZ.llm) payload.llm_entities=WIZ.llm;   // one LLM call per title: reuse what a previous step cached
+  const res=await api("/api/assist",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  if(!WIZ || wizStepDef().attr!==attr) return;  // stale: the reviewer moved on
+  if(!res.ok){ WIZ.cands[attr]=[]; WIZ.meta={terms:false, llm:{enabled:false}}; }
+  else {
+    WIZ.cands[attr]=res.candidates||[];
+    WIZ.meta={terms:res.terms, llm:res.llm||{enabled:false}};
+    if(res.llm_entities && Object.keys(res.llm_entities).length){ WIZ.llm=res.llm_entities; WORK[CUR].llm=res.llm_entities; }
+  }
+  const box=document.getElementById("wizsources");
+  if(box){ box.innerHTML=wizSourcesHtml(); bindWizardCands(); }
+}
+
+// Apply the wizard's state to the normal workspace: builder fields (all 11),
+// title spans for every candidate that came with one (gold classes for
+// vendor/product/version, the amber extra marks for the rest), then the
+// usual bind & validate. Used by Finish, Exit, Esc and the backdrop click
+// alike — leaving the wizard never loses what was filled.
+function wizFinish(){
+  if(!WIZ) return;
+  wizReadStep();
+  const w=WORK[CUR];
+  CPE_ATTRS.forEach(a=>{
+    const el=document.querySelector(`.cgrid [data-attr="${a}"]`);
+    if(!el) return;
+    const v=WIZ.values[a];
+    if(v!==undefined && v!=="") el.value=v;
+  });
+  Object.entries(WIZ.spans).forEach(([attr,span])=>{
+    const eb=ENTITY_BUTTONS.find(x=>x.attr===attr); if(!eb||!span) return;
+    for(let k=span[0];k<=span[1];k++) paint(k, eb.key, {add:true});
+  });
+  w.compvals=readComponents();
+  if(WIZ.llm) w.llm=WIZ.llm;
+  WIZ=null;
+  const ov=document.getElementById("wiz"); if(ov) ov.remove();
+  updatePreview();
+  bindFromBuilder();
+}
+
 document.addEventListener("keydown", e=>{
+  if(WIZ){ if(e.key==="Escape") wizFinish(); return; }  // the wizard owns the keyboard while open
   const tag=e.target.tagName;
   if(tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA") { if(e.key==="Enter" && tag!=="TEXTAREA"){e.preventDefault(); submit("annotated");} return; }
   const k=e.key.toLowerCase();

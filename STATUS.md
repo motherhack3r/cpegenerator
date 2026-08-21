@@ -1,6 +1,6 @@
 # Estat actual — CPEgenerator v2
 
-> Última actualització: 2026-08-17
+> Última actualització: 2026-08-21
 
 ## On som
 
@@ -9,7 +9,7 @@
 - **9.1 Canonicalització**: ✅ tancada (M1x ×1,58 sobre pilot 10k, G1 obert)
 - **9.2 Capes de diccionari**: ✅ implementada (LayeredDictionary: NVD → MotherHacker → origen)
 - **9.3 Golds per origen**: cues pre-anotades generades (`gold-rawTFM`, `gold-rawPC`); **pendent l'anotació humana** (2–4 h per cua)
-- **Portal de review**: ✅ v2 implementat (spans, builder 11 components, WFN editable, typeahead, Add to dictionary)
+- **Portal de review**: ✅ v2 implementat (spans, builder 11 components, WFN editable, typeahead, Add to dictionary) + ✅ **Advanced review** (wizard vendor→product→version amb helpers; 2026-08-21)
 
 Fases anteriors (0, 2, 3, 4, 5, 6): totes ✅ completades.
 Fase 7 ('Nduja, run massiu): tooling llest, **run ajornat post-publicació**.

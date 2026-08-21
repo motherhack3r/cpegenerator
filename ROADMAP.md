@@ -104,6 +104,11 @@ Eina d'anotació: `cpegen review` (Fase A) — portal web local amb:
 - Esborranys (`Save draft`) i veredictes finals amb històric JSONL
 - Dictionary match (3 categories: new_version / new_product_version / other)
 - Alta a diccionari custom (MotherHacker o client) via NIE
+- **Advanced review** (2026-08-21): wizard per passos vendor → product →
+  version amb candidats de helpers per component (`/api/assist`: escaneig del
+  títol, reverse lookup del diccionari, regex de versions + transformacions
+  explícites, deep-links web, LLM opcional amb `--assist-provider`); aterra al
+  builder amb camps i spans omplerts
 
 **9.4 — Benchmark de tres braços per origen** (pendent)
 
@@ -142,6 +147,7 @@ nova al runtime.
 
 | Data | Decisió | Motiu |
 |---|---|---|
+| 2026-08-21 | **"Advanced review" = wizard per passos (vendor → product → version; els 8 components restants com a camps plans) sobre un registre de helpers per component** (`POST /api/assist`, `ASSIST_HELPERS`): title-scan i reverse lookup sobre el mateix sidecar del typeahead, regex de versions amb transformacions **un-clic explícites** (mai silencioses), **deep-links** web (URLs pre-construïdes, el servidor mai fa fetch), LLM opcional via els providers existents (`--assist-provider`, una crida per títol memoitzada i desada al draft, entitats revalidades pel notari, mai auto-omplertes). **NVD API en viu descartada.** Candidats del diccionari en forma raw (`raw_term`), mai escapada | La revisió manual és el coll d'ampolla de l'anotació gold; cada candidat clicat en lloc d'escrit evita grafies inventades (menys NIEs accidentals). Sense xarxa al portal: degradació neta sense sidecar ni provider. Helpers = funcions pures registrades → afegir-ne un no toca l'endpoint ni la UI |
 | 2026-08-15 | **Un token del títol pot portar més d'una marca gold alhora**; `bracketString` reconstrueix cada classe (v/p/b) de manera independent | "Apple" és alhora vendor i part del producte; `goldset.parse_annotation` escaneja `[text](label)` a qualsevol lloc, mai per posició |
 | 2026-08-15 | **"Afegir al diccionari" escriu sempre un `NIERecord` via `write_nie_record` (WP2)**, mai una segona implementació; destí text lliure amb "MotherHacker" per defecte | Reutilitza `dictionary.py` sencer; exigeix `row.cpe` (veredicte final, mai draft) |
 | 2026-08-14 | **`cpegen review` (Fase A): UI web local per a l'anotació de cues** — servidor stdlib `http.server` a 127.0.0.1; identitat obligatòria + timestamp UTC. Fase C (plataforma multiusuari) queda post-publicació | La UI és ergonomia, mai autoritat — cap format nou, cap canvi al notari |

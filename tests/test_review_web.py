@@ -841,3 +841,275 @@ def test_ui_asset_wires_the_add_to_dictionary_action():
     assert "/api/nie" in html
     assert "nietarget" in html
     assert "MotherHacker" in html
+
+
+# -- Advanced review wizard: /api/assist helper registry (2026-08-21) ------
+#
+# Offline by construction: the LLM helper runs on the extractor's
+# MockProvider, web candidates are pure URL construction, and every helper
+# is exercised through the pure `handle_assist` / helper functions.
+
+from cpegen.extractor import MockProvider  # noqa: E402
+from cpegen.review_web import (  # noqa: E402
+    ASSIST_COMPONENTS,
+    ASSIST_HELPERS,
+    SOURCE_DICTIONARY,
+    SOURCE_LLM,
+    SOURCE_TITLE,
+    SOURCE_TRANSFORM,
+    SOURCE_WEB,
+    AssistContext,
+    LLMAssist,
+    handle_assist,
+    helper_llm,
+    helper_product_title_scan,
+    helper_vendor_reverse_lookup,
+    helper_vendor_title_scan,
+    helper_version_regex,
+    helper_version_transforms,
+    helper_web_links,
+    raw_term,
+    title_ngrams,
+    title_tokens,
+)
+
+MSVC = "Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.30501"
+
+
+def _terms(tmp_path):
+    return TermsIndex.load(make_terms_sidecar(tmp_path))
+
+
+def _by_source(cands, source):
+    return [c for c in cands if c["source"] == source]
+
+
+def test_assist_registry_covers_exactly_the_three_wizard_steps():
+    assert set(ASSIST_HELPERS) == set(ASSIST_COMPONENTS) == {"vendor", "product", "version"}
+    for helpers in ASSIST_HELPERS.values():
+        assert helpers and all(callable(h) for h in helpers)
+        assert helper_web_links in helpers  # every step can hand off to a human web search
+
+
+def test_title_tokens_match_the_client_split_and_ngrams_index_into_it():
+    tks = title_tokens("7-Zip  25.00 (x64)")
+    assert tks == ["7-Zip", "  ", "25.00", " ", "(x64)"]  # separators kept, like the UI
+    grams = title_ngrams(tks, max_n=2)
+    assert grams[0] == ("7-Zip 25.00", 0, 2)          # longest first
+    assert ("(x64)", 4, 4) in grams
+    assert all("".join(tks[a:b + 1]).split() == text.split() for text, a, b in grams)
+
+
+def test_raw_term_unescapes_dictionary_spelling_for_the_builder():
+    assert raw_term("visual_c\\+\\+") == "visual_c++"
+    assert raw_term("microsoft") == "microsoft"
+    # round trip through the notary: raw in, escaped formatted string out
+    assert bind_components({"product": raw_term("visual_c\\+\\+")})["cpe"] \
+        .split(":")[4] == "visual_c\\+\\+"
+
+
+def test_vendor_title_scan_finds_exact_ngram_with_span(tmp_path):
+    ctx = AssistContext("vendor", MSVC, terms=_terms(tmp_path))
+    cands = helper_vendor_title_scan(ctx)
+    assert [(c["value"], c["span"], c["source"]) for c in cands] == [("microsoft", [0, 0], SOURCE_TITLE)]
+    assert "500 CPEs" in cands[0]["evidence"]
+
+
+def test_vendor_title_scan_matches_multiword_and_separator_variants(tmp_path):
+    ctx = AssistContext("vendor", "Schneider Electric EcoStruxure 2.1", terms=_terms(tmp_path))
+    values = {c["value"]: c["span"] for c in helper_vendor_title_scan(ctx)}
+    # both coexisting dictionary spellings surface, same 2-word span
+    assert values == {"schneider-electric": [0, 2], "schneider_electric": [0, 2]}
+
+
+def test_vendor_title_scan_never_prefix_matches_short_ngrams(tmp_path):
+    ctx = AssistContext("vendor", "Mi Fit 1.0", terms=_terms(tmp_path))
+    assert helper_vendor_title_scan(ctx) == []  # "Mi" must not light up microsoft
+
+
+def test_vendor_reverse_lookup_inverts_pairs(tmp_path):
+    ctx = AssistContext("vendor", "FactoryTalk View 12.0", terms=_terms(tmp_path))
+    cands = helper_vendor_reverse_lookup(ctx)
+    assert [c["value"] for c in cands] == ["rockwellautomation"]
+    assert cands[0]["source"] == SOURCE_DICTIONARY and cands[0]["span"] is None
+    assert "factorytalk view" in cands[0]["evidence"].lower()
+
+
+def test_product_title_scan_filters_by_chosen_vendor_then_falls_back(tmp_path):
+    terms = _terms(tmp_path)
+    scoped = helper_product_title_scan(AssistContext(
+        "product", MSVC, components={"vendor": "microsoft"}, terms=terms))
+    assert [(c["value"], c["span"]) for c in scoped] == [("visual_c++", [2, 4])]
+    assert "product of microsoft" in scoped[0]["evidence"]
+    # unknown vendor -> global aggregate, same hit, labelled as such
+    global_ = helper_product_title_scan(AssistContext(
+        "product", MSVC, components={"vendor": "nobody"}, terms=terms))
+    assert [c["value"] for c in global_] == ["visual_c++"]
+    assert "any vendor" in global_[0]["evidence"]
+    # a product of another vendor is NOT offered when scoped
+    other = helper_product_title_scan(AssistContext(
+        "product", "Microsoft Modicon 1.0", components={"vendor": "microsoft"}, terms=terms))
+    assert other == []
+
+
+def test_version_regex_extracts_shapes_with_spans():
+    ctx = AssistContext("version", "Foo v2.1.3 2019 R2 build 12345 (x64) 7")
+    cands = helper_version_regex(ctx)
+    got = {c["value"]: (c["kind"], c["span"]) for c in cands}
+    assert got["v2.1.3"] == ("dotted", [2, 2])
+    assert got["2019"] == ("year", [4, 4])
+    assert got["R2"] == ("release", [6, 6])
+    assert got["12345"] == ("build", [10, 10])
+    assert got["7"] == ("bare", [14, 14])
+    assert all(c["source"] == SOURCE_TITLE for c in cands)
+
+
+def test_version_transforms_are_explicit_buttons_never_silent():
+    ctx = AssistContext("version", "Acrobat Reader DC v21.001 Service Pack 2 (x64)",
+                        components={"version": "v21.001"})
+    cands = helper_version_transforms(ctx)
+    applies = {c["value"]: c["apply"] for c in cands}
+    assert applies["21.001"] == {"version": "21.001"}   # strip leading v
+    assert applies["sp2"] == {"update": "sp2"}          # SP -> update
+    assert applies["x64"] == {"target_hw": "x64"}       # arch -> target_hw
+    assert all(c["source"] == SOURCE_TRANSFORM for c in cands)
+    # nothing applicable -> no transforms at all (no phantom buttons)
+    assert helper_version_transforms(AssistContext("version", "Steam 2.10")) == []
+
+
+def test_web_links_are_pure_urls_per_step():
+    for comp in ASSIST_COMPONENTS:
+        cands = helper_web_links(AssistContext(comp, "7-Zip 25.00",
+                                               components={"vendor": "7-zip", "product": "7-zip"}))
+        assert [c["value"] for c in cands] == ["DuckDuckGo", "Google", "NVD CPE search"]
+        assert all(c["source"] == SOURCE_WEB and c["url"].startswith("https://") for c in cands)
+        assert all(" " not in c["url"] for c in cands)
+    nvd = helper_web_links(AssistContext("vendor", "x"))[2]["url"]
+    assert "nvd.nist.gov/products/cpe/search/results" in nvd and "namingFormat=2.3" in nvd
+
+
+def test_llm_helper_only_surfaces_notary_validated_entities():
+    ctx = AssistContext("vendor", MSVC, llm_entities={"vendor": "microsoft", "confidence": 0.9})
+    cands = helper_llm(ctx)
+    assert len(cands) == 1 and cands[0]["source"] == SOURCE_LLM
+    assert cands[0]["value"] == "microsoft" and cands[0]["span"] == [0, 0]
+    assert "confidence 0.90" in cands[0]["evidence"]
+    # absent entity -> nothing; bad part -> flagged invalid, not offered
+    assert helper_llm(AssistContext("product", MSVC, llm_entities={"vendor": "x"})) == []
+    assert helper_llm(AssistContext("vendor", MSVC, llm_entities=None)) == []
+
+
+def test_llm_assist_is_one_memoised_call_per_title():
+    calls = []
+
+    class Counting(MockProvider):
+        def complete(self, title):
+            calls.append(title)
+            return super().complete(title)
+
+    llm = LLMAssist(Counting())
+    assert llm.enabled and llm.name == "mock"
+    e1 = llm.entities("in2code femanager 5.5.1 for typo3")
+    e2 = llm.entities("in2code femanager 5.5.1 for typo3")
+    assert e1 is e2 and calls == ["in2code femanager 5.5.1 for typo3"]
+    assert e1["vendor"] == "in2code" and e1["product"] == "femanager"
+    assert e1["version"] == "5.5.1" and e1["target_sw"] == "typo3"
+    disabled = LLMAssist(None)
+    assert not disabled.enabled and disabled.name == "" and disabled.entities("x") is None
+
+
+def test_handle_assist_runs_the_registry_and_reuses_client_cached_llm(tmp_path):
+    calls = []
+
+    class Counting(MockProvider):
+        def complete(self, title):
+            calls.append(title)
+            return super().complete(title)
+
+    llm = LLMAssist(Counting())
+    terms = _terms(tmp_path)
+    r1 = handle_assist(terms, {"component": "vendor", "title": MSVC}, llm)
+    assert r1["ok"] and r1["terms"] is True and r1["llm"]["enabled"]
+    sources = {c["source"] for c in r1["candidates"]}
+    assert {SOURCE_TITLE, SOURCE_LLM, SOURCE_WEB} <= sources
+    assert r1["llm_entities"]["vendor"] == "microsoft" and calls == [MSVC]
+    # the next step hands the cached entities back -> no second call,
+    # even with a fresh (cold) LLMAssist
+    r2 = handle_assist(terms, {"component": "product", "title": MSVC,
+                               "components": {"vendor": "microsoft"},
+                               "llm_entities": r1["llm_entities"]}, LLMAssist(Counting()))
+    assert calls == [MSVC]
+    assert _by_source(r2["candidates"], SOURCE_LLM)[0]["value"] == "visual c++"
+    assert _by_source(r2["candidates"], SOURCE_TITLE)[0]["value"] == "visual_c++"
+    # use_llm=false: the registry still runs, the LLM is never asked
+    r3 = handle_assist(terms, {"component": "version", "title": MSVC, "use_llm": False},
+                       LLMAssist(Counting()))
+    assert calls == [MSVC] and r3["llm_entities"] is None
+    assert [c["value"] for c in _by_source(r3["candidates"], SOURCE_TITLE)] == ["2013", "12.0.30501"]
+
+
+def test_handle_assist_rejects_unknown_component():
+    res = handle_assist(None, {"component": "edition", "title": "x"})
+    assert res["ok"] is False and "edition" in res["error"]
+
+
+def test_handle_assist_degrades_cleanly_without_sidecar_or_provider():
+    for comp in ASSIST_COMPONENTS:
+        res = handle_assist(None, {"component": comp, "title": MSVC}, None)
+        assert res["ok"] and res["terms"] is False and res["llm"] == {
+            "enabled": False, "provider": "", "error": ""}
+        sources = {c["source"] for c in res["candidates"]}
+        assert SOURCE_DICTIONARY not in sources and SOURCE_LLM not in sources
+        assert SOURCE_WEB in sources  # web deep-links need nothing at all
+    # version still gets its regex candidates with no data whatsoever
+    res = handle_assist(None, {"component": "version", "title": MSVC})
+    assert "12.0.30501" in [c["value"] for c in res["candidates"]]
+
+
+def test_handle_assist_reports_llm_errors_instead_of_failing():
+    class Broken:
+        name = "broken"
+
+        def complete(self, title):
+            return "I refuse"  # no JSON -> extraction error
+
+    res = handle_assist(None, {"component": "vendor", "title": MSVC}, LLMAssist(Broken()))
+    assert res["ok"] and res["llm"]["enabled"] and "no JSON" in res["llm"]["error"]
+    assert _by_source(res["candidates"], SOURCE_LLM) == []
+
+
+def test_every_assist_candidate_value_survives_the_notary(tmp_path):
+    """Helpers propose; the notary validates — and nothing a helper emits
+    (other than web links / flagged-invalid LLM output) may be unbindable."""
+    llm = LLMAssist(MockProvider())
+    for title in (MSVC, "Schneider Electric EcoStruxure 2.1", "FactoryTalk View 12.0 SP1 (x64)"):
+        for comp in ASSIST_COMPONENTS:
+            res = handle_assist(_terms(tmp_path), {"component": comp, "title": title}, llm)
+            for c in res["candidates"]:
+                if c["source"] == SOURCE_WEB or c.get("invalid"):
+                    continue
+                assert bind_components({comp: c["value"]})["ok"], (title, comp, c)
+
+
+def test_save_progress_persists_the_wizard_llm_cache(tmp_path):
+    state = ReviewState.load(make_queue(tmp_path), identity="h")
+    state.save_progress(0, llm_entities={"vendor": "7-zip", "confidence": 0.5})
+    draft = json.loads(state.rows[0]["draft"])
+    assert draft["llm_entities"] == {"vendor": "7-zip", "confidence": 0.5}
+    state.save_progress(1)
+    assert json.loads(state.rows[1]["draft"])["llm_entities"] == {}
+    res = handle_progress(state, {"index": 0, "llm_entities": {"product": "x"}})
+    assert res["ok"] and json.loads(res["row"]["draft"])["llm_entities"] == {"product": "x"}
+
+
+def test_ui_asset_wires_the_advanced_review_wizard():
+    html = UI_ASSET.read_text(encoding="utf-8")
+    assert 'id="advreview"' in html and "/api/assist" in html
+    for fn in ("openWizard", "wizFinish", "wizAssist", "bindWizardCands"):
+        assert fn in html
+    for src in (SOURCE_TITLE, SOURCE_DICTIONARY, SOURCE_LLM, SOURCE_WEB, SOURCE_TRANSFORM):
+        assert f".wsrc.{src}" in html  # every source is visibly labelled
+    assert 'target="_blank"' in html and "llm_entities" in html
+    # still self-contained
+    external = re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
+    assert external == [], external

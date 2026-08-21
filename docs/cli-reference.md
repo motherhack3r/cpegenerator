@@ -115,7 +115,14 @@ Obre un servidor HTTP a `127.0.0.1:8765` (stdlib, sense dependències) amb:
 spans sobre el títol cru, builder CPE d'11 components amb typeahead oficial,
 camp WFN editable (formatted string `cpe:2.3:...`) amb sync bidireccional,
 desar esborranys (`Save draft`) i veredictes finals amb històric JSONL,
-i alta a diccionari custom (MotherHacker o client).
+alta a diccionari custom (MotherHacker o client), i el botó **Advanced
+review** (wizard vendor → product → version amb candidats etiquetats per
+font: títol / diccionari / llm / web / transform; `POST /api/assist`).
+
+```bash
+# Amb el helper LLM del wizard (opcional; mai auto-omple, el notari revalida)
+cpegen review --queue queue.csv --identity humbert --assist-provider lmstudio
+```
 
 | Flag | Descripció |
 |---|---|
@@ -123,6 +130,8 @@ i alta a diccionari custom (MotherHacker o client).
 | `--identity` | Identitat del revisor (obligatori) |
 | `--port` | Port del servidor (default 8765) |
 | `--output` | CSV separat per als veredictes (default: actualitza la cua in-place) |
+| `--assist-provider` | Activa el helper LLM del wizard "Advanced review" (`anthropic`/`openai`/`lmstudio`/`mock`/`replay`); default: off, només helpers locals |
+| `--assist-model` | Model per a `--assist-provider` (default del provider si s'omet) |
 | `--terms` | Sidecar del typeahead (default `data/cache/cpe_terms.json.gz`) |
 | `--dict` | Snapshot per construir el sidecar automàticament si falta |
 | `--motherhacker-dict` | CSV on escriu l'acció "Add to dictionary" per a MotherHacker |

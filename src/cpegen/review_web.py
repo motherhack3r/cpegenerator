@@ -60,6 +60,18 @@ under :data:`DEFAULT_CUSTOM_DICT_DIR` — same NIE schema, a different
 book, exactly the layering :class:`cpegen.dictionary.LayeredDictionary`
 already expects.
 
+"Advanced review" (design decided 2026-08-21): a per-row, step-by-step
+wizard (vendor -> product -> version; the other 8 components as plain
+fields) backed by ``POST /api/assist`` and a per-component registry of
+pure helpers (:data:`ASSIST_HELPERS`): title scan and reverse lookup over
+the same typeahead sidecar, regex version extraction with explicit
+one-click transforms, pre-built web search deep-links (never fetched by
+the server), and an optional LLM helper (``--assist-provider``) whose
+JSON entities are revalidated through the notary before being shown and
+are never auto-filled. On finish/exit the wizard lands in the normal
+builder with fields and title spans filled — the bind/unbind/draft/NIE
+backend is untouched. NVD live API was explicitly ruled out.
+
 The server binds 127.0.0.1 only. No network is ever required: the HTML
 asset is self-contained (web fonts degrade to system fallbacks offline).
 """
@@ -469,6 +481,402 @@ def handle_nie_add(state: "ReviewState", motherhacker_path: Path,
     return {"ok": True, "cpe": cpe, "origin": origin, "path": str(target_path)}
 
 
+# -- advanced review wizard: per-component assist registry (2026-08-21) ----
+#
+# "Advanced review" (design decided 2026-08-21): a step-by-step wizard —
+# vendor -> product -> version (the other 8 components stay plain fields)
+# — where every step shows CANDIDATES from specialised helpers. A
+# candidate is ``{value, source, evidence, span?}``; the UI labels the
+# source (title / dictionary / llm / web / transform), clicking one fills
+# the field AND marks the title span, and free text always stays valid.
+# Helpers PROPOSE; the notary (`bind_components`) validates — nothing here
+# ever produces a CPE string, and an LLM answer is revalidated component
+# by component before it is even shown. The server never fetches the web:
+# "web" candidates are pre-built search URLs the reviewer opens in a new
+# tab and judges. NVD live API was explicitly ruled out (no network).
+
+ASSIST_COMPONENTS = ("vendor", "product", "version")
+
+SOURCE_TITLE = "title"
+SOURCE_DICTIONARY = "dictionary"
+SOURCE_LLM = "llm"
+SOURCE_WEB = "web"
+SOURCE_TRANSFORM = "transform"
+
+_WS_SPLIT_RE = re.compile(r"(\s+)")
+MAX_NGRAM = 4
+
+
+def title_tokens(title: str) -> list[str]:
+    """Same tokenisation as the UI (``title.split(/(\\s+)/)`` keeping the
+    separators as tokens) so a server-side span ``[a, b]`` indexes straight
+    into the client's token array."""
+    return [t for t in _WS_SPLIT_RE.split(title or "") if t]
+
+
+def title_ngrams(tokens: list[str], max_n: int = MAX_NGRAM
+                 ) -> list[tuple[str, int, int]]:
+    """Word n-grams over the non-separator tokens as ``(text, a, b)`` with
+    ``a``/``b`` token indices (inclusive) into ``tokens``. Longest first,
+    so a 3-word hit ranks above the 1-word hit it contains."""
+    words = [(k, t) for k, t in enumerate(tokens) if t.strip()]
+    out = []
+    for n in range(min(max_n, len(words)), 0, -1):
+        for i in range(len(words) - n + 1):
+            chunk = words[i:i + n]
+            text = " ".join(t for _, t in chunk)
+            out.append((text, chunk[0][0], chunk[-1][0]))
+    return out
+
+
+def term_key(value: str) -> str:
+    """Lookup key shared by dictionary terms and title n-grams: the same
+    ``clean()`` the matcher/typeahead use (lowercase, separators folded)
+    so "Visual C++" meets ``visual_c\\+\\+`` and "Schneider Electric" meets
+    both ``schneider-electric`` and ``schneider_electric``."""
+    return clean((value or "").replace("\\", ""))
+
+
+_ESCAPE_RE = re.compile(r"\\(.)")
+
+
+def raw_term(value: str) -> str:
+    """Dictionary term (formatted-string escaped, e.g. ``visual_c\+\+``)
+    -> the RAW value the builder fields hold (``visual_c++``): the builder
+    is un-escaped by contract (``bind_components`` -> ``normalize_raw`` ->
+    ``WFN.bind`` escapes), so feeding it an escaped term would double-escape
+    the CPE."""
+    return _ESCAPE_RE.sub(r"\1", value or "")
+
+
+def _lookup_map(items: list[tuple[str, int]]) -> dict[str, list[tuple[str, int]]]:
+    out: dict[str, list[tuple[str, int]]] = {}
+    for v, n in items:
+        key = term_key(v)
+        if key:
+            out.setdefault(key, []).append((v, n))
+    return out
+
+
+def terms_lookups(terms: TermsIndex) -> dict:
+    """Lazily built O(1) lookups over a :class:`TermsIndex` — cached on the
+    instance (never serialised): ``vendors``/``products`` by
+    :func:`term_key`, and ``owners`` = the inverted ``pairs`` (product ->
+    vendors that ship it, for the reverse lookup helper)."""
+    cache = getattr(terms, "_assist_lookups", None)
+    if cache is not None:
+        return cache
+    owners: dict[str, list[tuple[str, int]]] = {}
+    for vendor, prods in terms.pairs.items():
+        for p, n in prods:
+            owners.setdefault(term_key(p), []).append((vendor, n))
+    for lst in owners.values():
+        lst.sort(key=lambda vn: (-vn[1], vn[0]))
+    cache = {"vendors": _lookup_map(terms.vendors),
+             "products": _lookup_map(terms.products),
+             "owners": owners}
+    try:
+        terms._assist_lookups = cache  # type: ignore[attr-defined]
+    except AttributeError:
+        pass
+    return cache
+
+
+@dataclass
+class AssistContext:
+    """Everything a helper may look at. Pure data — helpers never touch
+    sockets, disk or the network."""
+
+    component: str
+    title: str
+    components: dict = field(default_factory=dict)
+    terms: TermsIndex | None = None
+    llm_entities: dict | None = None   # one cached LLM answer per title
+    tokens: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if not self.tokens:
+            self.tokens = title_tokens(self.title)
+
+    def value(self, attr: str) -> str:
+        raw = str(self.components.get(attr, "") or "").strip()
+        return raw if raw not in ("*", "-") else ""
+
+
+def candidate(value: str, source: str, evidence: str, span=None, **extra) -> dict:
+    c = {"value": value, "source": source, "evidence": evidence,
+         "span": list(span) if span else None}
+    c.update(extra)
+    return c
+
+
+def _scan_title(ctx: AssistContext, lookup: dict, source: str,
+                label: str) -> list[dict]:
+    """Title n-grams vs one lookup map — the exact tier of the typeahead
+    cascade (a whole n-gram equals a term under ``clean()``), never prefix/
+    substring: a 2-letter n-gram must not light up half the dictionary."""
+    out, seen = [], set()
+    for text, a, b in title_ngrams(ctx.tokens):
+        for v, n in lookup.get(term_key(text), ()):
+            if v in seen:
+                continue
+            seen.add(v)
+            out.append(candidate(raw_term(v), source,
+                                 f"title span \"{text}\" = {label} {v} "
+                                 f"({n} CPEs)", (a, b), count=n))
+    return out
+
+
+def helper_vendor_title_scan(ctx: AssistContext) -> list[dict]:
+    if ctx.terms is None:
+        return []
+    return _scan_title(ctx, terms_lookups(ctx.terms)["vendors"],
+                       SOURCE_TITLE, "vendor")
+
+
+def helper_vendor_reverse_lookup(ctx: AssistContext) -> list[dict]:
+    """Title n-grams vs the aggregated products -> the vendors that own
+    them (``TermsIndex.pairs`` inverted). Finds the vendor when only the
+    product name is in the title ("Acrobat Reader DC" -> adobe)."""
+    if ctx.terms is None:
+        return []
+    owners = terms_lookups(ctx.terms)["owners"]
+    out, seen = [], {}
+    for text, a, b in title_ngrams(ctx.tokens):
+        for vendor, n in owners.get(term_key(text), ()):
+            if vendor in seen:
+                continue
+            seen[vendor] = True
+            out.append(candidate(raw_term(vendor), SOURCE_DICTIONARY,
+                                 f"owns product \"{text}\" found in the "
+                                 f"title ({n} CPEs)", None, count=n))
+    return out
+
+
+def web_links(component: str, title: str, components: dict) -> list[dict]:
+    """Pre-built search URLs. Pure string construction — the server never
+    fetches anything; the reviewer opens them in a new tab and judges."""
+    from urllib.parse import quote_plus
+    product = str(components.get("product", "") or "").strip(" *-")
+    vendor = str(components.get("vendor", "") or "").strip(" *-")
+    subject = " ".join(x for x in (vendor, product) if x) or title
+    if component == "vendor":
+        query = f"{product or title} vendor"
+    elif component == "product":
+        query = f"{vendor} {title}".strip() + " product"
+    else:
+        query = f"{subject} version"
+    nvd_kw = quote_plus(subject)
+    return [
+        candidate("DuckDuckGo", SOURCE_WEB, query,
+                  url="https://duckduckgo.com/?q=" + quote_plus(query)),
+        candidate("Google", SOURCE_WEB, query,
+                  url="https://www.google.com/search?q=" + quote_plus(query)),
+        candidate("NVD CPE search", SOURCE_WEB, subject,
+                  url="https://nvd.nist.gov/products/cpe/search/results"
+                      f"?namingFormat=2.3&keyword={nvd_kw}"),
+    ]
+
+
+def helper_web_links(ctx: AssistContext) -> list[dict]:
+    return web_links(ctx.component, ctx.title, ctx.components)
+
+
+def _find_span(tokens: list[str], value: str):
+    """First title span whose words equal ``value`` under term_key (so an
+    LLM/regex value can still mark the title); ``None`` when absent."""
+    key = term_key(value)
+    if not key:
+        return None
+    for text, a, b in title_ngrams(tokens, max_n=8):
+        if term_key(text) == key:
+            return (a, b)
+    return None
+
+
+def helper_llm(ctx: AssistContext) -> list[dict]:
+    """Surface the cached LLM entity for this component — revalidated
+    through the notary's own component path first (never shown raw,
+    never auto-filled: the reviewer clicks it like any other candidate)."""
+    ent = ctx.llm_entities or {}
+    raw = ent.get(ctx.component)
+    if not raw or not isinstance(raw, str):
+        return []
+    check = bind_components({ctx.component: raw})
+    if not check["ok"]:
+        return [candidate(raw, SOURCE_LLM,
+                          "LLM proposal REJECTED by the notary: "
+                          + "; ".join(check["errors"]), None, invalid=True)]
+    conf = ent.get("confidence")
+    ev = "LLM proposal (revalidated by the notary)"
+    if isinstance(conf, (int, float)):
+        ev += f", confidence {conf:.2f}"
+    return [candidate(raw, SOURCE_LLM, ev, _find_span(ctx.tokens, raw),
+                      normalized=check["components"][ctx.component])]
+
+
+def helper_product_title_scan(ctx: AssistContext) -> list[dict]:
+    """Title n-grams vs the chosen vendor's own products (``pairs[vendor]``,
+    step 1's answer); falls back to the global aggregate when the vendor is
+    blank or unknown."""
+    if ctx.terms is None:
+        return []
+    vendor = ctx.value("vendor")
+    if vendor and vendor in ctx.terms.pairs:
+        lookup = _lookup_map(ctx.terms.pairs[vendor])
+        label = f"product of {vendor}"
+    else:
+        lookup = terms_lookups(ctx.terms)["products"]
+        label = "product (any vendor)"
+    return _scan_title(ctx, lookup, SOURCE_TITLE, label)
+
+
+#: Version shapes found in inventory titles. Order = display order; a
+#: token is reported once, under the first pattern that matches it.
+VERSION_PATTERNS = (
+    ("dotted", re.compile(r"^v?\d+(?:\.\d+)+[a-z0-9._-]*$", re.I)),
+    ("year", re.compile(r"^(?:19|20)\d{2}$")),
+    ("build", re.compile(r"^\d{4,}$")),
+    ("release", re.compile(r"^r\d+[a-z]?$", re.I)),
+    ("bare", re.compile(r"^v?\d+[a-z]?$", re.I)),
+)
+_SP_RE = re.compile(r"\b(sp\s?\d+|service\s+pack\s+\d+)\b", re.I)
+_ARCH_RE = re.compile(r"\b(x64|x86|x86_64|amd64|arm64|ia64|win64|win32|32-bit|64-bit)\b", re.I)
+
+
+def helper_version_regex(ctx: AssistContext) -> list[dict]:
+    out, seen = [], set()
+    for k, tok in enumerate(ctx.tokens):
+        word = tok.strip().strip("()[],;:")
+        if not word or not any(ch.isdigit() for ch in word):
+            continue
+        for label, rx in VERSION_PATTERNS:
+            if rx.match(word):
+                if word in seen:
+                    break
+                seen.add(word)
+                out.append(candidate(word, SOURCE_TITLE,
+                                     f"{label} version token in the title",
+                                     (k, k), kind=label))
+                break
+    return out
+
+
+def helper_version_transforms(ctx: AssistContext) -> list[dict]:
+    """Explicit one-click transforms — buttons, never silent rewrites.
+    ``apply`` is the exact field set the click performs."""
+    out = []
+    version = ctx.value("version")
+    if version and re.match(r"^v\d", version, re.I):
+        out.append(candidate(version[1:], SOURCE_TRANSFORM,
+                             f"strip leading v: {version} -> {version[1:]}",
+                             None, apply={"version": version[1:]}))
+    m = _SP_RE.search(ctx.title)
+    if m:
+        sp = re.sub(r"service\s+pack\s+", "sp", m.group(1), flags=re.I)
+        sp = re.sub(r"\s+", "", sp).lower()
+        out.append(candidate(sp, SOURCE_TRANSFORM,
+                             f"\"{m.group(1)}\" -> update = {sp}", None,
+                             apply={"update": sp}))
+    m = _ARCH_RE.search(ctx.title)
+    if m:
+        hw = m.group(1).lower()
+        out.append(candidate(hw, SOURCE_TRANSFORM,
+                             f"\"{m.group(1)}\" -> target_hw = {hw}", None,
+                             apply={"target_hw": hw}))
+    return out
+
+
+#: The registry: component -> ordered helpers. Adding a helper = adding a
+#: pure function here; the endpoint, the UI labelling and the tests need
+#: nothing else. Every helper degrades to ``[]`` with no sidecar / no LLM.
+ASSIST_HELPERS: dict[str, list] = {
+    "vendor": [helper_vendor_title_scan, helper_vendor_reverse_lookup,
+               helper_llm, helper_web_links],
+    "product": [helper_product_title_scan, helper_llm, helper_web_links],
+    "version": [helper_version_regex, helper_version_transforms, helper_llm,
+                helper_web_links],
+}
+
+
+class LLMAssist:
+    """One LLM call per title, memoised — serves every wizard step.
+
+    Wraps an :mod:`cpegen.extractor` provider (anthropic / openai /
+    lmstudio / mock ...) through :func:`cpegen.extractor.extract`: the
+    model returns JSON entities, never a CPE. ``None`` provider = disabled.
+    """
+
+    ENTITY_KEYS = ("vendor", "product", "version", "update", "target_sw")
+
+    def __init__(self, provider=None):
+        self.provider = provider
+        self.cache: dict[str, dict] = {}
+
+    @property
+    def enabled(self) -> bool:
+        return self.provider is not None
+
+    @property
+    def name(self) -> str:
+        if self.provider is None:
+            return ""
+        return getattr(self.provider, "name", None) or type(self.provider).__name__
+
+    def entities(self, title: str) -> dict | None:
+        if not self.enabled:
+            return None
+        if title in self.cache:
+            return self.cache[title]
+        from .extractor import extract
+        ext = extract(self.provider, title)
+        if ext.error:
+            ent = {"error": ext.error}
+        else:
+            ent = {k: getattr(ext, k) for k in self.ENTITY_KEYS}
+            ent["confidence"] = ext.confidence
+        self.cache[title] = ent
+        return ent
+
+
+def handle_assist(terms: TermsIndex | None, payload: dict,
+                  llm: LLMAssist | None = None) -> dict:
+    """Pure handler behind ``POST /api/assist``.
+
+    ``payload``: ``component`` (vendor|product|version), ``title``, the
+    builder ``components`` so far, optional ``llm_entities`` (the answer a
+    previous step already cached client-side / in the draft — reused, no
+    second call) and ``use_llm`` (default true). Returns ``{ok,
+    component, candidates, llm_entities, llm}`` where ``llm`` states
+    whether an assistant is configured, so the UI can say why a source is
+    absent instead of showing a silent blank.
+    """
+    component = str(payload.get("component", "") or "")
+    if component not in ASSIST_COMPONENTS:
+        return {"ok": False, "error": f"unknown component {component!r}; "
+                                       f"expected one of {ASSIST_COMPONENTS}"}
+    title = str(payload.get("title", "") or "")
+    components = payload.get("components") if isinstance(
+        payload.get("components"), dict) else {}
+    entities = payload.get("llm_entities") if isinstance(
+        payload.get("llm_entities"), dict) else None
+    use_llm = bool(payload.get("use_llm", True))
+    if entities is None and use_llm and llm is not None and llm.enabled:
+        entities = llm.entities(title)
+    ctx = AssistContext(component=component, title=title,
+                        components=components, terms=terms,
+                        llm_entities=entities)
+    cands: list[dict] = []
+    for helper in ASSIST_HELPERS[component]:
+        cands.extend(helper(ctx))
+    return {"ok": True, "component": component, "candidates": cands,
+            "llm_entities": entities,
+            "llm": {"enabled": bool(llm and llm.enabled),
+                    "provider": llm.name if llm and llm.enabled else "",
+                    "error": (entities or {}).get("error", "")},
+            "terms": terms is not None}
+
+
 @dataclass
 class ReviewState:
     """The queue rows plus the incremental-save bookkeeping."""
@@ -548,8 +956,8 @@ class ReviewState:
 
     def save_progress(self, index: int, annotated_title: str = "",
                       notes: str = "", components: dict | None = None,
-                      cpe_text: str = "", extra_marks: dict | None = None
-                      ) -> dict:
+                      cpe_text: str = "", extra_marks: dict | None = None,
+                      llm_entities: dict | None = None) -> dict:
         """Persist partial work without a final verdict ("save without
         marking done"). Keeps the row pending — `verdict` becomes
         ``in_progress``, which is neither in :data:`VERDICTS` nor counted
@@ -581,6 +989,9 @@ class ReviewState:
             "components": components or {},
             "cpe_text": (cpe_text or "").strip(),
             "extra_marks": extra_marks or {},
+            # the wizard's one-call-per-title LLM answer (2026-08-21), so
+            # a resumed draft never pays for a second call
+            "llm_entities": llm_entities or {},
         })
         row["annotator"] = self.identity
         row["timestamp"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -695,6 +1106,8 @@ def handle_progress(state: ReviewState, payload: dict) -> dict:
             cpe_text=str(payload.get("cpe_text", "")),
             extra_marks=payload.get("extra_marks")
             if isinstance(payload.get("extra_marks"), dict) else None,
+            llm_entities=payload.get("llm_entities")
+            if isinstance(payload.get("llm_entities"), dict) else None,
         )
     except VerdictError as exc:
         return {"ok": False, "error": str(exc)}
@@ -746,6 +1159,7 @@ class _Handler(BaseHTTPRequestHandler):
     terms: "TermsIndex | None" = None  # set by serve(); None degrades cleanly
     motherhacker_dict_path: Path = DEFAULT_MOTHERHACKER_DICT  # set by serve()
     custom_dict_dir: Path = DEFAULT_CUSTOM_DICT_DIR  # set by serve()
+    llm: "LLMAssist | None" = None  # set by serve(); None = no LLM assist
 
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
@@ -794,7 +1208,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path not in ("/api/verdict", "/api/bind", "/api/progress",
-                             "/api/unbind", "/api/nie"):
+                             "/api/unbind", "/api/nie", "/api/assist"):
             self._send_json({"ok": False, "error": "not found"}, 404)
             return
         length = int(self.headers.get("Content-Length") or 0)
@@ -818,6 +1232,10 @@ class _Handler(BaseHTTPRequestHandler):
                                     self.custom_dict_dir, payload)
             self._send_json(result, 200 if result["ok"] else 422)
             return
+        if self.path == "/api/assist":
+            result = handle_assist(self.terms, payload, self.llm)
+            self._send_json(result, 200 if result["ok"] else 400)
+            return
         result = handle_verdict(self.state, payload)
         self._send_json(result, 200 if result["ok"] else 422)
 
@@ -830,10 +1248,21 @@ def serve(queue_path: Path | str, identity: str, port: int = 8765,
           terms_path: Path | str | None = None,
           dictionary_path: Path | str | None = None,
           motherhacker_dict: Path | str | None = None,
-          custom_dict_dir: Path | str | None = None) -> None:
-    """Blocking server loop; Ctrl+C stops it (all verdicts already saved)."""
+          custom_dict_dir: Path | str | None = None,
+          assist_provider: str | None = None,
+          assist_model: str | None = None) -> None:
+    """Blocking server loop; Ctrl+C stops it (all verdicts already saved).
+
+    ``assist_provider`` (anthropic / openai / lmstudio / mock / replay)
+    turns on the wizard's LLM helper — one call per title, memoised;
+    ``None`` leaves the wizard fully functional with local helpers only.
+    """
     state = ReviewState.load(queue_path, identity=identity,
                              output_path=output_path)
+    llm = LLMAssist(None)
+    if assist_provider:
+        from .extractor import get_provider
+        llm = LLMAssist(get_provider(assist_provider, assist_model))
     terms = load_or_build_terms(
         terms_path or DEFAULT_TERMS, dictionary_path or DEFAULT_SNAPSHOT)
     mh_path = Path(motherhacker_dict) if motherhacker_dict else DEFAULT_MOTHERHACKER_DICT
@@ -841,6 +1270,7 @@ def serve(queue_path: Path | str, identity: str, port: int = 8765,
     handler = type("BoundHandler", (_Handler,), {
         "state": state, "terms": terms,
         "motherhacker_dict_path": mh_path, "custom_dict_dir": cd_dir,
+        "llm": llm,
     })
     server = ThreadingHTTPServer(("127.0.0.1", port), handler)
     p = state.progress()
@@ -857,6 +1287,7 @@ def serve(queue_path: Path | str, identity: str, port: int = 8765,
               f"{sum(len(v) for v in terms.pairs.values())} vendor:product "
               f"pairs — typeahead enabled")
     print(f"  dicts:    MotherHacker -> {mh_path}  |  custom -> {cd_dir}/<target>.csv")
+    print(f"  assist:   {('LLM helper via ' + llm.name) if llm.enabled else 'local helpers only (no LLM; --assist-provider to enable)'}")
     print(f"  open:     http://127.0.0.1:{port}/   (Ctrl+C to stop; every "
           f"verdict is already on disk)")
     try:
