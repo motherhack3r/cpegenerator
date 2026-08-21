@@ -5,6 +5,12 @@ anglès). Les instruccions per al col·laborador són a `../CLAUDE.md`; les
 fases i el registre de decisions, a `../ROADMAP.md` — aquí hi viu el
 material de referència, els plans i els deliverables visuals.
 
+## Operativa
+
+| Document | Contingut |
+|---|---|
+| [`cli-reference.md`](cli-reference.md) | **Referència CLI completa**: totes les subcomandes `cpegen` amb sintaxi, flags, exemples i variables d'entorn |
+
 ## Referència normativa
 
 | Document | Contingut |
@@ -34,6 +40,13 @@ material de referència, els plans i els deliverables visuals.
 |---|---|
 | [`data-curation-plan.md`](data-curation-plan.md) | Pla de curació dels exports SCCM (passos 1–6, tots ✅) amb els resultats de cada pas |
 | [`raw-run-playbook.md`](raw-run-playbook.md) | Playbook del run massiu del RAW: ordres exactes, semàntica del resume, arxiu i el "després" |
+| [`reader-league-implementation-plan.md`](reader-league-implementation-plan.md) | Pla operatiu de la Fase 9: gates G1–G4, checklist de publicació, tasques descartades |
+
+## Arxiu de decisions
+
+| Document | Contingut |
+|---|---|
+| [`historical/2026-08-17-decisions-archive.md`](historical/2026-08-17-decisions-archive.md) | Decisions i fases completades anteriors a la Fase 9, arxivades per mantenir el ROADMAP llegible |
 
 ## media/ — deliverables visuals
 

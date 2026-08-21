@@ -28,40 +28,9 @@ Objectiu: generar i validar WFN/CPE 2.3 a partir de títols de software en text 
 - Tota decisió d'arquitectura s'apunta a `ROADMAP.md` (secció Decisions).
 - Abans de construir res nou, comprovar el benchmark: cada canvi s'ha de poder mesurar contra el gold set (`data/gold/`) i la línia base 2023 (`docs/match-rules.md`).
 
-## Estat actual
+## Orientació ràpida
 
-Fases 0, 2, 3, 4 i 6 completades: pipeline CLI funcional (`python -m cpegen`)
-amb validador ABNF, extractor LLM multi-proveïdor (anthropic/openai/lmstudio/
-mock/replay), matcher M1–M3 purament determinista (`docs/evaluation.md`),
-agent tool-use, i el cicle `inventory` → `run` → `vulns` validat end-to-end
-amb dades reals (2026-07-14).
-
-2026-08-04/05: curació SCCM completa (passos 1–6 del pla: `cpegen curate`/
-`tier`/`split`, 480k files curades, splits disjunts per producte, 0 leaks);
-diccionari CPE local des del KGCS (1,77M entrades, snapshot a
-`data/cache/cpe_dictionary.jsonl.gz`) amb lookup híbrid (`run --dict`);
-harness `cpegen bench` amb provider `lmstudio` natiu (reasoning off real,
-temperature 0) i arxiu versionat a `data/benchmarks/` amb PROVENANCE.
-
-2026-08-05 — **sentència del benchmark gold-1k** (5 models × 2 modes,
-`data/benchmarks/20260805-final-gold1k-pc/`): mode crida única JSON guanya
-sense pal·liatius (el millor per-field queda sota el pitjor single a 1,4-6×
-el cost); corba single 701→837 exactes (0.6B→8B), genoll al `qwen3-1.7b`,
-sostre al `qwen3-8b` (91% M1x). Decisió de run massiu: **cascada**
-`qwen3-1.7b` → `qwen3-8b` (només la cua no-M1x). Tooling llest i testejat
-(`cpegen titles` / `run --resume` / `cpegen escalate`); prep del RAW summary
-ja executada (280.901 → 90.066 títols únics; cascada estimada ≈ 1 dia de
-GPU). Fase 8 (fine-tune de domini) anotada com a proposta no prioritzada.
-
-2026-08-13 — **Fase 9.1 (canonicalització) tancada, G1 obert**: clean+Dice al
-matcher (M1x ×1,58 sobre el pilot 10k), rangs de versió, `search_dictionary`
-de l'agent unificat amb el pipeline. **Fase 9.2 (capes de diccionari)
-implementada**: `LayeredDictionary` (NVD → MotherHacker → origen), columna
-`dictionary_source`, esquema NIE del diccionari custom (`docs/dataset-
-catalog.md` §4b) — 287 tests verds offline, no-regressió provada amb capes
-buides. Registre complet a `ROADMAP.md` (Fase 9, secció Decisions).
-
-Següent: WP3 (golds per origen) i WP4 (equip de lectors), o el run del RAW al
-PC amb la cascada (ordres exactes a `docs/raw-run-playbook.md`) — ajornat
-post-publicació. `docs/reader-league-implementation-plan.md` és l'operativa
-vigent de la Fase 9.
+- **On som ara**: `STATUS.md` (fase actual, pendents, comandes d'ús diari)
+- **Totes les subcomandes CLI**: `docs/cli-reference.md`
+- **Fases i decisions**: `ROADMAP.md` (fases actives) + `docs/historical/` (arxiu)
+- **Referència normativa**: `docs/` (indexat a `docs/README.md`)
